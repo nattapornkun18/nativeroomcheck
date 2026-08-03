@@ -3,321 +3,498 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>สรุปตรวจซิลิโคนขอบอ่าง ชั้น 3–4</title>
+<title>บันทึกตรวจซิลิโคนขอบอ่าง</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#E6EBEA; --sheet:#fff; --ink:#0F1E1D; --mid:#3E4C4B; --soft:#778583;
+    --bg:#EEF2F1; --sheet:#fff; --ink:#0F1E1D; --mid:#3E4C4B; --soft:#7B8886;
     --line:#DCE3E1; --seal:#14605A;
-    --pass:#2C7854; --near:#A9761F; --fail:#AE3A2F; --skip:#6B7877;
+    --pass:#1B7A4B; --near:#A9761F; --fail:#B23C31; --skip:#6B7877;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:"IBM Plex Sans Thai",system-ui,sans-serif;font-size:15px;line-height:1.6}
-  .sheet{max-width:1060px;margin:0 auto;background:var(--sheet)}
-  .pad{padding:0 34px}
+  .sheet{max-width:820px;margin:0 auto;padding-bottom:60px}
 
-  header{padding:38px 34px 26px;border-bottom:3px solid var(--ink)}
-  .eyebrow{font-family:"Chakra Petch",sans-serif;font-size:11.5px;letter-spacing:.2em;
-    text-transform:uppercase;color:var(--seal);font-weight:600;margin:0 0 8px}
-  h1{font-family:"Chakra Petch",sans-serif;font-size:clamp(26px,5vw,38px);font-weight:700;
-    margin:0 0 16px;line-height:1.2}
-  .facts{display:flex;flex-wrap:wrap;gap:6px 28px;font-size:13.5px;color:var(--soft)}
-  .facts b{font-family:"IBM Plex Mono",monospace;color:var(--ink);font-weight:600}
+  header{padding:30px 20px 22px}
+  .eyebrow{font-family:"Chakra Petch",sans-serif;font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--seal);font-weight:600;margin:0 0 6px}
+  h1{font-family:"Chakra Petch",sans-serif;font-size:clamp(22px,5vw,30px);font-weight:700;margin:0;line-height:1.2}
+  .sublede{color:var(--soft);font-size:13px;margin:8px 0 0}
 
-  .std{background:#F3F7F6;border-left:4px solid var(--seal);padding:20px 24px;margin:28px 0 0}
-  .std h2{font-family:"Chakra Petch",sans-serif;font-size:15px;margin:0 0 12px;font-weight:600}
-  .std ol{margin:0;padding-left:20px}
-  .std li{margin-bottom:7px;font-size:14px;color:var(--mid)}
-  .std li:last-child{margin-bottom:0}
-  .std b{color:var(--ink);font-weight:600}
+  .warn{margin:0 20px 18px;background:#FFF6E3;border-left:4px solid var(--near);
+    padding:13px 16px;font-size:13px;color:#7A5312}
+  .warn code{background:#fff;padding:1px 6px;font-family:"IBM Plex Mono",monospace;font-size:12px}
+
+  .card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;
+    margin:0 20px 14px;overflow:hidden}
+  .card > .cap{background:#F5F8F7;border-bottom:1px solid var(--line);
+    padding:11px 16px;font-family:"Chakra Petch",sans-serif;font-size:12px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--mid);font-weight:600}
+  .fld{padding:14px 16px;border-bottom:1px solid var(--line)}
+  .fld:last-child{border-bottom:0}
+  .fld > .lab{font-size:13.5px;font-weight:500;margin-bottom:9px}
+  .fld > .lab span{color:var(--soft);font-weight:400;font-size:12px;margin-left:6px}
+
+  .opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .opts.tight{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}
+  .opt{font-family:inherit;font-size:14px;padding:12px 10px;text-align:center;
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:5px;
+    cursor:pointer;line-height:1.35;transition:.12s}
+  .opt:hover{border-color:var(--seal)}
+  .opt[aria-pressed="true"]{background:var(--pass);border-color:var(--pass);color:#fff;font-weight:500}
+  .opt[aria-pressed="true"][data-bad="1"]{background:var(--fail);border-color:var(--fail)}
+  .opt[aria-pressed="true"][data-warn="1"]{background:var(--near);border-color:var(--near)}
+  .opt.mono{font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;padding:11px 4px}
+  .opt:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
+
+  textarea,input{width:100%;font-family:inherit;font-size:14px;padding:10px 12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:5px}
+  textarea{resize:vertical;min-height:60px}
+  textarea:focus,input:focus{outline:2px solid var(--seal);outline-offset:-1px}
+  .hint{font-size:12px;color:var(--soft);margin-top:8px}
+
+  .verdict{margin:0 20px 14px;border-radius:6px;padding:16px 18px;display:flex;
+    gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-left-width:5px}
+  .verdict .g{font-family:"Chakra Petch",sans-serif;font-size:23px;font-weight:700;white-space:nowrap}
+  .verdict .why{font-size:12.5px;color:var(--mid)}
+  .verdict[data-g="ผ่าน"]{border-left-color:var(--pass)} .verdict[data-g="ผ่าน"] .g{color:var(--pass)}
+  .verdict[data-g="เกือบผ่าน"]{border-left-color:var(--near)} .verdict[data-g="เกือบผ่าน"] .g{color:var(--near)}
+  .verdict[data-g="ไม่ผ่าน"]{border-left-color:var(--fail)} .verdict[data-g="ไม่ผ่าน"] .g{color:var(--fail)}
+  .verdict[data-g="ไม่ได้ตรวจ"]{border-left-color:var(--skip)} .verdict[data-g="ไม่ได้ตรวจ"] .g{color:var(--skip)}
+
+  .actions{margin:0 20px 30px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{font-family:inherit;font-size:15px;font-weight:500;padding:13px 26px;
+    border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;border-radius:5px}
+  .btn.ghost{background:#fff;color:var(--ink)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .msg{font-size:13px} .msg.ok{color:var(--pass)} .msg.err{color:var(--fail)}
+
+  h2.sec{font-family:"Chakra Petch",sans-serif;font-size:18px;font-weight:600;margin:34px 20px 4px}
+  .sub{color:var(--soft);font-size:12.5px;margin:0 20px 16px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 20px 14px}
+  .tabs button{font-family:"IBM Plex Mono",monospace;font-size:13px;padding:7px 12px;
+    border:1px solid var(--line);background:#fff;color:var(--mid);border-radius:4px;cursor:pointer}
+  .tabs button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 
   .score{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
-    border:1px solid var(--line);margin-top:28px}
-  .sc{background:#fff;padding:16px 14px}
-  .sc .n{font-family:"Chakra Petch",sans-serif;font-size:34px;font-weight:700;line-height:1}
-  .sc .t{font-size:13px;color:var(--soft);margin-top:4px}
-  .sc .u{font-size:11.5px;color:var(--soft);margin-top:2px}
+    border:1px solid var(--line);margin:0 20px 14px;border-radius:6px;overflow:hidden}
+  .sc{background:#fff;padding:13px}
+  .sc .n{font-family:"Chakra Petch",sans-serif;font-size:27px;font-weight:700;line-height:1}
+  .sc .t{font-size:12px;color:var(--soft);margin-top:3px}
   .sc[data-g=pass] .n{color:var(--pass)} .sc[data-g=near] .n{color:var(--near)}
   .sc[data-g=fail] .n{color:var(--fail)} .sc[data-g=skip] .n{color:var(--skip)}
-  .stack{display:flex;height:14px;margin-top:14px;border:1px solid var(--line)}
 
-  section{padding:0 34px;margin-top:52px}
-  h2.sec{font-family:"Chakra Petch",sans-serif;font-size:21px;font-weight:600;margin:0 0 4px}
-  .sub{color:var(--soft);font-size:13.5px;margin:0 0 20px}
-
-  .scroll{overflow-x:auto;border:1px solid var(--line)}
-  table{width:100%;border-collapse:collapse;min-width:720px}
-  th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.06em;
-    color:var(--soft);padding:10px 12px;border-bottom:1px solid var(--line);background:#FAFCFB;white-space:nowrap}
-  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px}
-  tr:last-child td{border-bottom:0}
-  td.rm{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:17px;width:112px;white-space:nowrap}
-  td.rm small{display:block;font-family:"IBM Plex Sans Thai",sans-serif;font-size:11px;
-    font-weight:400;line-height:1.45;color:var(--soft);white-space:normal;margin-top:1px}
-  td.rm small.bad{color:var(--fail)}
+  .scroll{margin:0 20px;overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+  table{width:100%;border-collapse:collapse;min-width:820px}
+  th{text-align:left;font-size:11px;letter-spacing:.05em;color:var(--soft);font-weight:600;
+    padding:10px 12px;background:#FAFCFB;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+  td.rm{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;width:62px}
+  tr.band td{font-family:"Chakra Petch",sans-serif;font-weight:600;font-size:13px;
+    background:#F1F5F4;color:var(--seal)}
+  tr.band .qty{float:right;font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11.5px;color:var(--soft)}
   .ok{color:var(--pass)} .no{color:var(--fail);font-weight:500} .na{color:#AEB9B7}
+  .badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500;white-space:nowrap}
+  .badge[data-g="ผ่าน"]{background:#E2F0E9;color:var(--pass)}
+  .badge[data-g="เกือบผ่าน"]{background:#F7EEDC;color:#8A5D14}
+  .badge[data-g="ไม่ผ่าน"]{background:#F7E2DF;color:var(--fail)}
+  .badge[data-g="ไม่ได้ตรวจ"]{background:#E7ECEB;color:var(--skip)}
+  .badge[data-g="ยังไม่ตรวจ"]{background:#F2F5F4;color:#AEB9B7}
 
-  tr.band td{padding:9px 12px;font-family:"Chakra Petch",sans-serif;font-weight:600;font-size:14px;
-    border-bottom:1px solid var(--line)}
-  tr.band .qty{float:right;font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:12.5px;opacity:.75}
-  tr.band[data-g=pass] td{background:#EDF5F1;color:var(--pass)}
-  tr.band[data-g=near] td{background:#FAF3E6;color:#8A5D14}
-  tr.band[data-g=fail] td{background:#FAEDEB;color:var(--fail)}
-  tr.band[data-g=skip] td{background:#EFF2F1;color:var(--skip)}
-
-  .cat td{padding:12px}
-  .rooms{font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.9}
-  .fix{font-size:12.5px;color:var(--mid);margin-top:4px}
-  td.num{font-family:"IBM Plex Mono",monospace;width:60px;text-align:center}
-
-  footer{margin-top:56px;padding:22px 34px 44px;border-top:1px solid var(--line);
-    font-size:12.5px;color:var(--soft)}
-
-  @media (max-width:640px){
-    .pad,section,header,footer{padding-left:16px;padding-right:16px}
+  footer{margin:36px 20px 0;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12px;color:var(--soft)}
+  @media (max-width:560px){
     .score{grid-template-columns:repeat(2,1fr)}
+    .opts{grid-template-columns:1fr}
+    .opts.tight{grid-template-columns:repeat(4,1fr)}
   }
-  @media print{body{background:#fff} .scroll{overflow:visible} tr{break-inside:avoid}}
 </style>
 </head>
 <body>
 <div class="sheet">
 
 <header>
-  <p class="eyebrow">รายงานตรวจงาน · ซิลิโคนขอบอ่างอาบน้ำ</p>
-  <h1>สรุปผลตรวจซิลิโคนขอบอ่าง<br>ชั้น 3 และ ชั้น 4</h1>
-  <div class="facts">
-    <span>วันที่สรุป <b>1 ส.ค. 2569</b></span>
-    <span>ห้องทั้งหมด <b>24</b></span>
-    <span>ตรวจแล้ว <b>22</b></span>
-    <span>เข้าไม่ได้ (ไม่มีกุญแจ) <b>408, 411</b></span>
-  </div>
+  <p class="eyebrow">ระบบบันทึกตรวจงาน · ซิลิโคนขอบอ่างอาบน้ำ</p>
+  <h1>บันทึกตรวจซิลิโคนขอบอ่าง</h1>
+  <p class="sublede">ชั้น 3–20 ชั้นละ 12 ห้อง · กดเลือกทีละหัวข้อ ระบบตัดเกรดให้เอง</p>
 </header>
 
-<div class="pad">
-  <div class="std">
-    <h2>มาตรฐานที่ใช้ตัดสิน</h2>
-    <ol>
-      <li><b>สีซิลิโคนต้องเป็นสีแมตช์เท่านั้น</b> — ห้องที่ยิงสีเงาถือว่าผิดสเปก ต้องรื้อออกและยิงใหม่ ไม่ว่างานเก็บขอบจะสวยแค่ไหน</li>
-      <li><b>ห้องที่ลงท้ายด้วย 01 และ 12 ยิงเฉพาะขอบบน</b> ไม่ยิงขอบข้าง ห้องอื่นต้องยิงครบขอบบนและสองข้าง ยิงเกินหรือขาดจากนี้ถือว่าไม่ผ่าน</li>
-      <li><b>เกณฑ์เกรด</b> — ผ่าน: ไม่พบข้อบกพร่อง · เกือบผ่าน: มีเฉพาะฟองอากาศหรือจุดเล็กที่แก้เฉพาะจุดได้ ไม่ต้องรื้อเส้น · ไม่ผ่าน: ผิดสี ระยะขอบไม่เท่ากัน ตัดขอบไม่เรียบ กินผนัง ยิงผิดขอบเขต หรือยังไม่ได้ยิง</li>
-    </ol>
-  </div>
+<div id="setupWarn" class="warn" hidden>
+  ยังไม่ได้ตั้งค่าลิงก์ Google Sheet — แก้บรรทัด <code>const API_URL = "";</code> ในไฟล์นี้ให้เป็นลิงก์ Web App จาก Apps Script ระหว่างนี้บันทึกได้แต่ข้อมูลจะหายเมื่อรีเฟรช
+</div>
 
-  <div class="score">
-    <div class="sc" data-g="pass"><div class="n">1</div><div class="t">ผ่าน</div><div class="u">401</div></div>
-    <div class="sc" data-g="near"><div class="n">5</div><div class="t">เกือบผ่าน</div><div class="u">แก้เฉพาะจุด</div></div>
-    <div class="sc" data-g="fail"><div class="n">16</div><div class="t">ไม่ผ่าน</div><div class="u">ต้องรื้อ / ยิงใหม่</div></div>
-    <div class="sc" data-g="skip"><div class="n">2</div><div class="t">ไม่ได้ตรวจ</div><div class="u">ไม่มีกุญแจ</div></div>
+<div class="card">
+  <div class="cap">Room · เลือกห้อง</div>
+  <div class="fld">
+    <div class="lab">ชั้น</div>
+    <div class="opts tight" id="optFloor"></div>
   </div>
-  <div class="stack">
-    <i style="flex:1;background:#2C7854"></i>
-    <i style="flex:5;background:#A9761F"></i>
-    <i style="flex:16;background:#AE3A2F"></i>
-    <i style="flex:2;background:#6B7877"></i>
+  <div class="fld">
+    <div class="lab">ห้อง</div>
+    <div class="opts tight" id="optRoom"></div>
+    <div class="hint" id="scopeHint"></div>
   </div>
 </div>
 
-<section>
-  <h2 class="sec">ตารางเช็กรายห้อง</h2>
-  <p class="sub">แยกกลุ่มตามเกรด ดูทีละหัวข้อได้ว่าห้องไหนตกเรื่องอะไร — สีเขียวคือผ่านหัวข้อนั้น สีแดงคือต้องแก้ ขีดเทาคือไม่มีในขอบเขตงาน</p>
-  <div class="scroll">
+<div class="card">
+  <div class="cap">Scope · ขอบเขตที่ยิง</div>
+  <div class="fld">
+    <div class="lab" id="labScope">ยิงจริงกี่ด้าน</div>
+    <div class="opts" id="optScope"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="cap">Quality · คุณภาพงาน</div>
+  <div class="fld">
+    <div class="lab">สีที่ใช้ <span>สเปกคือแมตช์</span></div>
+    <div class="opts" id="optColor"></div>
+  </div>
+  <div class="fld">
+    <div class="lab">ระยะขอบ</div>
+    <div class="opts" id="optEdge"></div>
+  </div>
+  <div class="fld">
+    <div class="lab">ตัดขอบ</div>
+    <div class="opts" id="optCut"></div>
+  </div>
+  <div class="fld">
+    <div class="lab">ฟองอากาศ</div>
+    <div class="opts" id="optBub"></div>
+  </div>
+  <div class="fld">
+    <div class="lab">กินผนัง <span>ฝั่งหน้าหิน</span></div>
+    <div class="opts" id="optEat"></div>
+  </div>
+  <div class="fld">
+    <div class="lab">สภาพผนัง</div>
+    <div class="opts" id="optWall"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="cap">Access · การเข้าห้อง</div>
+  <div class="fld">
+    <div class="lab">เข้าตรวจได้หรือไม่</div>
+    <div class="opts" id="optSkip"></div>
+    <div class="hint">ถ้าเข้าไม่ได้ ระบบจะบันทึกเป็น “ไม่ได้ตรวจ” และข้ามการตัดเกรด</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="cap">Note · หมายเหตุ</div>
+  <div class="fld">
+    <div class="lab">รายละเอียดเพิ่มเติม</div>
+    <textarea id="fNote" placeholder="เช่น ตัดขอบสวย แต่สีผิดสเปก"></textarea>
+  </div>
+  <div class="fld">
+    <div class="lab">ผู้ตรวจ</div>
+    <input id="fBy" placeholder="ชื่อผู้ตรวจ">
+  </div>
+</div>
+
+<div class="verdict" id="verdict" data-g="ผ่าน">
+  <div class="g" id="vGrade">ผ่าน</div>
+  <div class="why" id="vWhy">ไม่พบข้อบกพร่อง</div>
+</div>
+
+<div class="actions">
+  <button class="btn" id="btnSave">บันทึกลงชีต</button>
+  <button class="btn ghost" id="btnReset">ล้างฟอร์ม</button>
+  <span class="msg" id="msg"></span>
+</div>
+
+<h2 class="sec">สรุปล่าสุดต่อห้อง</h2>
+<p class="sub">ดึงจากชีตโดยตรง ห้องที่ตรวจซ้ำจะแสดงรายการล่าสุดเสมอ</p>
+<div class="tabs" id="floorTabs"></div>
+<div class="score" id="score"></div>
+<div class="tabs"><button id="btnReload">โหลดข้อมูลใหม่</button></div>
+<div class="scroll">
   <table>
-    <tr>
-      <th>ห้อง</th><th>สีที่ใช้</th><th>ระยะขอบ</th><th>ตัดขอบ</th><th>ฟองอากาศ</th><th>กินผนัง</th>
-    </tr>
-
-    <tr class="band" data-g="pass"><td colspan="6">ผ่าน<span class="qty">1 ห้อง</span></td></tr>
-    <tr>
-      <td class="rm">401<small>ขอบบนอย่างเดียว ตามแบบ</small></td>
-      <td class="ok">แมตช์</td><td class="na">— ขอบบนอย่างเดียว</td><td class="ok">ตัดขอบสวย</td>
-      <td class="ok">ไม่พบ</td><td class="ok">ไม่พบ</td>
-    </tr>
-
-    <tr class="band" data-g="near"><td colspan="6">เกือบผ่าน<span class="qty">5 ห้อง</span></td></tr>
-    <tr>
-      <td class="rm">302<small class="bad">สีผนังถลอก ต้องแตะสีซ่อม</small></td>
-      <td class="ok">แมตช์</td><td class="ok">ปกติ</td><td class="ok">เส้นใช้ได้ 7/10</td>
-      <td class="ok">ไม่พบ</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">402</td>
-      <td class="ok">แมตช์</td><td class="ok">สองด้านเท่ากัน</td><td class="ok">ตัดขอบสวย</td>
-      <td class="no">มี 1 จุด</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">405</td>
-      <td class="ok">แมตช์</td><td class="ok">สองฝั่งเท่ากัน</td><td class="ok">เส้นคมตัดสวย</td>
-      <td class="no">มี</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">407</td>
-      <td class="ok">แมตช์</td><td class="ok">สองข้างเท่ากัน</td><td class="ok">ตัดขอบสวย</td>
-      <td class="no">มี 1 จุด</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">409</td>
-      <td class="ok">แมตช์</td><td class="ok">สองฝั่งเท่ากัน</td><td class="ok">ขอบสวย</td>
-      <td class="no">มี</td><td class="ok">ไม่พบ</td>
-    </tr>
-
-    <tr class="band" data-g="fail"><td colspan="6">ไม่ผ่าน<span class="qty">16 ห้อง</span></td></tr>
-    <tr>
-      <td class="rm">301<small class="bad">ยิงเกินแบบ — ยิงด้านซ้ายเพิ่ม ทั้งที่ต้องยิงขอบบนอย่างเดียว</small></td>
-      <td class="ok">แมตช์</td><td class="no">ยิงเกินขอบเขต</td><td class="ok">ปกติ</td>
-      <td class="ok">ไม่พบ</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">303</td>
-      <td class="ok">แมตช์</td><td class="no">สองข้างไม่เท่ากัน</td><td class="no">ไม่เสมอขอบ</td>
-      <td class="ok">ไม่พบ</td><td class="no">ยิงเกินขอบขึ้นมา</td>
-    </tr>
-    <tr>
-      <td class="rm">304</td>
-      <td class="ok">แมตช์</td><td class="ok">ปกติ</td><td class="no">ซ้ายเก็บไม่เรียบ</td>
-      <td class="ok">ไม่พบ</td><td class="no">ขวากินผนัง</td>
-    </tr>
-    <tr>
-      <td class="rm">305</td>
-      <td class="ok">แมตช์</td><td class="no">ขวาหนากว่าซ้าย</td><td class="ok">ปกติ</td>
-      <td class="no">มี</td><td class="no">ซ้ายกินผนัง</td>
-    </tr>
-    <tr>
-      <td class="rm">306</td>
-      <td class="ok">แมตช์</td><td class="no">ขวาหนากว่าซ้าย</td><td class="ok">ปกติ</td>
-      <td class="ok">ไม่พบ</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">307</td>
-      <td class="no">เงา ผิดสเปก</td><td class="ok">ปกติ</td><td class="ok">ตัดขอบสวย</td>
-      <td class="ok">ไม่พบ</td><td class="no">ซ้ายกินเล็กน้อย</td>
-    </tr>
-    <tr>
-      <td class="rm">308</td>
-      <td class="no">เงา ผิดสเปก</td><td class="na">ไม่ได้ระบุ</td><td class="no">เก็บไม่ดีรอบด้าน</td>
-      <td class="no">มี</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">309</td>
-      <td class="no">เงา ผิดสเปก</td><td class="no">สองข้างไม่เท่ากัน</td><td class="ok">ปกติ</td>
-      <td class="no">มี</td><td class="no">กินผนัง</td>
-    </tr>
-    <tr>
-      <td class="rm">310</td>
-      <td class="no">เงา ผิดสเปก</td><td class="no">สองข้างไม่เท่ากัน</td><td class="ok">ปกติ</td>
-      <td class="no">มี</td><td class="no">กินผนัง</td>
-    </tr>
-    <tr>
-      <td class="rm">311<small class="bad">ยังไม่ได้ยิงซิลิโคนเลย</small></td>
-      <td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td>
-    </tr>
-    <tr>
-      <td class="rm">312<small>ขอบบนอย่างเดียว ตามแบบ</small></td>
-      <td class="no">เงา ผิดสเปก</td><td class="na">— ขอบบนอย่างเดียว</td><td class="ok">ขอบสวย</td>
-      <td class="ok">ไม่พบ</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">403</td>
-      <td class="ok">แมตช์</td><td class="ok">สองข้างเท่ากัน</td><td class="ok">ปกติ</td>
-      <td class="no">มี</td><td class="no">ขวากินผนัง</td>
-    </tr>
-    <tr>
-      <td class="rm">404</td>
-      <td class="ok">แมตช์</td><td class="no">สองฝั่งไม่เท่ากัน</td><td class="ok">ปกติ</td>
-      <td class="no">มี</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">406</td>
-      <td class="ok">แมตช์</td><td class="no">ซ้ายหนากว่าขวา</td><td class="ok">ปกติ</td>
-      <td class="no">มี</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">410</td>
-      <td class="ok">แมตช์</td><td class="no">สองฝั่งไม่เท่ากัน</td><td class="ok">ขอบสวย</td>
-      <td class="no">มี</td><td class="ok">ไม่พบ</td>
-    </tr>
-    <tr>
-      <td class="rm">412<small>ขอบบนอย่างเดียว ตามแบบ</small></td>
-      <td class="ok">แมตช์</td><td class="no">เส้นหนามาก</td><td class="ok">ปกติ</td>
-      <td class="ok">ไม่พบ</td><td class="no">กินขอบบน</td>
-    </tr>
-
-    <tr class="band" data-g="skip"><td colspan="6">ยังไม่ได้ตรวจ<span class="qty">2 ห้อง</span></td></tr>
-    <tr>
-      <td class="rm">408<small>ไม่มีกุญแจ</small></td>
-      <td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td>
-    </tr>
-    <tr>
-      <td class="rm">411<small>ไม่มีกุญแจ</small></td>
-      <td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td>
-    </tr>
+    <thead><tr>
+      <th>ห้อง</th><th>ขอบเขต</th><th>สีที่ใช้</th><th>ระยะขอบ</th><th>ตัดขอบ</th>
+      <th>ฟองอากาศ</th><th>กินผนัง</th><th>เกรด</th><th>วันที่</th>
+    </tr></thead>
+    <tbody id="tbody"><tr><td colspan="9" class="na">กำลังโหลด…</td></tr></tbody>
   </table>
-  </div>
-</section>
-
-<section>
-  <h2 class="sec">สรุปตามหัวข้อ</h2>
-  <p class="sub">นับจำนวนห้องที่ตกในแต่ละหัวข้อ พร้อมสิ่งที่ต้องสั่งช่างทำ</p>
-  <div class="scroll">
-  <table class="cat">
-    <tr><th>หัวข้อ</th><th style="text-align:center">ห้อง</th><th>รายชื่อห้อง และสิ่งที่ต้องทำ</th></tr>
-
-    <tr>
-      <td><b>ฟองอากาศ</b></td><td class="num">12</td>
-      <td><div class="rooms">305 · 308 · 309 · 310 · 402 · 403 · 404 · 405 · 406 · 407 · 409 · 410</div>
-        <div class="fix">ฟองเดี่ยวแคะแล้วเติมทับได้ ถ้าฟองต่อเนื่องยาวต้องรื้อเส้นนั้นแล้วยิงใหม่ ปรับวิธียิงให้ดันซิลิโคนไปข้างหน้าตลอดแนว</div></td>
-    </tr>
-    <tr>
-      <td><b>ระยะขอบไม่เท่ากัน</b></td><td class="num">8</td>
-      <td><div class="rooms">303 · 305 · 306 · 309 · 310 · 404 · 406 · 410</div>
-        <div class="fix">เกือบทุกห้องขวาหนากว่าซ้าย ยกเว้น 406 ที่ซ้ายหนากว่า รื้อเส้นเดิมออกให้หมดแล้วยิงใหม่ ใช้เทปกาวกำหนดแนวก่อนยิง</div></td>
-    </tr>
-    <tr>
-      <td><b>กินผนัง / เกินขอบ</b></td><td class="num">8</td>
-      <td><div class="rooms">303 · 304 · 305 · 307 · 309 · 310 · 403 · 412</div>
-        <div class="fix">ปาดส่วนที่ล้นออก ตัดขอบให้เสมอแนวเดียวกัน แล้วเช็กว่าสีผนังไม่หลุดตามตอนปาด</div></td>
-    </tr>
-    <tr>
-      <td><b>สีที่ใช้ผิดสเปก</b></td><td class="num">5</td>
-      <td><div class="rooms">307 · 308 · 309 · 310 · 312</div>
-        <div class="fix">สเปกคือสีแมตช์ ต้องรื้อซิลิโคนสีเงาออกทั้งหมดแล้วยิงใหม่ ทั้ง 5 ห้องอยู่ชั้น 3 ติดกัน น่าจะเบิกหลอดผิดล็อตเดียวกัน ควรเช็กสต็อกก่อนสั่งแก้</div></td>
-    </tr>
-    <tr>
-      <td><b>ตัดขอบไม่เรียบ</b></td><td class="num">3</td>
-      <td><div class="rooms">303 (ไม่เสมอขอบ) · 304 (ฝั่งซ้าย) · 308 (รอบด้าน)</div>
-        <div class="fix">ปาดเก็บซ้ำขณะซิลิโคนยังไม่เซ็ต ถ้าเซ็ตแล้วต้องรื้อเส้นนั้นออก</div></td>
-    </tr>
-    <tr>
-      <td><b>ยิงผิดขอบเขตงาน</b></td><td class="num">2</td>
-      <td><div class="rooms">301 (ยิงด้านซ้ายเกิน) · 311 (ยังไม่ได้ยิงเลย)</div>
-        <div class="fix">301 รื้อเส้นด้านซ้ายออกและเก็บผิวผนังให้เรียบ · 311 สั่งเข้าทำใหม่ทั้งห้อง ใช้สีแมตช์ ยิงครบขอบบนและสองข้าง</div></td>
-    </tr>
-    <tr>
-      <td><b>เส้นหนาเกิน</b></td><td class="num">1</td>
-      <td><div class="rooms">412</div>
-        <div class="fix">รื้อออกแล้วยิงใหม่ด้วยหัวปืนที่ตัดปากเล็กลง</div></td>
-    </tr>
-    <tr>
-      <td><b>สีผนังถลอก</b></td><td class="num">1</td>
-      <td><div class="rooms">302</div>
-        <div class="fix">แตะสีซ่อมหลังงานซิลิโคนเสร็จ</div></td>
-    </tr>
-    <tr>
-      <td><b>เข้าห้องไม่ได้</b></td><td class="num">2</td>
-      <td><div class="rooms">408 · 411</div>
-        <div class="fix">ขอกุญแจจากแม่บ้านหรือฝ่ายห้องพัก แล้วนัดตรวจรอบเก็บตก</div></td>
-    </tr>
-  </table>
-  </div>
-</section>
+</div>
 
 <footer>
-  สรุปจากบันทึกตรวจหน้างาน ชั้น 3 และชั้น 4 · ช่องที่ขึ้น “ไม่พบ” คือไม่ได้ถูกบันทึกว่ามีปัญหาในรอบตรวจนี้ · 408 และ 411 ยังไม่ได้ตรวจเพราะไม่มีกุญแจ ต้องเก็บตกอีกรอบจึงจะปิดรายงานได้
+  เกณฑ์: สีต้องเป็นแมตช์เท่านั้น · ห้องลงท้าย 01 และ 12 ยิงเฉพาะขอบบน ถ้ายิงด้านข้างมาด้วยถือว่าผิด · ห้องอื่นต้องยิงครบสามด้าน · ฟองอากาศหรือผนังถลอกอย่างเดียว = เกือบผ่าน · นอกนั้น = ไม่ผ่าน
 </footer>
 
 </div>
+
+<script>
+/* ============ ตั้งค่าตรงนี้ ============ */
+const API_URL = "";              /* ลิงก์ Web App จาก Apps Script ลงท้ายด้วย /exec */
+const FLOOR_FROM = 3;            /* ชั้นแรก */
+const FLOOR_TO   = 20;           /* ชั้นสุดท้าย */
+const ROOMS_PER_FLOOR = 12;      /* จำนวนห้องต่อชั้น */
+const TOP_ONLY = ["01","12"];    /* ท้ายเลขห้องที่ยิงเฉพาะขอบบนตามแบบ */
+/* ===================================== */
+
+const $ = id => document.getElementById(id);
+
+const FLOORS = [];
+for(let f = FLOOR_FROM; f <= FLOOR_TO; f++) FLOORS.push(f);
+function roomsOfFloor(f){
+  const out=[]; for(let i=1;i<=ROOMS_PER_FLOOR;i++) out.push(String(f*100+i)); return out;
+}
+function floorOf(room){ return room.slice(0,-2); }
+function isTopOnly(room){ return TOP_ONLY.indexOf(room.slice(-2)) !== -1; }
+function scopeByRule(room){ return isTopOnly(room) ? "ขอบบนอย่างเดียว" : "ครบสามด้าน"; }
+
+/* ---- ตัวเลือกแต่ละหัวข้อ ---- */
+const OPTS = {
+  color:[ {v:"แมตช์"}, {v:"เงา", bad:1}, {v:"ยังไม่ได้ยิง", bad:1} ],
+  edge:[ {v:"เท่ากันทุกด้าน"}, {v:"มีด้านใดด้านหนึ่งหนากว่าผิดปกติ", bad:1} ],
+  cut:[ {v:"เรียบร้อย"}, {v:"เก็บไม่เรียบฝั่งซ้าย", bad:1},
+        {v:"เก็บไม่เรียบฝั่งขวา", bad:1}, {v:"เก็บไม่เรียบรอบด้าน", bad:1} ],
+  bub:[ {v:"ไม่พบ"}, {v:"มี 1 จุด", warn:1}, {v:"มีหลายจุด", warn:1} ],
+  eat:[ {v:"ไม่พบ"}, {v:"ฝั่งซ้าย", bad:1}, {v:"ฝั่งขวา", bad:1}, {v:"สองฝั่ง", bad:1} ],
+  wall:[ {v:"ปกติ"}, {v:"ถลอก - ต้องแตะสี", warn:1} ],
+  skip:[ {v:"เข้าตรวจได้"}, {v:"ไม่มีกุญแจ", warn:1},
+         {v:"มีแขกพัก", warn:1}, {v:"ห้องปิดปรับปรุง", warn:1} ]
+};
+function scopeOptions(room){
+  return isTopOnly(room)
+    ? [ {v:"ขอบบนอย่างเดียว"}, {v:"ยิงด้านข้างมาด้วย", bad:1}, {v:"ยังไม่ได้ยิง", bad:1} ]
+    : [ {v:"ครบสามด้าน"}, {v:"ยิงไม่ครบสามด้าน", bad:1}, {v:"ยังไม่ได้ยิง", bad:1} ];
+}
+
+/* ---- สถานะฟอร์ม ---- */
+const S = {
+  floor: FLOOR_FROM, room: String(FLOOR_FROM*100+1),
+  scope:"", color:"แมตช์", edge:"เท่ากันทุกด้าน", cut:"เรียบร้อย",
+  bub:"ไม่พบ", eat:"ไม่พบ", wall:"ปกติ", skip:"เข้าตรวจได้"
+};
+S.scope = scopeByRule(S.room);
+
+/* ---- ตัวสร้างปุ่ม ---- */
+function group(el, list, key, onPick, mono){
+  el.innerHTML = "";
+  el.classList.toggle("tight", !!mono);
+  list.forEach(o=>{
+    const b = document.createElement("button");
+    b.className = "opt" + (mono ? " mono" : "");
+    b.type = "button"; b.textContent = o.v;
+    if(o.bad) b.dataset.bad = "1";
+    if(o.warn) b.dataset.warn = "1";
+    b.setAttribute("aria-pressed", String(S[key] === o.v));
+    b.onclick = ()=>{ S[key] = o.v; onPick ? onPick() : paintGroup(el, key); refresh(); };
+    el.appendChild(b);
+  });
+}
+function paintGroup(el, key){
+  Array.from(el.children).forEach(b=>
+    b.setAttribute("aria-pressed", String(b.textContent === String(S[key]))));
+}
+
+function buildFloorRoom(){
+  group($("optFloor"), FLOORS.map(f=>({v:String(f)})), "floor", ()=>{
+    S.room = String(Number(S.floor)*100+1);
+    buildFloorRoom(); buildScope();
+  }, true);
+  group($("optRoom"), roomsOfFloor(Number(S.floor)).map(r=>({v:r})), "room", ()=>{
+    paintGroup($("optRoom"),"room"); buildScope();
+  }, true);
+  $("scopeHint").textContent = "ตามแบบห้อง " + S.room + " ต้องยิง: " + scopeByRule(S.room);
+}
+function buildScope(){
+  const opts = scopeOptions(S.room);
+  if(!opts.some(o=>o.v===S.scope)) S.scope = opts[0].v;
+  $("labScope").textContent = isTopOnly(S.room)
+    ? "ห้องนี้ตามแบบยิงเฉพาะขอบบน" : "ห้องนี้ตามแบบยิงครบสามด้าน";
+  group($("optScope"), opts, "scope");
+  $("scopeHint").textContent = "ตามแบบห้อง " + S.room + " ต้องยิง: " + scopeByRule(S.room);
+  refresh();
+}
+
+/* ---- ตัดเกรด ---- */
+function judge(){
+  if(S.skip !== "เข้าตรวจได้") return {grade:"ไม่ได้ตรวจ", why:S.skip};
+  if(S.scope === "ยังไม่ได้ยิง" || S.color === "ยังไม่ได้ยิง")
+    return {grade:"ไม่ผ่าน", why:"ยังไม่ได้ยิงซิลิโคน"};
+
+  const bad = [];
+  if(S.color === "เงา") bad.push("สีผิดสเปก ต้องเป็นแมตช์");
+  if(S.scope === "ยิงด้านข้างมาด้วย") bad.push("ยิงเกินแบบ ห้องนี้ต้องยิงเฉพาะขอบบน");
+  if(S.scope === "ยิงไม่ครบสามด้าน") bad.push("ยิงไม่ครบตามแบบ");
+  if(S.edge !== "เท่ากันทุกด้าน") bad.push("ระยะขอบไม่เท่ากัน");
+  if(S.cut !== "เรียบร้อย") bad.push("ตัดขอบ: " + S.cut);
+  if(S.eat !== "ไม่พบ") bad.push("กินผนัง: " + S.eat);
+  if(bad.length) return {grade:"ไม่ผ่าน", why:bad.join(" · ")};
+
+  const minor = [];
+  if(S.bub !== "ไม่พบ") minor.push("ฟองอากาศ " + S.bub);
+  if(S.wall !== "ปกติ") minor.push("ผนังถลอก");
+  if(minor.length) return {grade:"เกือบผ่าน", why:minor.join(" · ") + " — แก้เฉพาะจุดได้ ไม่ต้องรื้อเส้น"};
+
+  return {grade:"ผ่าน", why:"ไม่พบข้อบกพร่อง"};
+}
+function refresh(){
+  const r = judge();
+  $("verdict").dataset.g = r.grade;
+  $("vGrade").textContent = r.grade;
+  $("vWhy").textContent = r.why;
+}
+
+/* ---- เริ่มต้น ---- */
+buildFloorRoom();
+buildScope();
+group($("optColor"), OPTS.color, "color");
+group($("optEdge"),  OPTS.edge,  "edge");
+group($("optCut"),   OPTS.cut,   "cut");
+group($("optBub"),   OPTS.bub,   "bub");
+group($("optEat"),   OPTS.eat,   "eat");
+group($("optWall"),  OPTS.wall,  "wall");
+group($("optSkip"),  OPTS.skip,  "skip");
+refresh();
+if(!API_URL) $("setupWarn").hidden = false;
+
+/* ---- บันทึก ---- */
+let localRows = [], allRows = [], activeFloor = String(FLOOR_FROM);
+
+$("btnSave").addEventListener("click", async ()=>{
+  const r = judge();
+  const off = S.skip !== "เข้าตรวจได้";
+  const now = new Date(), pad = n => String(n).padStart(2,"0");
+  const note = $("fNote").value.trim();
+  const row = {
+    "วันที่ตรวจ": now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate()),
+    "ชั้น": floorOf(S.room), "ห้อง": S.room,
+    "ขอบเขตงาน": off ? "-" : S.scope,
+    "สีที่ใช้":  off ? "-" : S.color,
+    "ระยะขอบ":  off ? "-" : S.edge,
+    "ตัดขอบ":   off ? "-" : S.cut,
+    "ฟองอากาศ": off ? "-" : S.bub,
+    "กินผนัง":  off ? "-" : S.eat,
+    "สภาพผนัง": off ? "-" : S.wall,
+    "เกรด": r.grade,
+    "หมายเหตุ": off ? (S.skip + (note ? " · "+note : "")) : note,
+    "ผู้ตรวจ": $("fBy").value.trim(),
+    "บันทึกเมื่อ": now.toLocaleString("th-TH")
+  };
+
+  const msg = $("msg");
+  $("btnSave").disabled = true; msg.className = "msg"; msg.textContent = "กำลังบันทึก…";
+
+  if(!API_URL){
+    localRows.push(row); allRows = localRows.slice();
+    activeFloor = floorOf(S.room); buildTabs(); draw(allRows);
+    msg.className = "msg ok"; msg.textContent = "บันทึกไว้ในหน้านี้ชั่วคราว (ยังไม่ได้ตั้งค่าชีต)";
+    $("btnSave").disabled = false; return;
+  }
+  try{
+    const res = await fetch(API_URL, {method:"POST", body:new URLSearchParams(row)});
+    const out = await res.json();
+    if(!out.ok) throw new Error(out.error || "บันทึกไม่สำเร็จ");
+    msg.className = "msg ok"; msg.textContent = "บันทึกห้อง " + S.room + " เรียบร้อย";
+    $("fNote").value = ""; activeFloor = floorOf(S.room); load();
+  }catch(err){
+    msg.className = "msg err"; msg.textContent = "บันทึกไม่สำเร็จ: " + err.message;
+  }
+  $("btnSave").disabled = false;
+});
+
+$("btnReset").addEventListener("click", ()=>{
+  S.scope = scopeByRule(S.room); S.color = "แมตช์"; S.edge = "เท่ากันทุกด้าน";
+  S.cut = "เรียบร้อย"; S.bub = "ไม่พบ"; S.eat = "ไม่พบ"; S.wall = "ปกติ"; S.skip = "เข้าตรวจได้";
+  $("fNote").value = ""; $("msg").textContent = "";
+  buildScope();
+  paintGroup($("optColor"),"color"); paintGroup($("optEdge"),"edge");
+  paintGroup($("optCut"),"cut"); paintGroup($("optBub"),"bub");
+  paintGroup($("optEat"),"eat"); paintGroup($("optWall"),"wall");
+  paintGroup($("optSkip"),"skip");
+  refresh();
+});
+
+/* ---- แท็บชั้น + ตาราง ---- */
+function buildTabs(){
+  const tabs = [["all","ทุกชั้น"]].concat(FLOORS.map(f=>[String(f), String(f)]));
+  $("floorTabs").innerHTML = tabs.map(([v,l])=>
+    '<button data-f="'+v+'" aria-pressed="'+(v===activeFloor)+'">'+l+'</button>').join("");
+  Array.from($("floorTabs").children).forEach(b=>{
+    b.onclick = ()=>{ activeFloor = b.dataset.f; buildTabs(); draw(allRows); };
+  });
+}
+buildTabs();
+
+async function load(){
+  if(!API_URL){ allRows = localRows.slice(); draw(allRows); return; }
+  try{
+    const res = await fetch(API_URL + "?action=list");
+    const out = await res.json();
+    allRows = out.rows || [];
+    draw(allRows);
+  }catch(err){
+    $("tbody").innerHTML = '<tr><td colspan="9" class="no">โหลดไม่สำเร็จ: '+err.message+'</td></tr>';
+  }
+}
+$("btnReload").addEventListener("click", load);
+
+function goodEdge(v){ return v === "เท่ากันทุกด้าน" || v === "เท่ากัน" || v === "ไม่มี (ขอบบนอย่างเดียว)"; }
+
+function draw(rows){
+  const latest = {};
+  rows.forEach(r=>{ if(r["ห้อง"]) latest[String(r["ห้อง"]).trim()] = r; });
+
+  const cnt = {"ผ่าน":0,"เกือบผ่าน":0,"ไม่ผ่าน":0,"ไม่ได้ตรวจ":0};
+  let html = "";
+
+  const cell = (val, good)=>{
+    const v = (val === undefined || val === "") ? "-" : val;
+    return '<td class="'+(v === "-" ? "na" : (good ? "ok" : "no"))+'">'+v+'</td>';
+  };
+  const rowHtml = (rn, r)=>{
+    if(cnt[r["เกรด"]] !== undefined) cnt[r["เกรด"]]++;
+    return '<tr><td class="rm">'+rn+'</td>'+
+      '<td>'+(r["ขอบเขตงาน"]||"-")+'</td>'+
+      cell(r["สีที่ใช้"], r["สีที่ใช้"] === "แมตช์") +
+      cell(r["ระยะขอบ"], goodEdge(r["ระยะขอบ"])) +
+      cell(r["ตัดขอบ"], r["ตัดขอบ"] === "เรียบร้อย") +
+      cell(r["ฟองอากาศ"], r["ฟองอากาศ"] === "ไม่พบ") +
+      cell(r["กินผนัง"], r["กินผนัง"] === "ไม่พบ") +
+      '<td><span class="badge" data-g="'+r["เกรด"]+'">'+r["เกรด"]+'</span></td>'+
+      '<td>'+(r["วันที่ตรวจ"]||"")+'</td></tr>';
+  };
+
+  if(activeFloor === "all"){
+    /* ทุกชั้น: แสดงเฉพาะห้องที่มีข้อมูลแล้ว ไม่งั้น 216 แถวจะยาวเกินไป */
+    FLOORS.forEach(f=>{
+      const rooms = roomsOfFloor(f).filter(rn => latest[rn]);
+      if(!rooms.length) return;
+      html += '<tr class="band"><td colspan="9">ชั้น '+f+
+              '<span class="qty">บันทึกแล้ว '+rooms.length+' / '+ROOMS_PER_FLOOR+' ห้อง</span></td></tr>';
+      rooms.forEach(rn => html += rowHtml(rn, latest[rn]));
+    });
+    if(!html) html = '<tr><td colspan="9" class="na">ยังไม่มีข้อมูล</td></tr>';
+  }else{
+    const f = Number(activeFloor);
+    const rooms = roomsOfFloor(f);
+    const done = rooms.filter(rn => latest[rn]).length;
+    html += '<tr class="band"><td colspan="9">ชั้น '+f+
+            '<span class="qty">บันทึกแล้ว '+done+' / '+rooms.length+' ห้อง</span></td></tr>';
+    rooms.forEach(rn=>{
+      if(latest[rn]) html += rowHtml(rn, latest[rn]);
+      else html += '<tr><td class="rm">'+rn+'</td><td colspan="7" class="na">ยังไม่มีข้อมูล</td>'+
+                   '<td><span class="badge" data-g="ยังไม่ตรวจ">ยังไม่ตรวจ</span></td></tr>';
+    });
+  }
+
+  $("score").innerHTML =
+    tile("pass","ผ่าน",cnt["ผ่าน"]) + tile("near","เกือบผ่าน",cnt["เกือบผ่าน"]) +
+    tile("fail","ไม่ผ่าน",cnt["ไม่ผ่าน"]) + tile("skip","ไม่ได้ตรวจ",cnt["ไม่ได้ตรวจ"]);
+  $("tbody").innerHTML = html;
+}
+function tile(g,label,n){
+  return '<div class="sc" data-g="'+g+'"><div class="n">'+n+'</div><div class="t">'+label+'</div></div>';
+}
+load();
+</script>
 </body>
 </html>
