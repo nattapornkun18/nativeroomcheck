@@ -38,8 +38,31 @@ const GRADE_COLOR = {
   'ไม่ได้ตรวจ': {bg:'#E7ECEB', fg:'#6B7877'}
 };
 
-/* แจ้งเตือน LINE: 'fail' = เฉพาะห้องที่ไม่ผ่าน, 'all' = ทุกห้องที่บันทึก, 'off' = ปิด */
-const LINE_NOTIFY_ON = 'fail';
+/* ==================== แจ้งเตือนเข้า LINE ====================
+   ตั้งค่าครั้งเดียว (วิธีทำอยู่ใน SETUP.md หัวข้อ "แจ้งเตือนเข้า LINE")
+   เว้น LINE_TOKEN ว่างไว้ = ไม่ส่งแจ้งเตือน ระบบอื่นทำงานปกติทุกอย่าง       */
+
+/** Channel access token (long-lived) จาก LINE Developers
+ *  วางเฉพาะในหน้าต่าง Apps Script เท่านั้น อย่า commit ขึ้น GitHub
+ *  ถ้าเว้นว่าง จะไปอ่านจาก Script Properties ชื่อ LINE_TOKEN ให้แทน */
+var LINE_TOKEN = '';
+
+/** เว้นว่าง = ส่งหาทุกคนที่เป็นเพื่อนกับ LINE OA นี้ (broadcast)
+ *  ใส่ userId / groupId ถ้าอยากส่งเจาะจงคนเดียวหรือกลุ่มเดียว */
+var LINE_TO = '';
+
+/** จะแจ้งตอนไหน
+ *  'all'    = ทุกครั้งที่กดบันทึก — ตรวจครั้งแรกก็แจ้ง แก้ไขก็แจ้งพร้อมบอกที่เปลี่ยน ← ค่าเริ่มต้น
+ *  'update' = เฉพาะตอนแก้ไขห้องที่เคยบันทึกไว้แล้ว และมีอะไรเปลี่ยนจริง
+ *  'defect' = เฉพาะห้องที่ผลออกมามีปัญหา (ไม่ผ่าน / เกือบผ่าน)
+ *  'off'    = ไม่แจ้งเลย
+ *  ทุกโหมด: บันทึกทับด้วยค่าเดิมเป๊ะ ๆ จะไม่ส่ง กันข้อความกวน */
+var NOTIFY_WHEN = 'all';
+
+/* ช่องที่ถือว่าเป็น "ผลตรวจ" ใช้เทียบว่าการบันทึกซ้ำมีอะไรเปลี่ยนไหม
+   ไม่รวมวันที่ ผู้ตรวจ และเวลาบันทึก เพราะเปลี่ยนทุกครั้งอยู่แล้ว */
+const COMPARE = ['ขอบเขตงาน','สีที่ใช้','ระยะขอบ','ตัดขอบ','ฟองอากาศ',
+                 'กินผนัง','สภาพผนัง','เกรด','หมายเหตุ'];
 
 /* =============== ส่วนกลาง =============== */
 
@@ -111,10 +134,12 @@ function doPost(e) {
       p['บันทึกเมื่อ'] = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm');
     }
 
+    const prev = findLatest_(sh, p['ห้อง']);   // ต้องหาก่อนเขียนแถวใหม่
+
     const row = HEAD.map(function (h) { return p[h] || ''; });
     sh.appendRow(row);
     paintGrade_(sh, sh.getLastRow());
-    notifySave_(p);
+    notifySave_(p, prev);
 
     return json_({ ok: true, room: p['ห้อง'], grade: p['เกรด'] || '' });
   } catch (err) {
@@ -201,27 +226,33 @@ function paintGrade_(sh, row) {
 
 /* =============== แจ้งเตือน LINE =============== */
 /*  ใช้ LINE Messaging API (LINE Notify ปิดบริการไปแล้วตั้งแต่ มี.ค. 2025)
- *  เก็บ token ไว้ใน Script Properties ไม่ฝังในไฟล์ เผื่อไฟล์นี้ถูกแชร์
- *  ตั้งค่าครั้งเดียว: แก้ค่าสองบรรทัดใน saveLineConfig() แล้วกดรันฟังก์ชันนั้น
+ *  ตั้งค่า token / ปลายทาง / โหมด ได้ที่บล็อกตัวแปรด้านบนสุดของไฟล์
  */
 
-function saveLineConfig() {
-  const TOKEN = 'วาง Channel access token ตรงนี้';
-  const TO    = 'วาง User ID หรือ Group ID ตรงนี้';
-  PropertiesService.getScriptProperties()
-    .setProperties({ LINE_TOKEN: TOKEN, LINE_TO: TO });
+/* หา token จากตัวแปรด้านบนก่อน ถ้าเว้นว่างค่อยไปดู Script Properties
+   (วิธีหลังปลอดภัยกว่าตอนต้องเอาไฟล์นี้ไปแชร์ที่อื่น) */
+function lineToken_() {
+  return LINE_TOKEN || PropertiesService.getScriptProperties().getProperty('LINE_TOKEN') || '';
+}
+function lineTo_() {
+  return LINE_TO || PropertiesService.getScriptProperties().getProperty('LINE_TO') || '';
 }
 
 function pushLine_(text) {
-  const p = PropertiesService.getScriptProperties();
-  const token = p.getProperty('LINE_TOKEN'), to = p.getProperty('LINE_TO');
-  if (!token || !to) return false;   // ยังไม่ได้ตั้งค่า — ข้ามไปเงียบ ๆ
+  const token = lineToken_();
+  if (!token) return false;   // ยังไม่ได้ตั้งค่า — ข้ามไปเงียบ ๆ
 
-  const res = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+  const to = lineTo_();
+  const url = to ? 'https://api.line.me/v2/bot/message/push'
+                 : 'https://api.line.me/v2/bot/message/broadcast';
+  const body = { messages: [{ type: 'text', text: text }] };
+  if (to) body.to = to;
+
+  const res = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
     headers: { Authorization: 'Bearer ' + token },
-    payload: JSON.stringify({ to: to, messages: [{ type: 'text', text: text }] }),
+    payload: JSON.stringify(body),
     muteHttpExceptions: true
   });
   if (res.getResponseCode() !== 200) {
@@ -231,22 +262,66 @@ function pushLine_(text) {
   return true;
 }
 
-function notifySave_(p) {
-  if (LINE_NOTIFY_ON === 'off') return;
-  const grade = p['เกรด'] || '';
-  if (LINE_NOTIFY_ON === 'fail' && grade !== 'ไม่ผ่าน') return;
+/* หาบันทึกล่าสุดของห้องนี้ ไล่จากแถวท้ายขึ้นมา — ไม่เจอคืน null */
+function findLatest_(sh, room) {
+  const last = sh.getLastRow();
+  if (last < 2) return null;
 
-  const icon = grade === 'ผ่าน' ? '✅' : grade === 'ไม่ผ่าน' ? '❌' :
-               grade === 'เกือบผ่าน' ? '⚠️' : '⬜';
-  const lines = [
-    icon + ' ห้อง ' + p['ห้อง'] + ' — ' + grade,
-    'ขอบเขต: ' + (p['ขอบเขตงาน'] || '-'),
-    'สี: ' + (p['สีที่ใช้'] || '-') + ' · ระยะขอบ: ' + (p['ระยะขอบ'] || '-'),
-    'ตัดขอบ: ' + (p['ตัดขอบ'] || '-') + ' · ฟองอากาศ: ' + (p['ฟองอากาศ'] || '-'),
-    'กินผนัง: ' + (p['กินผนัง'] || '-')
-  ];
-  if (p['หมายเหตุ']) lines.push('หมายเหตุ: ' + p['หมายเหตุ']);
-  if (p['ผู้ตรวจ'])  lines.push('ผู้ตรวจ: ' + p['ผู้ตรวจ']);
+  const key = String(room).trim();
+  const values = sh.getRange(2, 1, last - 1, HEAD.length).getValues();
+  const iRoom = HEAD.indexOf('ห้อง');
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (String(values[i][iRoom]).trim() !== key) continue;
+    const o = {};
+    HEAD.forEach(function (h, j) { o[h] = values[i][j] === '' ? '' : String(values[i][j]); });
+    return o;
+  }
+  return null;
+}
+
+/* ช่องไหนเปลี่ยนไปบ้างระหว่างบันทึกเก่ากับใหม่ */
+function diff_(prev, cur) {
+  return COMPARE.filter(function (h) {
+    return String(prev[h] || '') !== String(cur[h] || '');
+  }).map(function (h) {
+    return { field: h, from: prev[h] || '-', to: cur[h] || '-' };
+  });
+}
+
+const GRADE_ICON = {'ผ่าน':'✅','เกือบผ่าน':'⚠️','ไม่ผ่าน':'❌','ไม่ได้ตรวจ':'⬜'};
+
+function notifySave_(p, prev) {
+  if (NOTIFY_WHEN === 'off') return;
+
+  const grade = p['เกรด'] || '';
+  const changes = prev ? diff_(prev, p) : null;
+
+  /* บันทึกทับด้วยค่าเดิมเป๊ะ ๆ — ไม่ต้องกวน */
+  if (changes && !changes.length) return;
+
+  if (NOTIFY_WHEN === 'update' && !prev) return;
+  if (NOTIFY_WHEN === 'defect' && grade !== 'ไม่ผ่าน' && grade !== 'เกือบผ่าน') return;
+
+  const icon = GRADE_ICON[grade] || '⬜';
+  let lines;
+
+  if (changes) {
+    lines = ['🔁 ห้อง ' + p['ห้อง'] + ' — แก้ไขผลตรวจ'];
+    const g = changes.filter(function (c) { return c.field === 'เกรด'; })[0];
+    lines.push(g ? (GRADE_ICON[g.from] || '⬜') + ' ' + g.from + '  →  ' + icon + ' ' + g.to
+                 : icon + ' เกรดยังเป็น ' + grade);
+    changes.filter(function (c) { return c.field !== 'เกรด'; })
+      .forEach(function (c) { lines.push('• ' + c.field + ': ' + c.from + ' → ' + c.to); });
+  } else {
+    lines = [icon + ' ห้อง ' + p['ห้อง'] + ' — ' + grade,
+      'ขอบเขต: ' + (p['ขอบเขตงาน'] || '-'),
+      'สี: ' + (p['สีที่ใช้'] || '-') + ' · ระยะขอบ: ' + (p['ระยะขอบ'] || '-'),
+      'ตัดขอบ: ' + (p['ตัดขอบ'] || '-') + ' · ฟองอากาศ: ' + (p['ฟองอากาศ'] || '-'),
+      'กินผนัง: ' + (p['กินผนัง'] || '-')];
+    if (p['หมายเหตุ']) lines.push('หมายเหตุ: ' + p['หมายเหตุ']);
+  }
+
+  if (p['ผู้ตรวจ']) lines.push('ผู้ตรวจ: ' + p['ผู้ตรวจ']);
   pushLine_(lines.join('\n'));
 }
 
@@ -281,8 +356,13 @@ function dailySummary() {
 }
 
 function testLine() {
-  const ok = pushLine_('ทดสอบจากชีตบันทึกตรวจซิลิโคน — เชื่อมต่อสำเร็จ');
+  if (!lineToken_()) {
+    SpreadsheetApp.getActive().toast('ยังไม่ได้ใส่ LINE_TOKEN ในไฟล์ Code.gs', 'ซิลิโคน', 6);
+    return;
+  }
+  const ok = pushLine_('ทดสอบจากชีตบันทึกตรวจซิลิโคน — เชื่อมต่อสำเร็จ' +
+    (lineTo_() ? '' : ' (โหมด broadcast ส่งหาเพื่อนของ OA ทุกคน)'));
   SpreadsheetApp.getActive().toast(
-    ok ? 'ส่งแล้ว ไปเช็คในไลน์' : 'ส่งไม่สำเร็จ — ยังไม่ได้ตั้งค่า token หรือ token ผิด',
+    ok ? 'ส่งแล้ว ไปเช็คในไลน์' : 'ส่งไม่สำเร็จ — เปิด Executions ดู log ว่า LINE ตอบว่าอะไร',
     'ซิลิโคน', 6);
 }
