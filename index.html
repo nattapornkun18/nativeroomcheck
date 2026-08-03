@@ -202,7 +202,7 @@
       </div>
       <div class="scopechip">
         <span class="lbl">ตามแบบ</span>
-        <b id="ruleChip">ขอบบนอย่างเดียว</b>
+        <b id="ruleChip">ยิงขอบบนแค่ขอบบน (01&amp;12)</b>
       </div>
     </div>
 
@@ -307,7 +307,8 @@ const TOTAL_ROOMS = FLOORS.length * ROOMS_PER_FLOOR;
 const roomsOfFloor = f => { const a=[]; for(let i=1;i<=ROOMS_PER_FLOOR;i++) a.push(String(f*100+i)); return a; };
 const floorOf   = r => r.slice(0,-2);
 const isTopOnly = r => TOP_ONLY.indexOf(r.slice(-2)) !== -1;
-const scopeByRule = r => isTopOnly(r) ? "ขอบบนอย่างเดียว" : "ครบสามด้าน";
+const SCOPE_TOP = "ยิงขอบบนแค่ขอบบน (01&12)", SCOPE_FULL = "ยิงครบทุกด้าน";
+const scopeByRule = r => isTopOnly(r) ? SCOPE_TOP : SCOPE_FULL;
 
 const OPTS = {
   color:[{v:"แมตช์"},{v:"เงา",bad:1},{v:"ยังไม่ได้ยิง",bad:1}],
@@ -319,8 +320,8 @@ const OPTS = {
   skip:[{v:"เข้าตรวจได้"},{v:"ไม่มีกุญแจ",warn:1},{v:"มีแขกพัก",warn:1},{v:"ห้องปิดปรับปรุง",warn:1}]
 };
 const scopeOptions = r => isTopOnly(r)
-  ? [{v:"ขอบบนอย่างเดียว"},{v:"ยิงด้านข้างมาด้วย",bad:1},{v:"ยังไม่ได้ยิง",bad:1}]
-  : [{v:"ครบสามด้าน"},{v:"ยิงไม่ครบสามด้าน",bad:1},{v:"ยังไม่ได้ยิง",bad:1}];
+  ? [{v:SCOPE_TOP},{v:"ยิงด้านข้างมาด้วย",bad:1},{v:"ยังไม่ได้ยิง",bad:1}]
+  : [{v:SCOPE_FULL},{v:"ยิงไม่ครบสามด้าน",bad:1},{v:"ยังไม่ได้ยิง",bad:1}];
 
 const S = { floor:FLOOR_FROM, room:String(FLOOR_FROM*100+1), scope:"", color:"แมตช์",
   edge:"เท่ากันทุกด้าน", cut:"เรียบร้อย", bub:"ไม่พบ", eat:"ไม่พบ", wall:"ปกติ", skip:"เข้าตรวจได้" };
@@ -390,7 +391,7 @@ function buildScope(){
   const opts = scopeOptions(S.room);
   if(!opts.some(o=>o.v === S.scope)) S.scope = opts[0].v;
   $("labScope").textContent = isTopOnly(S.room)
-    ? "ห้องนี้ตามแบบยิงเฉพาะขอบบน" : "ห้องนี้ตามแบบยิงครบสามด้าน";
+    ? "ห้องนี้ตามแบบยิงแค่ขอบบน" : "ห้องนี้ตามแบบยิงครบทุกด้าน";
   group($("optScope"), opts, "scope");
   refresh();
 }
