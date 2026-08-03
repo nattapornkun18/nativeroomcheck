@@ -3,314 +3,395 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บันทึกตรวจซิลิโคนขอบอ่าง</title>
+<title>เช็คซิลิโคนขอบอ่าง</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#EEF2F1; --sheet:#fff; --ink:#0F1E1D; --mid:#3E4C4B; --soft:#7B8886;
-    --line:#DCE3E1; --seal:#14605A;
-    --pass:#1B7A4B; --near:#A9761F; --fail:#B23C31; --skip:#6B7877;
+    --bg:#EEF2F1; --card:#fff; --ink:#0F1E1D; --mid:#3E4C4B; --soft:#7B8886;
+    --line:#DFE5E3; --seal:#14605A; --gold:#C79A3E;
+    --dark:#16211F; --dark2:#1E2C2A;
+    --pass:#1B7A4B; --near:#B8862B; --fail:#B23C31; --skip:#6B7877;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:"IBM Plex Sans Thai",system-ui,sans-serif;font-size:15px;line-height:1.6}
-  .sheet{max-width:820px;margin:0 auto;padding-bottom:60px}
+  .app{max-width:760px;margin:0 auto;background:var(--bg);min-height:100vh}
 
-  header{padding:30px 20px 22px}
-  .eyebrow{font-family:"Chakra Petch",sans-serif;font-size:11px;letter-spacing:.2em;
-    text-transform:uppercase;color:var(--seal);font-weight:600;margin:0 0 6px}
-  h1{font-family:"Chakra Petch",sans-serif;font-size:clamp(22px,5vw,30px);font-weight:700;margin:0;line-height:1.2}
-  .sublede{color:var(--soft);font-size:13px;margin:8px 0 0}
+  /* ---------- topbar ---------- */
+  .topbar{background:var(--dark);color:#fff;padding:14px 18px;display:flex;
+    align-items:center;gap:12px;border-left:5px solid var(--gold)}
+  .topbar h1{font-family:"Chakra Petch",sans-serif;font-size:16px;font-weight:600;margin:0;letter-spacing:.02em}
+  .pill{margin-left:auto;display:flex;align-items:center;gap:7px;background:#26332F;
+    padding:5px 12px;border-radius:20px;font-size:11.5px;color:#BFD3CB}
+  .pill i{width:7px;height:7px;border-radius:50%;background:var(--pass);display:block}
+  .pill.off i{background:var(--near)}
+  .who{background:transparent;border:1px solid #3A4744;color:#BFD3CB;font-size:11.5px;
+    padding:5px 12px;border-radius:20px;font-family:inherit;cursor:pointer}
 
-  .warn{margin:0 20px 18px;background:#FFF6E3;border-left:4px solid var(--near);
-    padding:13px 16px;font-size:13px;color:#7A5312}
-  .warn code{background:#fff;padding:1px 6px;font-family:"IBM Plex Mono",monospace;font-size:12px}
+  .tabbar{background:var(--dark2);display:flex}
+  .tabbar button{flex:1;background:none;border:0;border-bottom:3px solid transparent;
+    color:#8FA39E;font-family:inherit;font-size:13.5px;padding:13px 6px;cursor:pointer}
+  .tabbar button[aria-selected="true"]{color:#fff;border-bottom-color:var(--gold)}
 
-  .card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;
-    margin:0 20px 14px;overflow:hidden}
-  .card > .cap{background:#F5F8F7;border-bottom:1px solid var(--line);
-    padding:11px 16px;font-family:"Chakra Petch",sans-serif;font-size:12px;
-    letter-spacing:.16em;text-transform:uppercase;color:var(--mid);font-weight:600}
-  .fld{padding:14px 16px;border-bottom:1px solid var(--line)}
+  .pane{padding:16px 16px 60px}
+  .pane[hidden]{display:none}
+
+  /* ---------- room card ---------- */
+  .roomcard{background:var(--card);border-radius:8px;border-left:5px solid var(--gold);
+    padding:16px 18px;box-shadow:0 1px 3px rgba(15,30,29,.07)}
+  .rhead{display:flex;align-items:center;gap:14px}
+  .rno{font-family:"IBM Plex Mono",monospace;font-size:40px;font-weight:700;line-height:1}
+  .rmeta .tag{font-family:"Chakra Petch",sans-serif;font-size:13px;font-weight:600;
+    letter-spacing:.05em;color:var(--gold);text-transform:uppercase}
+  .rmeta .sub{font-size:12px;color:var(--soft)}
+  .dot{margin-left:auto;width:20px;height:20px;border-radius:50%;border:3px solid var(--line)}
+  .dot[data-g="ผ่าน"]{border-color:var(--pass);background:var(--pass)}
+  .dot[data-g="เกือบผ่าน"]{border-color:var(--near);background:var(--near)}
+  .dot[data-g="ไม่ผ่าน"]{border-color:var(--fail);background:var(--fail)}
+  .dot[data-g="ไม่ได้ตรวจ"]{border-color:var(--skip);background:var(--skip)}
+
+  .steprow{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .steprow .lbl{font-size:13px;color:var(--soft)}
+  .stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .stepper button{width:40px;height:40px;border:0;background:#fff;font-size:19px;
+    color:var(--ink);cursor:pointer;font-family:inherit}
+  .stepper button:hover{background:#F2F6F5}
+  .stepper .val{width:52px;text-align:center;font-family:"IBM Plex Mono",monospace;
+    font-size:17px;font-weight:700;border-left:1px solid var(--line);border-right:1px solid var(--line);
+    line-height:40px}
+  .scopechip{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .scopechip .lbl{font-size:12px;color:var(--soft)}
+  .scopechip b{background:var(--pass);color:#fff;font-size:12.5px;font-weight:500;
+    padding:8px 16px;border-radius:6px}
+
+  .roomgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:14px}
+  .rbtn{position:relative;font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;
+    padding:12px 2px;background:#fff;border:1px solid var(--line);border-radius:6px;
+    cursor:pointer;color:var(--ink)}
+  .rbtn[aria-pressed="true"]{border:2px solid var(--ink);box-shadow:0 0 0 2px #E5C88A}
+  .rbtn i{position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%}
+  .rbtn i[data-g="ผ่าน"]{background:var(--pass)}
+  .rbtn i[data-g="เกือบผ่าน"]{background:var(--near)}
+  .rbtn i[data-g="ไม่ผ่าน"]{background:var(--fail)}
+  .rbtn i[data-g="ไม่ได้ตรวจ"]{background:var(--skip)}
+
+  .allok{width:100%;margin-top:14px;background:#EAF6EF;border:1px solid #BFE0CD;
+    color:var(--pass);font-family:inherit;font-size:14px;font-weight:500;
+    padding:14px;border-radius:8px;cursor:pointer}
+  .allok:hover{background:#DFF1E7}
+
+  /* ---------- field cards ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-top:14px;overflow:hidden}
+  .cap{background:#F5F8F7;border-bottom:1px solid var(--line);padding:10px 15px;
+    font-family:"Chakra Petch",sans-serif;font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--mid);font-weight:600}
+  .fld{padding:13px 15px;border-bottom:1px solid var(--line)}
   .fld:last-child{border-bottom:0}
   .fld > .lab{font-size:13.5px;font-weight:500;margin-bottom:9px}
-  .fld > .lab span{color:var(--soft);font-weight:400;font-size:12px;margin-left:6px}
-
-  .opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-  .opts.tight{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}
-  .opt{font-family:inherit;font-size:14px;padding:12px 10px;text-align:center;
-    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:5px;
-    cursor:pointer;line-height:1.35;transition:.12s}
+  .fld > .lab span{color:var(--soft);font-weight:400;font-size:12px;margin-left:5px}
+  .opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .opt{font-family:inherit;font-size:14px;padding:12px 8px;text-align:center;line-height:1.35;
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;cursor:pointer;transition:.12s}
   .opt:hover{border-color:var(--seal)}
   .opt[aria-pressed="true"]{background:var(--pass);border-color:var(--pass);color:#fff;font-weight:500}
   .opt[aria-pressed="true"][data-bad="1"]{background:var(--fail);border-color:var(--fail)}
   .opt[aria-pressed="true"][data-warn="1"]{background:var(--near);border-color:var(--near)}
-  .opt.mono{font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;padding:11px 4px}
-  .opt:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
-
   textarea,input{width:100%;font-family:inherit;font-size:14px;padding:10px 12px;
-    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:5px}
-  textarea{resize:vertical;min-height:60px}
-  textarea:focus,input:focus{outline:2px solid var(--seal);outline-offset:-1px}
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px}
+  textarea{resize:vertical;min-height:58px}
   .hint{font-size:12px;color:var(--soft);margin-top:8px}
 
-  .verdict{margin:0 20px 14px;border-radius:6px;padding:16px 18px;display:flex;
-    gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-left-width:5px}
-  .verdict .g{font-family:"Chakra Petch",sans-serif;font-size:23px;font-weight:700;white-space:nowrap}
+  .verdict{margin-top:14px;border-radius:8px;padding:15px 17px;display:flex;gap:13px;
+    align-items:center;background:#fff;border:1px solid var(--line);border-left-width:5px}
+  .verdict .g{font-family:"Chakra Petch",sans-serif;font-size:22px;font-weight:700;white-space:nowrap}
   .verdict .why{font-size:12.5px;color:var(--mid)}
   .verdict[data-g="ผ่าน"]{border-left-color:var(--pass)} .verdict[data-g="ผ่าน"] .g{color:var(--pass)}
   .verdict[data-g="เกือบผ่าน"]{border-left-color:var(--near)} .verdict[data-g="เกือบผ่าน"] .g{color:var(--near)}
   .verdict[data-g="ไม่ผ่าน"]{border-left-color:var(--fail)} .verdict[data-g="ไม่ผ่าน"] .g{color:var(--fail)}
   .verdict[data-g="ไม่ได้ตรวจ"]{border-left-color:var(--skip)} .verdict[data-g="ไม่ได้ตรวจ"] .g{color:var(--skip)}
 
-  .actions{margin:0 20px 30px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .btn{font-family:inherit;font-size:15px;font-weight:500;padding:13px 26px;
-    border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;border-radius:5px}
+  .actions{margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{font-family:inherit;font-size:15px;font-weight:500;padding:14px 28px;border:1px solid var(--ink);
+    background:var(--ink);color:#fff;cursor:pointer;border-radius:6px}
   .btn.ghost{background:#fff;color:var(--ink)}
   .btn:disabled{opacity:.5;cursor:default}
   .msg{font-size:13px} .msg.ok{color:var(--pass)} .msg.err{color:var(--fail)}
 
-  h2.sec{font-family:"Chakra Petch",sans-serif;font-size:18px;font-weight:600;margin:34px 20px 4px}
-  .sub{color:var(--soft);font-size:12.5px;margin:0 20px 16px}
-  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 20px 14px}
-  .tabs button{font-family:"IBM Plex Mono",monospace;font-size:13px;padding:7px 12px;
-    border:1px solid var(--line);background:#fff;color:var(--mid);border-radius:4px;cursor:pointer}
-  .tabs button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
-
+  /* ---------- summary ---------- */
   .score{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
-    border:1px solid var(--line);margin:0 20px 14px;border-radius:6px;overflow:hidden}
-  .sc{background:#fff;padding:13px}
-  .sc .n{font-family:"Chakra Petch",sans-serif;font-size:27px;font-weight:700;line-height:1}
+    border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .sc{background:#fff;padding:14px}
+  .sc .n{font-family:"Chakra Petch",sans-serif;font-size:28px;font-weight:700;line-height:1}
   .sc .t{font-size:12px;color:var(--soft);margin-top:3px}
   .sc[data-g=pass] .n{color:var(--pass)} .sc[data-g=near] .n{color:var(--near)}
   .sc[data-g=fail] .n{color:var(--fail)} .sc[data-g=skip] .n{color:var(--skip)}
-
-  .scroll{margin:0 20px;overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
-  table{width:100%;border-collapse:collapse;min-width:820px}
+  .bar{display:flex;height:12px;margin-top:12px;border-radius:3px;overflow:hidden;background:#E3E9E7}
+  h3.blk{font-family:"Chakra Petch",sans-serif;font-size:15px;font-weight:600;margin:26px 0 10px}
+  .box{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
   th{text-align:left;font-size:11px;letter-spacing:.05em;color:var(--soft);font-weight:600;
-    padding:10px 12px;background:#FAFCFB;border-bottom:1px solid var(--line);white-space:nowrap}
-  td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
-  td.rm{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;width:62px}
-  tr.band td{font-family:"Chakra Petch",sans-serif;font-weight:600;font-size:13px;
-    background:#F1F5F4;color:var(--seal)}
-  tr.band .qty{float:right;font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11.5px;color:var(--soft)}
-  .ok{color:var(--pass)} .no{color:var(--fail);font-weight:500} .na{color:#AEB9B7}
+    padding:9px 11px;background:#FAFCFB;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 11px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  td.k{font-family:"IBM Plex Mono",monospace;font-weight:600}
+  td.n{font-family:"IBM Plex Mono",monospace;text-align:center;width:52px}
+  .minibar{height:7px;background:#EDF1F0;border-radius:3px;overflow:hidden;min-width:60px}
+  .minibar i{display:block;height:7px}
   .badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500;white-space:nowrap}
   .badge[data-g="ผ่าน"]{background:#E2F0E9;color:var(--pass)}
   .badge[data-g="เกือบผ่าน"]{background:#F7EEDC;color:#8A5D14}
   .badge[data-g="ไม่ผ่าน"]{background:#F7E2DF;color:var(--fail)}
   .badge[data-g="ไม่ได้ตรวจ"]{background:#E7ECEB;color:var(--skip)}
   .badge[data-g="ยังไม่ตรวจ"]{background:#F2F5F4;color:#AEB9B7}
-
-  footer{margin:36px 20px 0;padding-top:18px;border-top:1px solid var(--line);
-    font-size:12px;color:var(--soft)}
-  @media (max-width:560px){
-    .score{grid-template-columns:repeat(2,1fr)}
+  tr.band td{font-family:"Chakra Petch",sans-serif;font-weight:600;font-size:12.5px;
+    background:#F1F5F4;color:var(--seal)}
+  tr.band span{float:right;font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11px;color:var(--soft)}
+  .scroll{overflow-x:auto}
+  .scroll table{min-width:640px}
+  .ok{color:var(--pass)} .no{color:var(--fail);font-weight:500} .na{color:#AEB9B7}
+  .warnbox{background:#FFF6E3;border-left:4px solid var(--near);padding:12px 15px;
+    font-size:13px;color:#7A5312;border-radius:6px;margin-bottom:14px}
+  .warnbox code{background:#fff;padding:1px 6px;font-family:"IBM Plex Mono",monospace;font-size:12px}
+  @media (max-width:520px){
+    .roomgrid{grid-template-columns:repeat(4,1fr)}
     .opts{grid-template-columns:1fr}
-    .opts.tight{grid-template-columns:repeat(4,1fr)}
+    .score{grid-template-columns:repeat(2,1fr)}
+    .scopechip{margin-left:0;width:100%}
   }
 </style>
 </head>
 <body>
-<div class="sheet">
+<div class="app">
 
-<header>
-  <p class="eyebrow">ระบบบันทึกตรวจงาน · ซิลิโคนขอบอ่างอาบน้ำ</p>
-  <h1>บันทึกตรวจซิลิโคนขอบอ่าง</h1>
-  <p class="sublede">ชั้น 3–20 ชั้นละ 12 ห้อง · กดเลือกทีละหัวข้อ ระบบตัดเกรดให้เอง</p>
-</header>
-
-<div id="setupWarn" class="warn" hidden>
-  ยังไม่ได้ตั้งค่าลิงก์ Google Sheet — แก้บรรทัด <code>const API_URL = "";</code> ในไฟล์นี้ให้เป็นลิงก์ Web App จาก Apps Script ระหว่างนี้บันทึกได้แต่ข้อมูลจะหายเมื่อรีเฟรช
+<div class="topbar">
+  <h1>เช็คซิลิโคน · Silicone</h1>
+  <div class="pill" id="connPill"><i></i><span id="connTxt">เชื่อมชีตแล้ว</span></div>
+  <button class="who" id="whoBtn">ผู้ตรวจ</button>
 </div>
 
-<div class="card">
-  <div class="cap">Room · เลือกห้อง</div>
-  <div class="fld">
-    <div class="lab">ชั้น</div>
-    <div class="opts tight" id="optFloor"></div>
+<div class="tabbar" role="tablist">
+  <button role="tab" aria-selected="true" data-p="check">ตรวจห้อง</button>
+  <button role="tab" aria-selected="false" data-p="sum">สรุป</button>
+  <button role="tab" aria-selected="false" data-p="log">บันทึกแล้ว (<span id="logCount">0</span>)</button>
+</div>
+
+<!-- ============ ตรวจห้อง ============ -->
+<div class="pane" id="pane-check">
+  <div id="setupWarn" class="warnbox" hidden>
+    ยังไม่ได้เชื่อม Google Sheet — แก้ <code>const API_URL = "";</code> ในไฟล์นี้ให้เป็นลิงก์ Web App จาก Apps Script ระหว่างนี้บันทึกได้แต่ข้อมูลจะหายเมื่อรีเฟรช
   </div>
-  <div class="fld">
-    <div class="lab">ห้อง</div>
-    <div class="opts tight" id="optRoom"></div>
-    <div class="hint" id="scopeHint"></div>
+
+  <div class="roomcard">
+    <div class="rhead">
+      <div class="rno" id="rno">301</div>
+      <div class="rmeta">
+        <div class="tag" id="rtag">Top edge only</div>
+        <div class="sub" id="rsub">ชั้น 3 · ห้อง 01</div>
+      </div>
+      <div class="dot" id="rdot"></div>
+    </div>
+
+    <div class="steprow">
+      <span class="lbl">ชั้น</span>
+      <div class="stepper">
+        <button type="button" id="fMinus">−</button>
+        <div class="val" id="fVal">3</div>
+        <button type="button" id="fPlus">+</button>
+      </div>
+      <div class="scopechip">
+        <span class="lbl">ตามแบบ</span>
+        <b id="ruleChip">ขอบบนอย่างเดียว</b>
+      </div>
+    </div>
+
+    <div class="roomgrid" id="roomGrid"></div>
+    <button class="allok" id="btnAllOk">✓ ทั้งหมดปกติ — แล้วค่อยแก้เฉพาะจุดที่เสีย</button>
+  </div>
+
+  <div class="card">
+    <div class="cap">Scope · ขอบเขตที่ยิง</div>
+    <div class="fld">
+      <div class="lab" id="labScope"></div>
+      <div class="opts" id="optScope"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cap">Quality · คุณภาพงาน</div>
+    <div class="fld"><div class="lab">สีที่ใช้ <span>สเปกคือแมตช์</span></div><div class="opts" id="optColor"></div></div>
+    <div class="fld"><div class="lab">ระยะขอบ</div><div class="opts" id="optEdge"></div></div>
+    <div class="fld"><div class="lab">ตัดขอบ</div><div class="opts" id="optCut"></div></div>
+    <div class="fld"><div class="lab">ฟองอากาศ</div><div class="opts" id="optBub"></div></div>
+    <div class="fld"><div class="lab">กินผนัง <span>ฝั่งหน้าหิน</span></div><div class="opts" id="optEat"></div></div>
+    <div class="fld"><div class="lab">สภาพผนัง</div><div class="opts" id="optWall"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="cap">Access · การเข้าห้อง</div>
+    <div class="fld">
+      <div class="lab">เข้าตรวจได้หรือไม่</div>
+      <div class="opts" id="optSkip"></div>
+      <div class="hint">ถ้าเข้าไม่ได้ ระบบจะบันทึกเป็น “ไม่ได้ตรวจ” และข้ามการตัดเกรด</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cap">Note · หมายเหตุ</div>
+    <div class="fld"><textarea id="fNote" placeholder="เช่น ตัดขอบสวย แต่สีผิดสเปก"></textarea></div>
+  </div>
+
+  <div class="verdict" id="verdict" data-g="ผ่าน">
+    <div class="g" id="vGrade">ผ่าน</div>
+    <div class="why" id="vWhy">ไม่พบข้อบกพร่อง</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="btnSave">บันทึกลงชีต</button>
+    <button class="btn ghost" id="btnReset">ล้างฟอร์ม</button>
+    <span class="msg" id="msg"></span>
   </div>
 </div>
 
-<div class="card">
-  <div class="cap">Scope · ขอบเขตที่ยิง</div>
-  <div class="fld">
-    <div class="lab" id="labScope">ยิงจริงกี่ด้าน</div>
-    <div class="opts" id="optScope"></div>
+<!-- ============ สรุป ============ -->
+<div class="pane" id="pane-sum" hidden>
+  <div class="score" id="score"></div>
+  <div class="bar" id="bar"></div>
+  <p class="hint" id="progressTxt"></p>
+
+  <h3 class="blk">แยกตามชั้น</h3>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>ชั้น</th><th>บันทึกแล้ว</th><th>ผ่าน</th><th>เกือบผ่าน</th><th>ไม่ผ่าน</th><th>ไม่ได้ตรวจ</th><th>สัดส่วน</th></tr></thead>
+      <tbody id="floorBody"></tbody>
+    </table>
   </div>
+
+  <h3 class="blk">แยกตามข้อบกพร่อง</h3>
+  <div class="box">
+    <table><tbody id="defectBody"></tbody></table>
+  </div>
+
+  <h3 class="blk">ห้องที่ต้องกลับไปแก้</h3>
+  <div class="box"><table><tbody id="fixBody"></tbody></table></div>
 </div>
 
-<div class="card">
-  <div class="cap">Quality · คุณภาพงาน</div>
-  <div class="fld">
-    <div class="lab">สีที่ใช้ <span>สเปกคือแมตช์</span></div>
-    <div class="opts" id="optColor"></div>
+<!-- ============ บันทึกแล้ว ============ -->
+<div class="pane" id="pane-log" hidden>
+  <div class="actions" style="margin:0 0 14px">
+    <button class="btn ghost" id="btnReload">โหลดข้อมูลใหม่</button>
+    <span class="msg" id="msg2"></span>
   </div>
-  <div class="fld">
-    <div class="lab">ระยะขอบ</div>
-    <div class="opts" id="optEdge"></div>
-  </div>
-  <div class="fld">
-    <div class="lab">ตัดขอบ</div>
-    <div class="opts" id="optCut"></div>
-  </div>
-  <div class="fld">
-    <div class="lab">ฟองอากาศ</div>
-    <div class="opts" id="optBub"></div>
-  </div>
-  <div class="fld">
-    <div class="lab">กินผนัง <span>ฝั่งหน้าหิน</span></div>
-    <div class="opts" id="optEat"></div>
-  </div>
-  <div class="fld">
-    <div class="lab">สภาพผนัง</div>
-    <div class="opts" id="optWall"></div>
+  <div class="box scroll">
+    <table>
+      <thead><tr><th>ห้อง</th><th>ขอบเขต</th><th>สี</th><th>ระยะขอบ</th><th>ตัดขอบ</th><th>ฟองอากาศ</th><th>กินผนัง</th><th>เกรด</th><th>วันที่</th></tr></thead>
+      <tbody id="logBody"><tr><td colspan="9" class="na">กำลังโหลด…</td></tr></tbody>
+    </table>
   </div>
 </div>
-
-<div class="card">
-  <div class="cap">Access · การเข้าห้อง</div>
-  <div class="fld">
-    <div class="lab">เข้าตรวจได้หรือไม่</div>
-    <div class="opts" id="optSkip"></div>
-    <div class="hint">ถ้าเข้าไม่ได้ ระบบจะบันทึกเป็น “ไม่ได้ตรวจ” และข้ามการตัดเกรด</div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="cap">Note · หมายเหตุ</div>
-  <div class="fld">
-    <div class="lab">รายละเอียดเพิ่มเติม</div>
-    <textarea id="fNote" placeholder="เช่น ตัดขอบสวย แต่สีผิดสเปก"></textarea>
-  </div>
-  <div class="fld">
-    <div class="lab">ผู้ตรวจ</div>
-    <input id="fBy" placeholder="ชื่อผู้ตรวจ">
-  </div>
-</div>
-
-<div class="verdict" id="verdict" data-g="ผ่าน">
-  <div class="g" id="vGrade">ผ่าน</div>
-  <div class="why" id="vWhy">ไม่พบข้อบกพร่อง</div>
-</div>
-
-<div class="actions">
-  <button class="btn" id="btnSave">บันทึกลงชีต</button>
-  <button class="btn ghost" id="btnReset">ล้างฟอร์ม</button>
-  <span class="msg" id="msg"></span>
-</div>
-
-<h2 class="sec">สรุปล่าสุดต่อห้อง</h2>
-<p class="sub">ดึงจากชีตโดยตรง ห้องที่ตรวจซ้ำจะแสดงรายการล่าสุดเสมอ</p>
-<div class="tabs" id="floorTabs"></div>
-<div class="score" id="score"></div>
-<div class="tabs"><button id="btnReload">โหลดข้อมูลใหม่</button></div>
-<div class="scroll">
-  <table>
-    <thead><tr>
-      <th>ห้อง</th><th>ขอบเขต</th><th>สีที่ใช้</th><th>ระยะขอบ</th><th>ตัดขอบ</th>
-      <th>ฟองอากาศ</th><th>กินผนัง</th><th>เกรด</th><th>วันที่</th>
-    </tr></thead>
-    <tbody id="tbody"><tr><td colspan="9" class="na">กำลังโหลด…</td></tr></tbody>
-  </table>
-</div>
-
-<footer>
-  เกณฑ์: สีต้องเป็นแมตช์เท่านั้น · ห้องลงท้าย 01 และ 12 ยิงเฉพาะขอบบน ถ้ายิงด้านข้างมาด้วยถือว่าผิด · ห้องอื่นต้องยิงครบสามด้าน · ฟองอากาศหรือผนังถลอกอย่างเดียว = เกือบผ่าน · นอกนั้น = ไม่ผ่าน
-</footer>
 
 </div>
 
 <script>
-/* ============ ตั้งค่าตรงนี้ ============ */
+/* ============ ตั้งค่า ============ */
 const API_URL = "";              /* ลิงก์ Web App จาก Apps Script ลงท้ายด้วย /exec */
-const FLOOR_FROM = 3;            /* ชั้นแรก */
-const FLOOR_TO   = 20;           /* ชั้นสุดท้าย */
-const ROOMS_PER_FLOOR = 12;      /* จำนวนห้องต่อชั้น */
+const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
 const TOP_ONLY = ["01","12"];    /* ท้ายเลขห้องที่ยิงเฉพาะขอบบนตามแบบ */
-/* ===================================== */
+/* ================================ */
 
 const $ = id => document.getElementById(id);
+const FLOORS = []; for(let f=FLOOR_FROM; f<=FLOOR_TO; f++) FLOORS.push(f);
+const TOTAL_ROOMS = FLOORS.length * ROOMS_PER_FLOOR;
 
-const FLOORS = [];
-for(let f = FLOOR_FROM; f <= FLOOR_TO; f++) FLOORS.push(f);
-function roomsOfFloor(f){
-  const out=[]; for(let i=1;i<=ROOMS_PER_FLOOR;i++) out.push(String(f*100+i)); return out;
-}
-function floorOf(room){ return room.slice(0,-2); }
-function isTopOnly(room){ return TOP_ONLY.indexOf(room.slice(-2)) !== -1; }
-function scopeByRule(room){ return isTopOnly(room) ? "ขอบบนอย่างเดียว" : "ครบสามด้าน"; }
+const roomsOfFloor = f => { const a=[]; for(let i=1;i<=ROOMS_PER_FLOOR;i++) a.push(String(f*100+i)); return a; };
+const floorOf   = r => r.slice(0,-2);
+const isTopOnly = r => TOP_ONLY.indexOf(r.slice(-2)) !== -1;
+const scopeByRule = r => isTopOnly(r) ? "ขอบบนอย่างเดียว" : "ครบสามด้าน";
 
-/* ---- ตัวเลือกแต่ละหัวข้อ ---- */
 const OPTS = {
-  color:[ {v:"แมตช์"}, {v:"เงา", bad:1}, {v:"ยังไม่ได้ยิง", bad:1} ],
-  edge:[ {v:"เท่ากันทุกด้าน"}, {v:"มีด้านใดด้านหนึ่งหนากว่าผิดปกติ", bad:1} ],
-  cut:[ {v:"เรียบร้อย"}, {v:"เก็บไม่เรียบฝั่งซ้าย", bad:1},
-        {v:"เก็บไม่เรียบฝั่งขวา", bad:1}, {v:"เก็บไม่เรียบรอบด้าน", bad:1} ],
-  bub:[ {v:"ไม่พบ"}, {v:"มี 1 จุด", warn:1}, {v:"มีหลายจุด", warn:1} ],
-  eat:[ {v:"ไม่พบ"}, {v:"ฝั่งซ้าย", bad:1}, {v:"ฝั่งขวา", bad:1}, {v:"สองฝั่ง", bad:1} ],
-  wall:[ {v:"ปกติ"}, {v:"ถลอก - ต้องแตะสี", warn:1} ],
-  skip:[ {v:"เข้าตรวจได้"}, {v:"ไม่มีกุญแจ", warn:1},
-         {v:"มีแขกพัก", warn:1}, {v:"ห้องปิดปรับปรุง", warn:1} ]
+  color:[{v:"แมตช์"},{v:"เงา",bad:1},{v:"ยังไม่ได้ยิง",bad:1}],
+  edge:[{v:"เท่ากันทุกด้าน"},{v:"มีด้านใดด้านหนึ่งหนากว่าผิดปกติ",bad:1}],
+  cut:[{v:"เรียบร้อย"},{v:"เก็บไม่เรียบฝั่งซ้าย",bad:1},{v:"เก็บไม่เรียบฝั่งขวา",bad:1},{v:"เก็บไม่เรียบรอบด้าน",bad:1}],
+  bub:[{v:"ไม่พบ"},{v:"มี 1 จุด",warn:1},{v:"มีหลายจุด",warn:1}],
+  eat:[{v:"ไม่พบ"},{v:"ฝั่งซ้าย",bad:1},{v:"ฝั่งขวา",bad:1},{v:"สองฝั่ง",bad:1}],
+  wall:[{v:"ปกติ"},{v:"ถลอก - ต้องแตะสี",warn:1}],
+  skip:[{v:"เข้าตรวจได้"},{v:"ไม่มีกุญแจ",warn:1},{v:"มีแขกพัก",warn:1},{v:"ห้องปิดปรับปรุง",warn:1}]
 };
-function scopeOptions(room){
-  return isTopOnly(room)
-    ? [ {v:"ขอบบนอย่างเดียว"}, {v:"ยิงด้านข้างมาด้วย", bad:1}, {v:"ยังไม่ได้ยิง", bad:1} ]
-    : [ {v:"ครบสามด้าน"}, {v:"ยิงไม่ครบสามด้าน", bad:1}, {v:"ยังไม่ได้ยิง", bad:1} ];
-}
+const scopeOptions = r => isTopOnly(r)
+  ? [{v:"ขอบบนอย่างเดียว"},{v:"ยิงด้านข้างมาด้วย",bad:1},{v:"ยังไม่ได้ยิง",bad:1}]
+  : [{v:"ครบสามด้าน"},{v:"ยิงไม่ครบสามด้าน",bad:1},{v:"ยังไม่ได้ยิง",bad:1}];
 
-/* ---- สถานะฟอร์ม ---- */
-const S = {
-  floor: FLOOR_FROM, room: String(FLOOR_FROM*100+1),
-  scope:"", color:"แมตช์", edge:"เท่ากันทุกด้าน", cut:"เรียบร้อย",
-  bub:"ไม่พบ", eat:"ไม่พบ", wall:"ปกติ", skip:"เข้าตรวจได้"
-};
+const S = { floor:FLOOR_FROM, room:String(FLOOR_FROM*100+1), scope:"", color:"แมตช์",
+  edge:"เท่ากันทุกด้าน", cut:"เรียบร้อย", bub:"ไม่พบ", eat:"ไม่พบ", wall:"ปกติ", skip:"เข้าตรวจได้" };
 S.scope = scopeByRule(S.room);
+let inspector = "", localRows = [], allRows = [], latest = {};
 
-/* ---- ตัวสร้างปุ่ม ---- */
-function group(el, list, key, onPick, mono){
+/* ---- แท็บ ---- */
+Array.from(document.querySelectorAll('.tabbar button')).forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.tabbar button').forEach(x=>x.setAttribute("aria-selected","false"));
+    b.setAttribute("aria-selected","true");
+    ["check","sum","log"].forEach(p=> $("pane-"+p).hidden = (p !== b.dataset.p));
+    window.scrollTo({top:0});
+  };
+});
+$("whoBtn").onclick = ()=>{
+  const v = prompt("ชื่อผู้ตรวจ", inspector);
+  if(v !== null){ inspector = v.trim(); $("whoBtn").textContent = inspector || "ผู้ตรวจ"; }
+};
+
+/* ---- ปุ่มตัวเลือก ---- */
+function group(el, list, key){
   el.innerHTML = "";
-  el.classList.toggle("tight", !!mono);
   list.forEach(o=>{
     const b = document.createElement("button");
-    b.className = "opt" + (mono ? " mono" : "");
-    b.type = "button"; b.textContent = o.v;
+    b.className = "opt"; b.type = "button"; b.textContent = o.v;
     if(o.bad) b.dataset.bad = "1";
     if(o.warn) b.dataset.warn = "1";
     b.setAttribute("aria-pressed", String(S[key] === o.v));
-    b.onclick = ()=>{ S[key] = o.v; onPick ? onPick() : paintGroup(el, key); refresh(); };
+    b.onclick = ()=>{ S[key] = o.v; paint(el,key); refresh(); };
     el.appendChild(b);
   });
 }
-function paintGroup(el, key){
-  Array.from(el.children).forEach(b=>
-    b.setAttribute("aria-pressed", String(b.textContent === String(S[key]))));
-}
+const paint = (el,key)=> Array.from(el.children).forEach(b=>
+  b.setAttribute("aria-pressed", String(b.textContent === String(S[key]))));
 
-function buildFloorRoom(){
-  group($("optFloor"), FLOORS.map(f=>({v:String(f)})), "floor", ()=>{
-    S.room = String(Number(S.floor)*100+1);
-    buildFloorRoom(); buildScope();
-  }, true);
-  group($("optRoom"), roomsOfFloor(Number(S.floor)).map(r=>({v:r})), "room", ()=>{
-    paintGroup($("optRoom"),"room"); buildScope();
-  }, true);
-  $("scopeHint").textContent = "ตามแบบห้อง " + S.room + " ต้องยิง: " + scopeByRule(S.room);
+/* ---- การ์ดห้อง ---- */
+function buildRooms(){
+  $("fVal").textContent = S.floor;
+  const g = $("roomGrid"); g.innerHTML = "";
+  roomsOfFloor(S.floor).forEach(rn=>{
+    const b = document.createElement("button");
+    b.className = "rbtn"; b.type = "button";
+    b.textContent = rn.slice(-2);
+    b.setAttribute("aria-pressed", String(rn === S.room));
+    const rec = latest[rn];
+    if(rec){ const i = document.createElement("i"); i.dataset.g = rec["เกรด"]; b.appendChild(i); }
+    b.onclick = ()=>{ S.room = rn; buildRooms(); buildScope(); };
+    g.appendChild(b);
+  });
+  const d = new Date(), pad = n=>String(n).padStart(2,"0");
+  $("rno").textContent = S.room;
+  $("rtag").textContent = isTopOnly(S.room) ? "Top edge only" : "Full three sides";
+  $("rsub").textContent = "ชั้น " + floorOf(S.room) + " · ห้อง " + S.room.slice(-2) +
+    " · " + pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear();
+  $("ruleChip").textContent = scopeByRule(S.room);
 }
+function setFloor(n){
+  S.floor = Math.min(FLOOR_TO, Math.max(FLOOR_FROM, n));
+  S.room = String(S.floor*100 + 1);
+  buildRooms(); buildScope();
+}
+$("fMinus").onclick = ()=> setFloor(S.floor - 1);
+$("fPlus").onclick  = ()=> setFloor(S.floor + 1);
+
 function buildScope(){
   const opts = scopeOptions(S.room);
-  if(!opts.some(o=>o.v===S.scope)) S.scope = opts[0].v;
+  if(!opts.some(o=>o.v === S.scope)) S.scope = opts[0].v;
   $("labScope").textContent = isTopOnly(S.room)
     ? "ห้องนี้ตามแบบยิงเฉพาะขอบบน" : "ห้องนี้ตามแบบยิงครบสามด้าน";
   group($("optScope"), opts, "scope");
-  $("scopeHint").textContent = "ตามแบบห้อง " + S.room + " ต้องยิง: " + scopeByRule(S.room);
   refresh();
 }
 
@@ -319,7 +400,6 @@ function judge(){
   if(S.skip !== "เข้าตรวจได้") return {grade:"ไม่ได้ตรวจ", why:S.skip};
   if(S.scope === "ยังไม่ได้ยิง" || S.color === "ยังไม่ได้ยิง")
     return {grade:"ไม่ผ่าน", why:"ยังไม่ได้ยิงซิลิโคน"};
-
   const bad = [];
   if(S.color === "เงา") bad.push("สีผิดสเปก ต้องเป็นแมตช์");
   if(S.scope === "ยิงด้านข้างมาด้วย") bad.push("ยิงเกินแบบ ห้องนี้ต้องยิงเฉพาะขอบบน");
@@ -328,168 +408,182 @@ function judge(){
   if(S.cut !== "เรียบร้อย") bad.push("ตัดขอบ: " + S.cut);
   if(S.eat !== "ไม่พบ") bad.push("กินผนัง: " + S.eat);
   if(bad.length) return {grade:"ไม่ผ่าน", why:bad.join(" · ")};
-
   const minor = [];
   if(S.bub !== "ไม่พบ") minor.push("ฟองอากาศ " + S.bub);
   if(S.wall !== "ปกติ") minor.push("ผนังถลอก");
   if(minor.length) return {grade:"เกือบผ่าน", why:minor.join(" · ") + " — แก้เฉพาะจุดได้ ไม่ต้องรื้อเส้น"};
-
   return {grade:"ผ่าน", why:"ไม่พบข้อบกพร่อง"};
 }
 function refresh(){
   const r = judge();
-  $("verdict").dataset.g = r.grade;
-  $("vGrade").textContent = r.grade;
-  $("vWhy").textContent = r.why;
+  $("verdict").dataset.g = r.grade; $("vGrade").textContent = r.grade; $("vWhy").textContent = r.why;
+  $("rdot").dataset.g = r.grade;
 }
 
+function setAllOk(){
+  S.scope = scopeByRule(S.room); S.color = "แมตช์"; S.edge = "เท่ากันทุกด้าน";
+  S.cut = "เรียบร้อย"; S.bub = "ไม่พบ"; S.eat = "ไม่พบ"; S.wall = "ปกติ"; S.skip = "เข้าตรวจได้";
+  buildScope();
+  paint($("optColor"),"color"); paint($("optEdge"),"edge"); paint($("optCut"),"cut");
+  paint($("optBub"),"bub"); paint($("optEat"),"eat"); paint($("optWall"),"wall"); paint($("optSkip"),"skip");
+  refresh();
+}
+$("btnAllOk").onclick = setAllOk;
+$("btnReset").onclick = ()=>{ setAllOk(); $("fNote").value = ""; $("msg").textContent = ""; };
+
 /* ---- เริ่มต้น ---- */
-buildFloorRoom();
-buildScope();
-group($("optColor"), OPTS.color, "color");
-group($("optEdge"),  OPTS.edge,  "edge");
-group($("optCut"),   OPTS.cut,   "cut");
-group($("optBub"),   OPTS.bub,   "bub");
-group($("optEat"),   OPTS.eat,   "eat");
-group($("optWall"),  OPTS.wall,  "wall");
-group($("optSkip"),  OPTS.skip,  "skip");
-refresh();
-if(!API_URL) $("setupWarn").hidden = false;
+buildRooms(); buildScope();
+group($("optColor"),OPTS.color,"color"); group($("optEdge"),OPTS.edge,"edge");
+group($("optCut"),OPTS.cut,"cut");       group($("optBub"),OPTS.bub,"bub");
+group($("optEat"),OPTS.eat,"eat");       group($("optWall"),OPTS.wall,"wall");
+group($("optSkip"),OPTS.skip,"skip");    refresh();
+if(!API_URL){ $("setupWarn").hidden = false; $("connPill").classList.add("off"); $("connTxt").textContent = "ยังไม่เชื่อมชีต"; }
 
 /* ---- บันทึก ---- */
-let localRows = [], allRows = [], activeFloor = String(FLOOR_FROM);
-
-$("btnSave").addEventListener("click", async ()=>{
-  const r = judge();
-  const off = S.skip !== "เข้าตรวจได้";
-  const now = new Date(), pad = n => String(n).padStart(2,"0");
+$("btnSave").onclick = async ()=>{
+  const r = judge(), off = S.skip !== "เข้าตรวจได้";
+  const now = new Date(), pad = n=>String(n).padStart(2,"0");
   const note = $("fNote").value.trim();
   const row = {
     "วันที่ตรวจ": now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate()),
     "ชั้น": floorOf(S.room), "ห้อง": S.room,
-    "ขอบเขตงาน": off ? "-" : S.scope,
-    "สีที่ใช้":  off ? "-" : S.color,
-    "ระยะขอบ":  off ? "-" : S.edge,
-    "ตัดขอบ":   off ? "-" : S.cut,
-    "ฟองอากาศ": off ? "-" : S.bub,
-    "กินผนัง":  off ? "-" : S.eat,
-    "สภาพผนัง": off ? "-" : S.wall,
-    "เกรด": r.grade,
+    "ขอบเขตงาน": off?"-":S.scope, "สีที่ใช้": off?"-":S.color, "ระยะขอบ": off?"-":S.edge,
+    "ตัดขอบ": off?"-":S.cut, "ฟองอากาศ": off?"-":S.bub, "กินผนัง": off?"-":S.eat,
+    "สภาพผนัง": off?"-":S.wall, "เกรด": r.grade,
     "หมายเหตุ": off ? (S.skip + (note ? " · "+note : "")) : note,
-    "ผู้ตรวจ": $("fBy").value.trim(),
-    "บันทึกเมื่อ": now.toLocaleString("th-TH")
+    "ผู้ตรวจ": inspector, "บันทึกเมื่อ": now.toLocaleString("th-TH")
   };
-
   const msg = $("msg");
   $("btnSave").disabled = true; msg.className = "msg"; msg.textContent = "กำลังบันทึก…";
 
   if(!API_URL){
-    localRows.push(row); allRows = localRows.slice();
-    activeFloor = floorOf(S.room); buildTabs(); draw(allRows);
-    msg.className = "msg ok"; msg.textContent = "บันทึกไว้ในหน้านี้ชั่วคราว (ยังไม่ได้ตั้งค่าชีต)";
-    $("btnSave").disabled = false; return;
+    localRows.push(row); allRows = localRows.slice(); render();
+    msg.className = "msg ok"; msg.textContent = "บันทึกห้อง "+S.room+" ไว้ชั่วคราวในหน้านี้";
+    $("btnSave").disabled = false; nextRoom(); return;
   }
   try{
     const res = await fetch(API_URL, {method:"POST", body:new URLSearchParams(row)});
     const out = await res.json();
     if(!out.ok) throw new Error(out.error || "บันทึกไม่สำเร็จ");
-    msg.className = "msg ok"; msg.textContent = "บันทึกห้อง " + S.room + " เรียบร้อย";
-    $("fNote").value = ""; activeFloor = floorOf(S.room); load();
+    msg.className = "msg ok"; msg.textContent = "บันทึกห้อง "+S.room+" เรียบร้อย";
+    $("fNote").value = ""; await load(); nextRoom();
   }catch(err){
     msg.className = "msg err"; msg.textContent = "บันทึกไม่สำเร็จ: " + err.message;
   }
   $("btnSave").disabled = false;
-});
-
-$("btnReset").addEventListener("click", ()=>{
-  S.scope = scopeByRule(S.room); S.color = "แมตช์"; S.edge = "เท่ากันทุกด้าน";
-  S.cut = "เรียบร้อย"; S.bub = "ไม่พบ"; S.eat = "ไม่พบ"; S.wall = "ปกติ"; S.skip = "เข้าตรวจได้";
-  $("fNote").value = ""; $("msg").textContent = "";
-  buildScope();
-  paintGroup($("optColor"),"color"); paintGroup($("optEdge"),"edge");
-  paintGroup($("optCut"),"cut"); paintGroup($("optBub"),"bub");
-  paintGroup($("optEat"),"eat"); paintGroup($("optWall"),"wall");
-  paintGroup($("optSkip"),"skip");
-  refresh();
-});
-
-/* ---- แท็บชั้น + ตาราง ---- */
-function buildTabs(){
-  const tabs = [["all","ทุกชั้น"]].concat(FLOORS.map(f=>[String(f), String(f)]));
-  $("floorTabs").innerHTML = tabs.map(([v,l])=>
-    '<button data-f="'+v+'" aria-pressed="'+(v===activeFloor)+'">'+l+'</button>').join("");
-  Array.from($("floorTabs").children).forEach(b=>{
-    b.onclick = ()=>{ activeFloor = b.dataset.f; buildTabs(); draw(allRows); };
-  });
+};
+function nextRoom(){
+  const list = roomsOfFloor(S.floor), i = list.indexOf(S.room);
+  if(i > -1 && i < list.length-1){ S.room = list[i+1]; buildRooms(); buildScope(); setAllOk(); }
+  else buildRooms();
 }
-buildTabs();
 
+/* ---- โหลดข้อมูล ---- */
 async function load(){
-  if(!API_URL){ allRows = localRows.slice(); draw(allRows); return; }
+  if(!API_URL){ allRows = localRows.slice(); render(); return; }
   try{
     const res = await fetch(API_URL + "?action=list");
     const out = await res.json();
-    allRows = out.rows || [];
-    draw(allRows);
+    allRows = out.rows || []; render();
   }catch(err){
-    $("tbody").innerHTML = '<tr><td colspan="9" class="no">โหลดไม่สำเร็จ: '+err.message+'</td></tr>';
+    $("logBody").innerHTML = '<tr><td colspan="9" class="no">โหลดไม่สำเร็จ: '+err.message+'</td></tr>';
   }
 }
-$("btnReload").addEventListener("click", load);
+$("btnReload").onclick = load;
 
-function goodEdge(v){ return v === "เท่ากันทุกด้าน" || v === "เท่ากัน" || v === "ไม่มี (ขอบบนอย่างเดียว)"; }
+/* ---- แสดงผลสรุป + ตาราง ---- */
+const goodEdge = v => v==="เท่ากันทุกด้าน" || v==="เท่ากัน" || v==="ไม่มี (ขอบบนอย่างเดียว)";
+const GC = {"ผ่าน":"#1B7A4B","เกือบผ่าน":"#B8862B","ไม่ผ่าน":"#B23C31","ไม่ได้ตรวจ":"#6B7877"};
 
-function draw(rows){
-  const latest = {};
-  rows.forEach(r=>{ if(r["ห้อง"]) latest[String(r["ห้อง"]).trim()] = r; });
+function render(){
+  latest = {};
+  allRows.forEach(r=>{ if(r["ห้อง"]) latest[String(r["ห้อง"]).trim()] = r; });
+  const recs = Object.keys(latest);
+  $("logCount").textContent = recs.length;
+  buildRooms();
 
   const cnt = {"ผ่าน":0,"เกือบผ่าน":0,"ไม่ผ่าน":0,"ไม่ได้ตรวจ":0};
-  let html = "";
-
-  const cell = (val, good)=>{
-    const v = (val === undefined || val === "") ? "-" : val;
-    return '<td class="'+(v === "-" ? "na" : (good ? "ok" : "no"))+'">'+v+'</td>';
-  };
-  const rowHtml = (rn, r)=>{
-    if(cnt[r["เกรด"]] !== undefined) cnt[r["เกรด"]]++;
-    return '<tr><td class="rm">'+rn+'</td>'+
-      '<td>'+(r["ขอบเขตงาน"]||"-")+'</td>'+
-      cell(r["สีที่ใช้"], r["สีที่ใช้"] === "แมตช์") +
-      cell(r["ระยะขอบ"], goodEdge(r["ระยะขอบ"])) +
-      cell(r["ตัดขอบ"], r["ตัดขอบ"] === "เรียบร้อย") +
-      cell(r["ฟองอากาศ"], r["ฟองอากาศ"] === "ไม่พบ") +
-      cell(r["กินผนัง"], r["กินผนัง"] === "ไม่พบ") +
-      '<td><span class="badge" data-g="'+r["เกรด"]+'">'+r["เกรด"]+'</span></td>'+
-      '<td>'+(r["วันที่ตรวจ"]||"")+'</td></tr>';
-  };
-
-  if(activeFloor === "all"){
-    /* ทุกชั้น: แสดงเฉพาะห้องที่มีข้อมูลแล้ว ไม่งั้น 216 แถวจะยาวเกินไป */
-    FLOORS.forEach(f=>{
-      const rooms = roomsOfFloor(f).filter(rn => latest[rn]);
-      if(!rooms.length) return;
-      html += '<tr class="band"><td colspan="9">ชั้น '+f+
-              '<span class="qty">บันทึกแล้ว '+rooms.length+' / '+ROOMS_PER_FLOOR+' ห้อง</span></td></tr>';
-      rooms.forEach(rn => html += rowHtml(rn, latest[rn]));
-    });
-    if(!html) html = '<tr><td colspan="9" class="na">ยังไม่มีข้อมูล</td></tr>';
-  }else{
-    const f = Number(activeFloor);
-    const rooms = roomsOfFloor(f);
-    const done = rooms.filter(rn => latest[rn]).length;
-    html += '<tr class="band"><td colspan="9">ชั้น '+f+
-            '<span class="qty">บันทึกแล้ว '+done+' / '+rooms.length+' ห้อง</span></td></tr>';
-    rooms.forEach(rn=>{
-      if(latest[rn]) html += rowHtml(rn, latest[rn]);
-      else html += '<tr><td class="rm">'+rn+'</td><td colspan="7" class="na">ยังไม่มีข้อมูล</td>'+
-                   '<td><span class="badge" data-g="ยังไม่ตรวจ">ยังไม่ตรวจ</span></td></tr>';
-    });
-  }
+  recs.forEach(k=>{ const g = latest[k]["เกรด"]; if(cnt[g]!==undefined) cnt[g]++; });
 
   $("score").innerHTML =
     tile("pass","ผ่าน",cnt["ผ่าน"]) + tile("near","เกือบผ่าน",cnt["เกือบผ่าน"]) +
     tile("fail","ไม่ผ่าน",cnt["ไม่ผ่าน"]) + tile("skip","ไม่ได้ตรวจ",cnt["ไม่ได้ตรวจ"]);
-  $("tbody").innerHTML = html;
+  $("bar").innerHTML = Object.keys(cnt).map(g=>
+    cnt[g] ? '<i style="flex:'+cnt[g]+';background:'+GC[g]+'"></i>' : "").join("") ||
+    '<i style="flex:1;background:#E3E9E7"></i>';
+  $("progressTxt").textContent = "ตรวจแล้ว " + recs.length + " จาก " + TOTAL_ROOMS +
+    " ห้อง (" + (recs.length/TOTAL_ROOMS*100).toFixed(1) + "%) · เหลืออีก " + (TOTAL_ROOMS-recs.length) + " ห้อง";
+
+  /* แยกตามชั้น */
+  $("floorBody").innerHTML = FLOORS.map(f=>{
+    const rooms = roomsOfFloor(f).filter(rn=>latest[rn]);
+    if(!rooms.length) return "";
+    const c = {"ผ่าน":0,"เกือบผ่าน":0,"ไม่ผ่าน":0,"ไม่ได้ตรวจ":0};
+    rooms.forEach(rn=>{ const g = latest[rn]["เกรด"]; if(c[g]!==undefined) c[g]++; });
+    const seg = Object.keys(c).map(g=> c[g] ?
+      '<i style="width:'+(c[g]/rooms.length*100)+'%;background:'+GC[g]+';float:left"></i>' : "").join("");
+    return '<tr><td class="k">'+f+'</td><td class="n">'+rooms.length+"/"+ROOMS_PER_FLOOR+'</td>'+
+      '<td class="n ok">'+c["ผ่าน"]+'</td><td class="n">'+c["เกือบผ่าน"]+'</td>'+
+      '<td class="n no">'+c["ไม่ผ่าน"]+'</td><td class="n na">'+c["ไม่ได้ตรวจ"]+'</td>'+
+      '<td><div class="minibar">'+seg+'</div></td></tr>';
+  }).join("") || '<tr><td class="na" style="padding:14px">ยังไม่มีข้อมูล</td></tr>';
+
+  /* แยกตามข้อบกพร่อง */
+  const L = k => recs.map(rn=>latest[rn][k] || "");
+  const not = (k, ok) => L(k).filter(v=> v && v !== "-" && v !== ok).length;
+  const defects = [
+    ["สีที่ใช้ผิดสเปก (สีเงา)", L("สีที่ใช้").filter(v=>v==="เงา").length],
+    ["ระยะขอบไม่เท่ากัน", L("ระยะขอบ").filter(v=> v && v!=="-" && !goodEdge(v)).length],
+    ["ตัดขอบไม่เรียบ", not("ตัดขอบ","เรียบร้อย")],
+    ["ฟองอากาศ", not("ฟองอากาศ","ไม่พบ")],
+    ["กินผนัง (ฝั่งหน้าหิน)", not("กินผนัง","ไม่พบ")],
+    ["ผนังถลอก", not("สภาพผนัง","ปกติ")],
+    ["ยิงผิดขอบเขตงาน", L("ขอบเขตงาน").filter(v=> v==="ยิงด้านข้างมาด้วย"||v==="ยิงไม่ครบสามด้าน").length],
+    ["ยังไม่ได้ยิงซิลิโคน", L("ขอบเขตงาน").filter(v=>v==="ยังไม่ได้ยิง").length],
+    ["เข้าห้องไม่ได้", cnt["ไม่ได้ตรวจ"]]
+  ].filter(d=>d[1] > 0).sort((a,b)=>b[1]-a[1]);
+  const mx = defects.length ? defects[0][1] : 1;
+  $("defectBody").innerHTML = defects.map(([l,n])=>
+    '<tr><td>'+l+'</td><td style="width:45%"><div class="minibar"><i style="width:'+
+    (n/mx*100)+'%;background:#14605A"></i></div></td><td class="n">'+n+'</td></tr>').join("")
+    || '<tr><td class="na" style="padding:14px">ยังไม่พบข้อบกพร่อง</td></tr>';
+
+  /* ห้องที่ต้องกลับไปแก้ */
+  const fix = recs.filter(rn=> latest[rn]["เกรด"]==="ไม่ผ่าน" || latest[rn]["เกรด"]==="เกือบผ่าน").sort();
+  $("fixBody").innerHTML = fix.length ? fix.map(rn=>{
+    const r = latest[rn];
+    const why = [];
+    if(r["สีที่ใช้"]==="เงา") why.push("สีผิดสเปก");
+    if(r["ขอบเขตงาน"]==="ยิงด้านข้างมาด้วย"||r["ขอบเขตงาน"]==="ยิงไม่ครบสามด้าน") why.push("ยิงผิดขอบเขต");
+    if(r["ขอบเขตงาน"]==="ยังไม่ได้ยิง") why.push("ยังไม่ได้ยิง");
+    if(r["ระยะขอบ"] && r["ระยะขอบ"]!=="-" && !goodEdge(r["ระยะขอบ"])) why.push("ระยะขอบไม่เท่ากัน");
+    if(r["ตัดขอบ"] && !["เรียบร้อย","-"].includes(r["ตัดขอบ"])) why.push("ตัดขอบไม่เรียบ");
+    if(r["กินผนัง"] && !["ไม่พบ","-"].includes(r["กินผนัง"])) why.push("กินผนัง");
+    if(r["ฟองอากาศ"] && !["ไม่พบ","-"].includes(r["ฟองอากาศ"])) why.push("ฟองอากาศ");
+    if(r["สภาพผนัง"] && !["ปกติ","-"].includes(r["สภาพผนัง"])) why.push("ผนังถลอก");
+    return '<tr><td class="k">'+rn+'</td><td>'+why.join(" · ")+'</td>'+
+           '<td style="text-align:right"><span class="badge" data-g="'+r["เกรด"]+'">'+r["เกรด"]+'</span></td></tr>';
+  }).join("") : '<tr><td class="na" style="padding:14px">ยังไม่มีห้องที่ต้องแก้</td></tr>';
+
+  /* ตารางบันทึก */
+  let html = "";
+  FLOORS.forEach(f=>{
+    const rooms = roomsOfFloor(f).filter(rn=>latest[rn]);
+    if(!rooms.length) return;
+    html += '<tr class="band"><td colspan="9">ชั้น '+f+'<span>'+rooms.length+"/"+ROOMS_PER_FLOOR+' ห้อง</span></td></tr>';
+    rooms.forEach(rn=>{
+      const r = latest[rn];
+      const c = (v, good)=>{ const x = (v===undefined||v==="") ? "-" : v;
+        return '<td class="'+(x==="-"?"na":(good?"ok":"no"))+'">'+x+'</td>'; };
+      html += '<tr><td class="k">'+rn+'</td><td>'+(r["ขอบเขตงาน"]||"-")+'</td>'+
+        c(r["สีที่ใช้"], r["สีที่ใช้"]==="แมตช์") + c(r["ระยะขอบ"], goodEdge(r["ระยะขอบ"])) +
+        c(r["ตัดขอบ"], r["ตัดขอบ"]==="เรียบร้อย") + c(r["ฟองอากาศ"], r["ฟองอากาศ"]==="ไม่พบ") +
+        c(r["กินผนัง"], r["กินผนัง"]==="ไม่พบ") +
+        '<td><span class="badge" data-g="'+r["เกรด"]+'">'+r["เกรด"]+'</span></td>'+
+        '<td>'+(r["วันที่ตรวจ"]||"")+'</td></tr>';
+    });
+  });
+  $("logBody").innerHTML = html || '<tr><td colspan="9" class="na">ยังไม่มีข้อมูล</td></tr>';
 }
 function tile(g,label,n){
   return '<div class="sc" data-g="'+g+'"><div class="n">'+n+'</div><div class="t">'+label+'</div></div>';
