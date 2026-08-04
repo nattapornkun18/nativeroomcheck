@@ -326,7 +326,7 @@ const scopeOptions = r => isTopOnly(r)
 const S = { floor:FLOOR_FROM, room:String(FLOOR_FROM*100+1), scope:"", color:"แมตช์",
   edge:"เท่ากันทุกด้าน", cut:"เรียบร้อย", bub:"ไม่พบ", eat:"ไม่พบ", wall:"ปกติ", skip:"เข้าตรวจได้" };
 S.scope = scopeByRule(S.room);
-let inspector = "", localRows = [], allRows = [], latest = {};
+let inspector = "", localRows = [], allRows = [], latest = {}, firstLoad = true;
 
 /* ---- แท็บ ---- */
 Array.from(document.querySelectorAll('.tabbar button')).forEach(b=>{
@@ -369,20 +369,26 @@ function buildRooms(){
     b.setAttribute("aria-pressed", String(rn === S.room));
     const rec = latest[rn];
     if(rec){ const i = document.createElement("i"); i.dataset.g = rec["เกรด"]; b.appendChild(i); }
-    b.onclick = ()=>{ S.room = rn; buildRooms(); buildScope(); };
+    b.onclick = ()=> openRoom(rn);
     g.appendChild(b);
   });
-  const d = new Date(), pad = n=>String(n).padStart(2,"0");
+  const d = new Date(), pad = n=>String(n).padStart(2,"0"), rec = latest[S.room];
   $("rno").textContent = S.room;
   $("rtag").textContent = isTopOnly(S.room) ? "Top edge only" : "Full three sides";
-  $("rsub").textContent = "ชั้น " + floorOf(S.room) + " · ห้อง " + S.room.slice(-2) +
-    " · " + pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear();
+  $("rsub").textContent = "ชั้น " + floorOf(S.room) + " · ห้อง " + S.room.slice(-2) + " · " +
+    (rec ? "ตรวจไว้แล้ว " + (rec["วันที่ตรวจ"] || "") + " — แก้แล้วบันทึกทับได้"
+         : pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear());
   $("ruleChip").textContent = scopeByRule(S.room);
+}
+/* เปิดห้อง — ถ้าเคยบันทึกไว้แล้วให้ดึงของเดิมขึ้นมา ไม่ใช่ฟอร์มเปล่า */
+function openRoom(rn){
+  S.room = rn;
+  loadRoom(rn);
+  buildRooms(); buildScope(); paintAll(); refresh();
 }
 function setFloor(n){
   S.floor = Math.min(FLOOR_TO, Math.max(FLOOR_FROM, n));
-  S.room = String(S.floor*100 + 1);
-  buildRooms(); buildScope();
+  openRoom(String(S.floor*100 + 1));
 }
 $("fMinus").onclick = ()=> setFloor(S.floor - 1);
 $("fPlus").onclick  = ()=> setFloor(S.floor + 1);
@@ -421,16 +427,51 @@ function refresh(){
   $("rdot").dataset.g = r.grade;
 }
 
-function setAllOk(){
-  S.scope = scopeByRule(S.room); S.color = "แมตช์"; S.edge = "เท่ากันทุกด้าน";
-  S.cut = "เรียบร้อย"; S.bub = "ไม่พบ"; S.eat = "ไม่พบ"; S.wall = "ปกติ"; S.skip = "เข้าตรวจได้";
-  buildScope();
+const paintAll = ()=>{
   paint($("optColor"),"color"); paint($("optEdge"),"edge"); paint($("optCut"),"cut");
   paint($("optBub"),"bub"); paint($("optEat"),"eat"); paint($("optWall"),"wall"); paint($("optSkip"),"skip");
-  refresh();
+};
+function resetFields(){
+  S.scope = scopeByRule(S.room); S.color = "แมตช์"; S.edge = "เท่ากันทุกด้าน";
+  S.cut = "เรียบร้อย"; S.bub = "ไม่พบ"; S.eat = "ไม่พบ"; S.wall = "ปกติ"; S.skip = "เข้าตรวจได้";
 }
+function setAllOk(){ resetFields(); buildScope(); paintAll(); refresh(); }
 $("btnAllOk").onclick = setAllOk;
 $("btnReset").onclick = ()=>{ setAllOk(); $("fNote").value = ""; $("msg").textContent = ""; };
+
+/* ---- ดึงบันทึกเดิมของห้องมาใส่ฟอร์ม ---- */
+const OLD2NEW = {"ครบสามด้าน":SCOPE_FULL, "ขอบบนอย่างเดียว":SCOPE_TOP};
+/* รับค่าจากชีตเฉพาะที่ยังเป็นตัวเลือกที่ใช้ได้ ที่เหลือใช้ค่าเริ่มต้น
+   ("-" คือช่องของห้องที่เข้าไม่ได้ ไม่ใช่คำตอบจริง) */
+const pick = (v, opts, dflt)=>{
+  const x = OLD2NEW[v] || v;
+  return (x && x !== "-" && opts.some(o=>o.v === x)) ? x : dflt;
+};
+function loadRoom(rn){
+  const r = latest[rn];
+  resetFields();
+  $("fNote").value = "";
+  if(!r) return;
+
+  S.scope = pick(r["ขอบเขตงาน"], scopeOptions(rn), scopeByRule(rn));
+  S.color = pick(r["สีที่ใช้"],  OPTS.color, "แมตช์");
+  S.edge  = pick(r["ระยะขอบ"],   OPTS.edge,  "เท่ากันทุกด้าน");
+  S.cut   = pick(r["ตัดขอบ"],    OPTS.cut,   "เรียบร้อย");
+  S.bub   = pick(r["ฟองอากาศ"],  OPTS.bub,   "ไม่พบ");
+  S.eat   = pick(r["กินผนัง"],    OPTS.eat,   "ไม่พบ");
+  S.wall  = pick(r["สภาพผนัง"],  OPTS.wall,  "ปกติ");
+
+  /* ห้องที่เข้าไม่ได้ เหตุผลถูกเก็บไว้หน้าหมายเหตุ แยกกลับออกมา */
+  const note = r["หมายเหตุ"] || "";
+  const hit = r["เกรด"] === "ไม่ได้ตรวจ" &&
+    OPTS.skip.filter(o=> o.v !== "เข้าตรวจได้" && note.indexOf(o.v) === 0)[0];
+  if(hit){
+    S.skip = hit.v;
+    $("fNote").value = note.slice(hit.v.length).replace(/^\s*·?\s*/, "");
+  }else{
+    $("fNote").value = note;
+  }
+}
 
 /* ---- เริ่มต้น ---- */
 buildRooms(); buildScope();
@@ -475,7 +516,7 @@ $("btnSave").onclick = async ()=>{
 };
 function nextRoom(){
   const list = roomsOfFloor(S.floor), i = list.indexOf(S.room);
-  if(i > -1 && i < list.length-1){ S.room = list[i+1]; buildRooms(); buildScope(); setAllOk(); }
+  if(i > -1 && i < list.length-1) openRoom(list[i+1]);
   else buildRooms();
 }
 
@@ -502,6 +543,10 @@ function render(){
   const recs = Object.keys(latest);
   $("logCount").textContent = recs.length;
   buildRooms();
+
+  /* ข้อมูลชุดแรกเพิ่งมาถึง — เติมห้องที่เปิดค้างไว้ให้ตรงกับชีต
+     ครั้งต่อ ๆ ไปไม่แตะฟอร์ม จะได้ไม่ล้างของที่กำลังกรอกอยู่ */
+  if(firstLoad){ firstLoad = false; loadRoom(S.room); buildScope(); paintAll(); refresh(); }
 
   const cnt = {"ผ่าน":0,"เกือบผ่าน":0,"ไม่ผ่าน":0,"ไม่ได้ตรวจ":0};
   recs.forEach(k=>{ const g = latest[k]["เกรด"]; if(cnt[g]!==undefined) cnt[g]++; });
