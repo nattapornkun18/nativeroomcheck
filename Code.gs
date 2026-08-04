@@ -51,6 +51,11 @@ var LINE_TOKEN = '';
  *  ใส่ userId / groupId ถ้าอยากส่งเจาะจงคนเดียวหรือกลุ่มเดียว */
 var LINE_TO = '';
 
+/** หัวข้อความ ใช้แยกว่าข้อความมาจากโปรเจกต์ไหน
+ *  ส่งเข้า LINE OA เดียวกันหลายโปรเจกต์ ต้องตั้งให้ต่างกัน
+ *  เว้นว่าง = ไม่ขึ้นหัว */
+var APP_TAG = '[Sink Silicone]';
+
 /** จะแจ้งตอนไหน
  *  'all'    = ทุกครั้งที่กดบันทึก — ตรวจครั้งแรกก็แจ้ง แก้ไขก็แจ้งพร้อมบอกที่เปลี่ยน ← ค่าเริ่มต้น
  *  'update' = เฉพาะตอนแก้ไขห้องที่เคยบันทึกไว้แล้ว และมีอะไรเปลี่ยนจริง
@@ -279,7 +284,7 @@ function pushLine_(text) {
   const to = lineTo_();
   const url = to ? 'https://api.line.me/v2/bot/message/push'
                  : 'https://api.line.me/v2/bot/message/broadcast';
-  const body = { messages: [{ type: 'text', text: text }] };
+  const body = { messages: [{ type: 'text', text: APP_TAG ? APP_TAG + '\n' + text : text }] };
   if (to) body.to = to;
 
   const res = UrlFetchApp.fetch(url, {
@@ -324,6 +329,25 @@ function diff_(prev, cur) {
 
 const GRADE_ICON = {'ผ่าน':'✅','เกือบผ่าน':'⚠️','ไม่ผ่าน':'❌','ไม่ได้ตรวจ':'⬜'};
 
+/* 2026-08-04 → 04/08/2026 (ค่าที่อ่านจากชีตอาจกลับมาเป็น Date ไม่ใช่ข้อความ) */
+function fmtDate_(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[3] + '/' + m[2] + '/' + m[1];
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? s : Utilities.formatDate(d, 'Asia/Bangkok', 'dd/MM/yyyy');
+}
+
+/* บรรทัดปิดท้าย — ใครตรวจ วันไหน และเคยตรวจครั้งก่อนเมื่อไหร่ */
+function footer_(p, prev) {
+  const who = String(p['ผู้ตรวจ'] || '').trim() || 'ไม่ระบุผู้ตรวจ';
+  const when = fmtDate_(p['วันที่ตรวจ']) ||
+               Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy');
+  const before = prev ? fmtDate_(prev['วันที่ตรวจ']) : '';
+  return '— ' + who + ' · ' + when + (before ? ' (ตรวจครั้งก่อน ' + before + ')' : '');
+}
+
 function notifySave_(p, prev) {
   if (NOTIFY_WHEN === 'off') return;
 
@@ -355,7 +379,7 @@ function notifySave_(p, prev) {
     if (p['หมายเหตุ']) lines.push('หมายเหตุ: ' + p['หมายเหตุ']);
   }
 
-  if (p['ผู้ตรวจ']) lines.push('ผู้ตรวจ: ' + p['ผู้ตรวจ']);
+  lines.push(footer_(p, prev));
   pushLine_(lines.join('\n'));
 }
 
