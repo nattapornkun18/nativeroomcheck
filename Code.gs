@@ -157,7 +157,8 @@ function onOpen() {
     .addItem('ตั้งค่าชีต (ดรอปดาวน์ + สีเกรด + แปลงคำเก่า)', 'setupSheet')
     .addItem('แปลงคำเก่าให้ตรงกับหน้าเว็บ', 'migrateLabels')
     .addSeparator()
-    .addItem('ทดสอบส่ง LINE', 'testLine')
+    .addItem('ทดสอบส่งแจ้งเตือน LINE', 'testLine')
+    .addItem('ตรวจสภาพการแจ้งเตือน LINE', 'checkLine')
     .addToUi();
 }
 
@@ -353,6 +354,90 @@ function dailySummary() {
     '❌ ไม่ผ่าน ' + cnt['ไม่ผ่าน'] + ' · ⬜ ไม่ได้ตรวจ ' + cnt['ไม่ได้ตรวจ']];
   if (failed.length) msg.push('ห้องที่ต้องแก้: ' + failed.join(', '));
   pushLine_(msg.join('\n'));
+}
+
+/* ตรวจสภาพการแจ้งเตือน — บอกว่าติดตรงไหนโดยไม่ต้องส่งข้อความจริง */
+function checkLine() {
+  const ui = SpreadsheetApp.getUi();
+  const title = 'ตรวจสภาพ LINE';
+  const token = lineToken_();
+
+  if (!token) {
+    ui.alert(title, '❌ ยังไม่ได้ใส่ LINE_TOKEN\n\n' +
+      'เปิดไฟล์ Code.gs แล้ววาง Channel access token ที่บรรทัด\n' +
+      "var LINE_TOKEN = '';\n\nวิธีเอา token ดูใน SETUP.md หัวข้อ “แจ้งเตือนเข้า LINE”",
+      ui.ButtonSet.OK);
+    return;
+  }
+
+  const api = function (path) {
+    const res = UrlFetchApp.fetch('https://api.line.me/v2/bot/' + path,
+      { headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+    let body = {};
+    try { body = JSON.parse(res.getContentText()); } catch (e) {}
+    return { code: res.getResponseCode(), body: body, text: res.getContentText() };
+  };
+
+  const out = [];
+  const info = api('info');
+
+  if (info.code === 401) {
+    ui.alert(title, '❌ token ใช้ไม่ได้ (HTTP 401)\n\n' +
+      'มักเกิดจากกด Revoke ไปแล้ว หรือคัดลอกมาไม่ครบ\n' +
+      'ไปที่ LINE Developers → แท็บ Messaging API → Issue token ใหม่ แล้ววางทับ',
+      ui.ButtonSet.OK);
+    return;
+  }
+  if (info.code !== 200) {
+    ui.alert(title, '❌ ต่อกับ LINE ไม่ได้ (HTTP ' + info.code + ')\n\n' + info.text, ui.ButtonSet.OK);
+    return;
+  }
+
+  out.push('✅ token ใช้ได้');
+  out.push('บัญชี: ' + (info.body.displayName || '-') +
+           (info.body.basicId ? '  ' + info.body.basicId : ''));
+
+  /* โควตาข้อความเดือนนี้ */
+  const quota = api('message/quota'), used = api('message/quota/consumption');
+  if (quota.code === 200 && used.code === 200) {
+    out.push('โควตาเดือนนี้: ใช้ไป ' + (used.body.totalUsage || 0) + ' / ' +
+      (quota.body.type === 'limited' ? quota.body.value : 'ไม่จำกัด'));
+  }
+
+  /* จำนวนเพื่อน — บัญชีที่ยังไม่รับรองจะโดน 403 ตรงนี้ ไม่ใช่ความผิดพลาด */
+  const day = Utilities.formatDate(new Date(Date.now() - 864e5), 'Asia/Bangkok', 'yyyyMMdd');
+  const fr = api('insight/followers?date=' + day);
+  if (fr.code === 200 && fr.body.followers !== undefined) {
+    out.push('จำนวนเพื่อน: ' + fr.body.followers + ' คน');
+    if (!fr.body.followers) out.push('   ⚠️ ยังไม่มีใครแอด OA นี้ ข้อความจะไม่ถึงใคร');
+  } else {
+    out.push('เช็คจำนวนเพื่อนไม่ได้ (HTTP ' + fr.code + ' — บัญชีที่ยังไม่รับรองเช็คไม่ได้)');
+    out.push('ให้เช็คเองว่าสแกน QR เพิ่ม OA เป็นเพื่อนแล้วหรือยัง');
+  }
+
+  out.push('');
+  out.push('โหมดแจ้งเตือน: ' + NOTIFY_WHEN + ' — ' + ({
+    all:    'แจ้งทุกครั้งที่บันทึก',
+    update: 'แจ้งเฉพาะตอนแก้ไขห้องที่เคยบันทึก',
+    defect: 'แจ้งเฉพาะห้องที่ไม่ผ่าน/เกือบผ่าน',
+    off:    'ปิดแจ้งเตือน'
+  }[NOTIFY_WHEN] || 'ค่าไม่ถูกต้อง จะไม่แจ้งเลย'));
+
+  const to = lineTo_();
+  out.push('ปลายทาง: ' + (to ? to.slice(0, 8) + '… (ส่งเจาะจง)'
+                             : 'broadcast — ส่งหาเพื่อนของ OA ทุกคน'));
+
+  /* ชีตพร้อมรับข้อมูลไหม */
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  out.push('แท็บ "' + SHEET_NAME + '": ' +
+    (sh ? 'พบแล้ว มี ' + Math.max(0, sh.getLastRow() - 1) + ' แถว' : '❌ ไม่พบ'));
+
+  out.push('');
+  out.push('ถ้าทุกอย่างข้างบนเขียว แต่กดบันทึกในแอปแล้วไม่มีข้อความ');
+  out.push('= ยังไม่ได้ Deploy เวอร์ชันใหม่');
+  out.push('   (Deploy → Manage deployments → ✏️ → New version)');
+
+  ui.alert(title, out.join('\n'), ui.ButtonSet.OK);
 }
 
 function testLine() {
