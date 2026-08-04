@@ -138,7 +138,7 @@ function doPost(e) {
 
     const row = HEAD.map(function (h) { return p[h] || ''; });
     sh.appendRow(row);
-    paintGrade_(sh, sh.getLastRow());
+    styleRow_(sh, sh.getLastRow());
     notifySave_(p, prev);
 
     return json_({ ok: true, room: p['ห้อง'], grade: p['เกรด'] || '' });
@@ -156,6 +156,7 @@ function onOpen() {
     .createMenu('ซิลิโคน')
     .addItem('ตั้งค่าชีต (ดรอปดาวน์ + สีเกรด + แปลงคำเก่า)', 'setupSheet')
     .addItem('แปลงคำเก่าให้ตรงกับหน้าเว็บ', 'migrateLabels')
+    .addItem('จัดรูปแบบทุกแถวให้เหมือนกัน', 'restyleAll')
     .addSeparator()
     .addItem('ทดสอบส่งแจ้งเตือน LINE', 'testLine')
     .addItem('ตรวจสภาพการแจ้งเตือน LINE', 'checkLine')
@@ -205,6 +206,8 @@ function setupSheet() {
   const kept = sh.getConditionalFormatRules().filter(function (r) { return !isOurGradeRule(r); });
   sh.setConditionalFormatRules(kept.concat(rules));
 
+  restyleAll_(sh);   /* แถวที่บันทึกไปก่อนหน้านี้จะได้หน้าตาเหมือนกันทั้งตาราง */
+
   SpreadsheetApp.getActive().toast('ตั้งค่าชีตเรียบร้อย', 'ซิลิโคน', 5);
 }
 
@@ -231,10 +234,28 @@ function migrateLabels_(sh) {
   return changed;
 }
 
-/* ระบายสีช่องเกรดของแถวที่เพิ่งเพิ่ม — แถวเก่าใช้ conditional format จาก setupSheet */
-function paintGrade_(sh, row) {
-  const c = GRADE_COLOR[String(sh.getRange(row, colOf_('เกรด')).getValue())];
-  if (c) sh.getRange(row, colOf_('เกรด')).setBackground(c.bg).setFontColor(c.fg);
+/* appendRow ใส่ให้แค่ข้อมูล ไม่ได้ก๊อปตัวหนา จัดกึ่งกลาง เส้นขอบ พื้นหลัง มาด้วย
+   แถวใหม่เลยหน้าตาไม่เหมือนแถวเก่า — ยืมรูปแบบจากแถวข้อมูลแรกมาใส่ให้
+   (สีของช่องที่เป็นข้อบกพร่องมาจาก conditional format ไม่ได้ก๊อปมา จึงไม่เพี้ยนตามค่าแถวต้นแบบ) */
+function styleRow_(sh, row) {
+  if (row <= 2) return;                       // แถว 2 เป็นต้นแบบเอง
+  sh.getRange(2, 1, 1, HEAD.length)
+    .copyTo(sh.getRange(row, 1, 1, HEAD.length), { formatOnly: true });
+}
+
+/* จัดรูปแบบทุกแถวให้เหมือนแถวข้อมูลแรก — ใช้เก็บกวาดแถวที่บันทึกไปก่อนหน้านี้ */
+function restyleAll() {
+  const n = restyleAll_(getSheet_());
+  SpreadsheetApp.getActive().toast(
+    n ? 'จัดรูปแบบให้ ' + n + ' แถวแล้ว' : 'ยังไม่มีแถวที่ต้องจัด', 'ซิลิโคน', 5);
+}
+
+function restyleAll_(sh) {
+  const last = sh.getLastRow();
+  if (last < 3) return 0;
+  sh.getRange(2, 1, 1, HEAD.length)
+    .copyTo(sh.getRange(3, 1, last - 2, HEAD.length), { formatOnly: true });
+  return last - 2;
 }
 
 /* =============== แจ้งเตือน LINE =============== */
