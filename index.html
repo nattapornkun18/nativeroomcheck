@@ -351,7 +351,11 @@ function group(el, list, key){
     if(o.bad) b.dataset.bad = "1";
     if(o.warn) b.dataset.warn = "1";
     b.setAttribute("aria-pressed", String(S[key] === o.v));
-    b.onclick = ()=>{ S[key] = o.v; paint(el,key); refresh(); };
+    b.onclick = ()=>{
+      S[key] = o.v;
+      if(key === "skip") applySkip();       /* เข้าไม่ได้ = ไม่มีผลตรวจให้กรอก */
+      paint(el,key); refresh();
+    };
     el.appendChild(b);
   });
 }
@@ -376,8 +380,9 @@ function buildRooms(){
   $("rno").textContent = S.room;
   $("rtag").textContent = isTopOnly(S.room) ? "Top edge only" : "Full three sides";
   $("rsub").textContent = "ชั้น " + floorOf(S.room) + " · ห้อง " + S.room.slice(-2) + " · " +
-    (rec ? "ตรวจไว้แล้ว " + (rec["วันที่ตรวจ"] || "") + " — แก้แล้วบันทึกทับได้"
-         : pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear());
+    (!rec ? pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear()
+     : rec["เกรด"] === "ไม่ได้ตรวจ" ? "ยังไม่ได้ตรวจ · เข้าไม่ได้เมื่อ " + (rec["วันที่ตรวจ"] || "")
+     : "ตรวจไว้แล้ว " + (rec["วันที่ตรวจ"] || "") + " — แก้แล้วบันทึกทับได้");
   $("ruleChip").textContent = scopeByRule(S.room);
 }
 /* เปิดห้อง — ถ้าเคยบันทึกไว้แล้วให้ดึงของเดิมขึ้นมา ไม่ใช่ฟอร์มเปล่า */
@@ -395,7 +400,7 @@ $("fPlus").onclick  = ()=> setFloor(S.floor + 1);
 
 function buildScope(){
   const opts = scopeOptions(S.room);
-  if(!opts.some(o=>o.v === S.scope)) S.scope = opts[0].v;
+  if(S.scope && !opts.some(o=>o.v === S.scope)) S.scope = opts[0].v;   /* "" = เว้นว่างไว้ */
   $("labScope").textContent = isTopOnly(S.room)
     ? "ห้องนี้ตามแบบยิงแค่ขอบบน" : "ห้องนี้ตามแบบยิงครบทุกด้าน";
   group($("optScope"), opts, "scope");
@@ -431,9 +436,22 @@ const paintAll = ()=>{
   paint($("optColor"),"color"); paint($("optEdge"),"edge"); paint($("optCut"),"cut");
   paint($("optBub"),"bub"); paint($("optEat"),"eat"); paint($("optWall"),"wall"); paint($("optSkip"),"skip");
 };
+const FIELDS = ["scope","color","edge","cut","bub","eat","wall"];
 function resetFields(){
   S.scope = scopeByRule(S.room); S.color = "แมตช์"; S.edge = "เท่ากันทุกด้าน";
   S.cut = "เรียบร้อย"; S.bub = "ไม่พบ"; S.eat = "ไม่พบ"; S.wall = "ปกติ"; S.skip = "เข้าตรวจได้";
+}
+/* ห้องที่เข้าไม่ได้ = ไม่มีผลตรวจ ปล่อยว่างไว้ทั้งหมด ตรงกับที่ชีตเก็บเป็น "-" */
+const blankFields = ()=> FIELDS.forEach(k=> S[k] = "");
+const isBlank = ()=> FIELDS.some(k=> !S[k]);
+/* สลับระหว่างว่างกับค่าเริ่มต้น ตามว่าเข้าห้องได้หรือไม่ */
+function applySkip(){
+  if(S.skip !== "เข้าตรวจได้"){ blankFields(); }
+  else if(isBlank()){
+    resetFields();                  /* เพิ่งเปลี่ยนจากเข้าไม่ได้เป็นเข้าได้ — เริ่มกรอกใหม่ */
+    $("fNote").value = "";          /* เหตุผลที่เข้าไม่ได้ไม่เกี่ยวแล้ว */
+  }
+  buildScope(); paintAll();
 }
 function setAllOk(){ resetFields(); buildScope(); paintAll(); refresh(); }
 $("btnAllOk").onclick = setAllOk;
@@ -453,6 +471,16 @@ function loadRoom(rn){
   $("fNote").value = "";
   if(!r) return;
 
+  /* เข้าห้องไม่ได้ = ไม่มีผลตรวจ เก็บแค่เหตุผล ที่เหลือเว้นว่าง */
+  if(r["เกรด"] === "ไม่ได้ตรวจ"){
+    const note = r["หมายเหตุ"] || "";
+    const hit = OPTS.skip.filter(o=> o.v !== "เข้าตรวจได้" && note.indexOf(o.v) === 0)[0];
+    S.skip = hit ? hit.v : "ไม่มีกุญแจ";
+    $("fNote").value = hit ? note.slice(hit.v.length).replace(/^\s*·?\s*/, "") : note;
+    blankFields();
+    return;
+  }
+
   S.scope = pick(r["ขอบเขตงาน"], scopeOptions(rn), scopeByRule(rn));
   S.color = pick(r["สีที่ใช้"],  OPTS.color, "แมตช์");
   S.edge  = pick(r["ระยะขอบ"],   OPTS.edge,  "เท่ากันทุกด้าน");
@@ -460,17 +488,7 @@ function loadRoom(rn){
   S.bub   = pick(r["ฟองอากาศ"],  OPTS.bub,   "ไม่พบ");
   S.eat   = pick(r["กินผนัง"],    OPTS.eat,   "ไม่พบ");
   S.wall  = pick(r["สภาพผนัง"],  OPTS.wall,  "ปกติ");
-
-  /* ห้องที่เข้าไม่ได้ เหตุผลถูกเก็บไว้หน้าหมายเหตุ แยกกลับออกมา */
-  const note = r["หมายเหตุ"] || "";
-  const hit = r["เกรด"] === "ไม่ได้ตรวจ" &&
-    OPTS.skip.filter(o=> o.v !== "เข้าตรวจได้" && note.indexOf(o.v) === 0)[0];
-  if(hit){
-    S.skip = hit.v;
-    $("fNote").value = note.slice(hit.v.length).replace(/^\s*·?\s*/, "");
-  }else{
-    $("fNote").value = note;
-  }
+  $("fNote").value = r["หมายเหตุ"] || "";
 }
 
 /* ---- เริ่มต้น ---- */
