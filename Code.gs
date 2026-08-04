@@ -191,7 +191,19 @@ function setupSheet() {
       .setRanges([range])
       .build();
   });
-  sh.setConditionalFormatRules(rules);
+  /* ต่อท้ายกฎเดิม ไม่ทับ — ชีตมีกฎสีของช่องที่เป็นข้อบกพร่องอยู่แล้ว ห้ามลบทิ้ง
+     แต่ต้องเขี่ยกฎเกรดที่ฟังก์ชันนี้เคยใส่ไว้ออกก่อน จะได้ไม่ซ้อนกันตอนรันซ้ำ */
+  const isOurGradeRule = function (r) {
+    const c = r.getBooleanCondition();
+    if (!c || c.getCriteriaType() !== SpreadsheetApp.BooleanCriteria.TEXT_EQUAL_TO) return false;
+    const v = (c.getCriteriaValues() || [])[0];
+    if (GRADE_COLOR[String(v)] === undefined) return false;
+    return r.getRanges().every(function (rg) {
+      return rg.getColumn() === gradeCol && rg.getNumColumns() === 1;
+    });
+  };
+  const kept = sh.getConditionalFormatRules().filter(function (r) { return !isOurGradeRule(r); });
+  sh.setConditionalFormatRules(kept.concat(rules));
 
   SpreadsheetApp.getActive().toast('ตั้งค่าชีตเรียบร้อย', 'ซิลิโคน', 5);
 }

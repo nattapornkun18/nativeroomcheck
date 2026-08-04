@@ -520,8 +520,11 @@ $("btnSave").onclick = async ()=>{
     "ตัดขอบ": off?"-":S.cut, "ฟองอากาศ": off?"-":S.bub, "กินผนัง": off?"-":S.eat,
     "สภาพผนัง": off?"-":S.wall, "เกรด": r.grade,
     "หมายเหตุ": off ? (S.skip + (note ? " · "+note : "")) : note,
-    "ผู้ตรวจ": inspector, "บันทึกเมื่อ": now.toLocaleString("th-TH")
+    "ผู้ตรวจ": inspector
+    /* "บันทึกเมื่อ" ปล่อยให้ Apps Script ใส่ จะได้เป็นเวลาไทยฟอร์แมตเดียวกันทุกแถว
+       ไม่ขึ้นกับโซนเวลาของเครื่องที่กรอก */
   };
+  if(!API_URL) row["บันทึกเมื่อ"] = row["วันที่ตรวจ"] + " " + pad(now.getHours()) + ":" + pad(now.getMinutes());
   const msg = $("msg");
   $("btnSave").disabled = true; msg.className = "msg"; msg.textContent = "กำลังบันทึก…";
 
