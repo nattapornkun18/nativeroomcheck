@@ -6,8 +6,8 @@
 ทุกหมวดใช้ Google Sheet เดียวกัน Apps Script ตัวเดียวกัน และลิงก์ Web App เส้นเดียวกัน
 แต่ละหมวดแยกเก็บเป็นแท็บของตัวเองในชีต คอลัมน์จึงไม่ปนกัน
 
-**เว็บใช้งานจริง** https://nattapornkun18.github.io/roomcheck/
-(repo `curtainandsheer` เหลือแค่หน้าเด้งมาที่นี่ ไม่มีสำเนาโค้ดแล้ว)
+**เว็บใช้งานจริง** https://nattapornkun18.github.io/nativeroomcheck/
+(repo `curtainandsheer` (ตอนนี้ชื่อ `roomcheck`) เหลือแค่หน้าเด้งมาที่นี่ ไม่มีสำเนาโค้ดแล้ว)
 
 ## ไฟล์ในรีโป
 
