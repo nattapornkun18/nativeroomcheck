@@ -111,6 +111,8 @@
   .verdict[data-g="เกือบผ่าน"]{border-left-color:var(--near)} .verdict[data-g="เกือบผ่าน"] .g{color:var(--near)}
   .verdict[data-g="ไม่ผ่าน"]{border-left-color:var(--fail)} .verdict[data-g="ไม่ผ่าน"] .g{color:var(--fail)}
   .verdict[data-g="ไม่ได้ตรวจ"]{border-left-color:var(--skip)} .verdict[data-g="ไม่ได้ตรวจ"] .g{color:var(--skip)}
+  .verdict[data-g="ยังไม่ได้กรอก"]{border-left-color:#C3CCCA;background:#F7FAF9}
+  .verdict[data-g="ยังไม่ได้กรอก"] .g{color:#8B9694;font-size:18px}
 
   .actions{margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .btn{font-family:inherit;font-size:15px;font-weight:500;padding:14px 28px;border:1px solid var(--ink);
@@ -323,9 +325,9 @@ const scopeOptions = r => isTopOnly(r)
   ? [{v:SCOPE_TOP},{v:"ยิงด้านข้างมาด้วย",bad:1},{v:"ยังไม่ได้ยิง",bad:1}]
   : [{v:SCOPE_FULL},{v:"ยิงไม่ครบสามด้าน",bad:1},{v:"ยังไม่ได้ยิง",bad:1}];
 
-const S = { floor:FLOOR_FROM, room:String(FLOOR_FROM*100+1), scope:"", color:"แมตช์",
-  edge:"เท่ากันทุกด้าน", cut:"เรียบร้อย", bub:"ไม่พบ", eat:"ไม่พบ", wall:"ปกติ", skip:"เข้าตรวจได้" };
-S.scope = scopeByRule(S.room);
+/* ห้องเริ่มต้นว่างเปล่า ยังไม่มีคำตอบใด ๆ จนกว่าจะกดเลือกหรือกด "ทั้งหมดปกติ" */
+const S = { floor:FLOOR_FROM, room:String(FLOOR_FROM*100+1), scope:"", color:"",
+  edge:"", cut:"", bub:"", eat:"", wall:"", skip:"เข้าตรวจได้" };
 let inspector = "", localRows = [], allRows = [], latest = {}, firstLoad = true;
 
 /* ---- แท็บ ---- */
@@ -352,8 +354,9 @@ function group(el, list, key){
     if(o.warn) b.dataset.warn = "1";
     b.setAttribute("aria-pressed", String(S[key] === o.v));
     b.onclick = ()=>{
+      const before = S[key];
       S[key] = o.v;
-      if(key === "skip") applySkip();       /* เข้าไม่ได้ = ไม่มีผลตรวจให้กรอก */
+      if(key === "skip") applySkip(before);   /* เข้าไม่ได้ = ไม่มีผลตรวจให้กรอก */
       paint(el,key); refresh();
     };
     el.appendChild(b);
@@ -410,6 +413,8 @@ function buildScope(){
 /* ---- ตัดเกรด ---- */
 function judge(){
   if(S.skip !== "เข้าตรวจได้") return {grade:"ไม่ได้ตรวจ", why:S.skip};
+  if(isBlank()) return {grade:"ยังไม่ได้กรอก", todo:true,
+    why:"เลือกให้ครบทุกหัวข้อ หรือกด “ทั้งหมดปกติ” แล้วค่อยแก้เฉพาะจุดที่เสีย"};
   if(S.scope === "ยังไม่ได้ยิง" || S.color === "ยังไม่ได้ยิง")
     return {grade:"ไม่ผ่าน", why:"ยังไม่ได้ยิงซิลิโคน"};
   const bad = [];
@@ -430,6 +435,7 @@ function refresh(){
   const r = judge();
   $("verdict").dataset.g = r.grade; $("vGrade").textContent = r.grade; $("vWhy").textContent = r.why;
   $("rdot").dataset.g = r.grade;
+  $("btnSave").disabled = !!r.todo;   /* ยังกรอกไม่ครบ บันทึกไม่ได้ */
 }
 
 const paintAll = ()=>{
@@ -445,17 +451,18 @@ function resetFields(){
 const blankFields = ()=> FIELDS.forEach(k=> S[k] = "");
 const isBlank = ()=> FIELDS.some(k=> !S[k]);
 /* สลับระหว่างว่างกับค่าเริ่มต้น ตามว่าเข้าห้องได้หรือไม่ */
-function applySkip(){
-  if(S.skip !== "เข้าตรวจได้"){ blankFields(); }
-  else if(isBlank()){
-    resetFields();                  /* เพิ่งเปลี่ยนจากเข้าไม่ได้เป็นเข้าได้ — เริ่มกรอกใหม่ */
-    $("fNote").value = "";          /* เหตุผลที่เข้าไม่ได้ไม่เกี่ยวแล้ว */
-  }
+function applySkip(before){
+  if(S.skip !== "เข้าตรวจได้") blankFields();
+  else if(before && before !== "เข้าตรวจได้") $("fNote").value = "";  /* เหตุผลเดิมไม่เกี่ยวแล้ว */
   buildScope(); paintAll();
 }
 function setAllOk(){ resetFields(); buildScope(); paintAll(); refresh(); }
 $("btnAllOk").onclick = setAllOk;
-$("btnReset").onclick = ()=>{ setAllOk(); $("fNote").value = ""; $("msg").textContent = ""; };
+/* ล้างฟอร์ม = กลับไปว่างเปล่าจริง ๆ ส่วน "ทั้งหมดปกติ" คือเติมค่าปกติให้ครบ */
+$("btnReset").onclick = ()=>{
+  S.skip = "เข้าตรวจได้"; blankFields(); buildScope(); paintAll(); refresh();
+  $("fNote").value = ""; $("msg").textContent = "";
+};
 
 /* ---- ดึงบันทึกเดิมของห้องมาใส่ฟอร์ม ---- */
 const OLD2NEW = {"ครบสามด้าน":SCOPE_FULL, "ขอบบนอย่างเดียว":SCOPE_TOP};
@@ -467,7 +474,8 @@ const pick = (v, opts, dflt)=>{
 };
 function loadRoom(rn){
   const r = latest[rn];
-  resetFields();
+  S.skip = "เข้าตรวจได้";
+  blankFields();                 /* ยังไม่เคยตรวจ = ไม่มีคำตอบให้แสดง */
   $("fNote").value = "";
   if(!r) return;
 
@@ -502,6 +510,7 @@ if(!API_URL){ $("setupWarn").hidden = false; $("connPill").classList.add("off");
 /* ---- บันทึก ---- */
 $("btnSave").onclick = async ()=>{
   const r = judge(), off = S.skip !== "เข้าตรวจได้";
+  if(r.todo) return;               /* กรอกไม่ครบ ไม่ให้บันทึกค่าว่างลงชีต */
   const now = new Date(), pad = n=>String(n).padStart(2,"0");
   const note = $("fNote").value.trim();
   const row = {
