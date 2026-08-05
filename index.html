@@ -112,6 +112,7 @@
   .rbtn[data-g="ไม่ผ่าน"] i{background:var(--bad)}
   .rbtn[data-g="ไม่ได้ตรวจ"] i{background:var(--skip)}
   .rbtn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .rbtn.off{background:#F1F4F8;color:#AEB8C4;border-style:dashed}
   .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--mute);margin-top:10px}
   .legend span{display:flex;align-items:center;gap:4px}
   .legend b{width:7px;height:7px;border-radius:50%;display:block}
@@ -182,6 +183,26 @@
   .dnone{font-size:12px;color:var(--mute)}
   .dclear{margin-top:9px;padding:7px 12px;border:1px solid var(--line);background:#fff;
     border-radius:8px;font-size:12px;color:var(--ink-2)}
+
+  /* ---------- ผังบัวใต้ซิงค์ ---------- */
+  .art{padding:10px 12px 0;background:#F7F9FC;border-bottom:1px solid #EDF1F5}
+  .sink{width:100%;max-width:300px;display:block;margin:0 auto}
+  .sink .leg{fill:none;stroke:#DCB3AA;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+  .sink .top{stroke:#C4CDD8;stroke-width:2;stroke-linecap:round}
+  .sink .floor{stroke:#C9D2DC;stroke-width:1.5;stroke-dasharray:5 4}
+  .sink .m{fill:none;stroke-width:6;stroke-linecap:round}
+  .sink .m-idle{stroke:#E4EAF0}
+  .sink .m-ok{stroke:var(--ok)}
+  .sink .m-bad{stroke:var(--bad)}
+  .sink .m-none{stroke:#A9B5C3;stroke-width:3;stroke-dasharray:7 6}
+  .sink .lb{font-size:12px;fill:var(--mute)}
+  .sink .hole-on{fill:var(--warn)}
+  .sink .hole-off{fill:#fff;stroke:#C9D2DC;stroke-width:1.5}
+  .artleg{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;
+    font-size:11px;color:var(--mute);padding:7px 0 9px}
+  .artleg span{display:flex;align-items:center;gap:4px}
+  .artleg b{width:14px;height:4px;border-radius:2px;display:block}
+  .artleg b.dot{width:9px;height:9px;border-radius:50%}
 
   textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font-family:var(--sans);
     font-size:13.5px;resize:vertical;min-height:56px;color:var(--ink)}
@@ -364,6 +385,7 @@
           <span><b style="background:var(--bad)"></b>ไม่ผ่าน</span>
           <span><b style="background:var(--skip)"></b>ไม่ได้ตรวจ</span>
           <span><b style="background:var(--line)"></b>ยังไม่ตรวจ</span>
+          <span id="legNa" class="hide"><b style="background:#DCE3EB"></b>ไม่มีหมวดนี้ตามแบบ</span>
         </div>
       </div>
     </div>
@@ -484,6 +506,14 @@ const PIN_LEN   = 3;               /* ความยาวรหัส ให�
 
 const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
 const TOP_ONLY = ["01","12"];      /* ท้ายเลขห้องที่ซิลิโคนยิงเฉพาะขอบบนตามแบบ */
+
+/* ---- คิ้วบัวใต้ซิงค์: ห้องมุมไม่มีบัวเลย ห้องทวินมีแต่เรื่องช่องรู ---- */
+const MOLD_NONE = ["01","12"];    /* ไม่ต้องมีเรคคอร์ดหมวดบัวเลย */
+const MOLD_GAP  = ["02","11"];    /* ไม่มีบัวตามแบบ ตรวจแค่ช่องรูผนัง–พื้น */
+/* "ไม่ได้ติดบัว" ไม่ถือเป็นข้อบกพร่อง เพราะแต่ละห้องติดไม่เหมือนกันตามหน้างาน
+   ถ้าวันหลังอยากให้ห้องที่ไม่ได้ติดขึ้นเป็นของที่ต้องแก้ ใส่ bad:1 แทน plain:1 */
+const MOLD_OPTS = [{v:"ติดเรียบร้อย"},{v:"ขอบบัวไม่สุดขาไม้",bad:1},{v:"ไม่ได้ติดบัว",plain:1}];
+const GAP_OPTS  = [{v:"ไม่มีช่องรู"},{v:"มีช่องรู",warn:1}];
 const ROOM_TYPE = {1:"grand corner",2:"deluxe twin",3:"deluxe king",4:"deluxe king",
   5:"deluxe king",6:"grand deluxe",7:"grand deluxe",8:"deluxe king",9:"deluxe king",
   10:"deluxe king",11:"deluxe twin",12:"grand corner"};
@@ -618,6 +648,31 @@ const TOPICS = [
        good:n=> n===0, warn:n=> n<=2}
     ]}
   ]
+},
+{
+  id:"molding", name:"คิ้วบัวใต้ซิงค์", en:"Sink molding", icon:"🪵", grade:"ผลตรวจ",
+  na: r => noMoldRoom(r),        /* ห้อง 01 กับ 12 ไม่มีบัวใต้ซิงค์ ไม่ต้องมีเรคคอร์ด */
+  naNote: "ห้อง "+MOLD_NONE.join(" กับ ")+" ของทุกชั้นไม่ต้องตรวจหมวดนี้",
+  sections:[
+    {cap:"Molding · คิ้วบัวใต้ซิงค์อ่างล้างหน้า", art:(r,v)=> sinkArt(r,v), fields:[
+      {col:"บัวซ้าย", label:"บัวฝั่งซ้าย", en:"left", opts:MOLD_OPTS,
+       showIf:(v,r)=> !gapOnlyRoom(r),
+       hint:"ห้องนี้ติดกี่ช่วงก็ได้ตามหน้างาน — ที่ต้องแก้คือช่วงที่ติดแล้วขอบไม่ไปสุดขาไม้"},
+      {col:"บัวกลาง", label:"บัวช่วงกลาง", en:"middle", opts:MOLD_OPTS,
+       showIf:(v,r)=> !gapOnlyRoom(r)},
+      {col:"บัวขวา", label:"บัวฝั่งขวา", en:"right", opts:MOLD_OPTS,
+       showIf:(v,r)=> !gapOnlyRoom(r)}
+    ]},
+    {cap:"Gap · ช่องรูระหว่างผนังกับพื้น",
+     art:(r,v)=> gapOnlyRoom(r) ? sinkArt(r,v) : "", fields:[
+      {col:"ช่องรูซ้าย", label:"ช่องรูฝั่งซ้าย", en:"left", opts:GAP_OPTS,
+       hint: r => gapOnlyRoom(r)
+         ? "ห้อง "+MOLD_GAP.join(" กับ ")+" ไม่มีบัวตามแบบ — ตรวจเฉพาะช่องรูสามจุดนี้พอ"
+         : "ก้มดูแนวผนังชนพื้นใต้ซิงค์ ทั้งสามช่วง"},
+      {col:"ช่องรูกลาง", label:"ช่องรูช่วงกลาง", en:"middle", opts:GAP_OPTS},
+      {col:"ช่องรูขวา", label:"ช่องรูฝั่งขวา", en:"right", opts:GAP_OPTS}
+    ]}
+  ]
 }
 ];
 
@@ -636,18 +691,28 @@ const pad2 = n => String(n).padStart(2,"0");
 const FLOORS = []; for(let f=FLOOR_FROM; f<=FLOOR_TO; f++) FLOORS.push(f);
 const TOTAL_ROOMS = FLOORS.length * ROOMS_PER_FLOOR;
 const roomsOfFloor = f => { const a=[]; for(let i=1;i<=ROOMS_PER_FLOOR;i++) a.push(String(f*100+i)); return a; };
+const ALL_ROOMS = FLOORS.reduce((a,f)=> a.concat(roomsOfFloor(f)), []);
 const floorOf = r => String(r).slice(0,-2);
 const unitOf  = r => +String(r).slice(-2);
 const isTopOnly = r => TOP_ONLY.indexOf(String(r).slice(-2)) !== -1;
+const noMoldRoom  = r => MOLD_NONE.indexOf(String(r).slice(-2)) !== -1;
+const gapOnlyRoom = r => MOLD_GAP.indexOf(String(r).slice(-2)) !== -1;
 const val = (x, r) => (typeof x === "function") ? x(r) : x;
 const fieldsOf = t => t.sections.reduce((a,s)=>a.concat(s.fields), []);
 const scoreOf  = t => fieldsOf(t).filter(f=>!f.access);
 const optsOf   = (f,r) => val(f.opts, r);
 const goodOf   = (f,r) => optsOf(f,r)[0].v;
 const hasValue = v => v !== undefined && v !== null && String(v).trim() !== "";
-/* หัวข้อที่ต้องโชว์จริงตอนนี้ — บางหัวข้อโผล่เมื่อตอบข้อก่อนหน้าแบบหนึ่งเท่านั้น */
-const shown = (f, vals) => !f.showIf || f.showIf(vals);
-const visibleFields = (t, vals) => fieldsOf(t).filter(f=> shown(f, vals));
+/* หัวข้อที่ต้องโชว์จริงตอนนี้ — บางหัวข้อโผล่เมื่อตอบข้อก่อนหน้าแบบหนึ่งเท่านั้น
+   หรือโผล่เฉพาะบางห้อง (เช่น บัวใต้ซิงค์ ห้อง 02/11 ไม่มีบัว มีแต่ช่องรู) */
+const shown = (f, vals, room) => !f.showIf || f.showIf(vals, room);
+const visibleFields = (t, vals, room) => fieldsOf(t).filter(f=> shown(f, vals, room));
+
+/* บางหมวดไม่ต้องตรวจบางห้องเลย — ห้องพวกนั้นไม่ต้องมีเรคคอร์ด และไม่นับเป็นห้องที่ค้าง */
+const topicOn   = (t, room) => !t.na || !t.na(room);
+const topicsOf  = room => TOPICS.filter(t=> topicOn(t, room));
+const roomsOfTopic = t => ALL_ROOMS.filter(r=> topicOn(t, r));
+const totalOf   = t => roomsOfTopic(t).length;
 
 /* ---------- ประตู: ช่องรอบบานกับการแปลงเป็นข้อความ ---------- */
 const DOOR_BOX = {w:210, h:320, m:8, t:24, gap:2};
@@ -683,6 +748,52 @@ function doorSvg(ids, side){
     '" height="'+(B.h-2*B.m-2*B.t)+'"/>'+
     '<rect class="dhandle" x="'+hx+'" y="'+(B.h/2-4)+'" width="46" height="8" rx="3"/>'+
     cells+'</svg>';
+}
+
+/* ---------- ผังบัวใต้ซิงค์ — วาดตามที่สเก็ตช์ไว้ ----------
+   เส้นชมพู = ขาไม้ใต้ซิงค์ (สอบออกสองข้าง)  เส้นหนา = คิ้วบัวที่ติดจริง
+   บัวที่ "ขอบไม่สุดขาไม้" วาดสั้นกว่าขาไม้ให้เห็นว่าเหลือปลายโล่ง
+   จุดกลม = ช่องรูระหว่างผนังกับพื้น ซ้าย · กลาง · ขวา                        */
+const MOLD_SIDES = [
+  {key:"ซ้าย",  col:"บัวซ้าย",  gap:"ช่องรูซ้าย",  line:[92,34,48,112],  hole:62},
+  {key:"กลาง", col:"บัวกลาง", gap:"ช่องรูกลาง", line:[92,34,188,34], hole:140},
+  {key:"ขวา",   col:"บัวขวา",   gap:"ช่องรูขวา",   line:[188,34,232,112], hole:218}
+];
+/* เส้นบัวหนึ่งช่วง — frac<1 คือบัวสั้นกว่าขาไม้ */
+function moldPath(p, frac){
+  const x = p[0] + (p[2]-p[0])*frac, y = p[1] + (p[3]-p[1])*frac;
+  return "M"+p[0]+" "+p[1]+" L"+x.toFixed(1)+" "+y.toFixed(1);
+}
+function sinkArt(room, vals){
+  const none = gapOnlyRoom(room);
+  const segs = MOLD_SIDES.map(s=>{
+    const v = none ? "ไม่ได้ติดบัว" : String(vals[s.col]||"");
+    const cls = v === "ขอบบัวไม่สุดขาไม้" ? "m-bad"
+              : v === "ไม่ได้ติดบัว"      ? "m-none"
+              : v                          ? "m-ok" : "m-idle";
+    return '<path class="m '+cls+'" d="'+moldPath(s.line, v === "ขอบบัวไม่สุดขาไม้" ? .62 : 1)+
+      '"><title>บัว'+s.key+(v ? " · "+v : "")+'</title></path>';
+  }).join("");
+  const holes = MOLD_SIDES.map(s=>{
+    const on = vals[s.gap] === "มีช่องรู";
+    return '<circle class="'+(on ? "hole-on" : "hole-off")+'" cx="'+s.hole+'" cy="126" r="'+
+      (on ? 5.5 : 3.5)+'"><title>ช่องรู'+s.key+(on ? " · มีช่องรู" : "")+'</title></circle>';
+  }).join("");
+  return '<svg class="sink" viewBox="0 0 280 140" role="img" aria-label="ผังคิ้วบัวใต้ซิงค์">'+
+      '<path class="top" d="M74 10 H206"/>'+
+      '<path class="leg" d="M92 10 V34 L48 112 M188 10 V34 L232 112 M92 34 H188"/>'+
+      segs +
+      '<path class="floor" d="M34 126 H246"/>'+ holes +
+      '<text class="lb" x="20" y="90">ซ้าย</text>'+
+      '<text class="lb" x="140" y="26" text-anchor="middle">กลาง</text>'+
+      '<text class="lb" x="260" y="90" text-anchor="end">ขวา</text>'+
+    '</svg>'+
+    '<div class="artleg">'+
+      (none ? '<span>ห้องนี้ตามแบบไม่มีบัว — ตรวจแค่ช่องรู</span>'
+            : '<span><b style="background:var(--ok)"></b>ติดเรียบร้อย</span>'+
+              '<span><b style="background:var(--bad)"></b>ขอบไม่สุดขาไม้</span>'+
+              '<span><b style="background:#BFC9D5"></b>ไม่ได้ติด</span>')+
+      '<span><b class="dot" style="background:var(--warn)"></b>ช่องรูผนัง–พื้น</span></div>';
 }
 
 /* ให้คะแนนหนึ่งหัวข้อ — คืน null ถ้ายังไม่ได้กรอก */
@@ -873,11 +984,16 @@ function openRoom(room, topicId){
   S.floor = +floorOf(S.room);
   if(topicId) S.topic = topicId;
   S.draft = {}; S.base = {};
-  TOPICS.forEach(t=>{
+  topicsOf(S.room).forEach(t=>{
     const d = fromRow(t, S.latest[t.id] && S.latest[t.id][S.room], S.room);
     S.draft[t.id] = d;
     S.base[t.id]  = JSON.parse(JSON.stringify(d));
   });
+  if(!S.draft[S.topic]){                    /* หมวดที่เปิดอยู่ไม่มีในห้องนี้ — สลับให้เอง */
+    const alt = topicsOf(S.room)[0];
+    toast("ห้อง "+S.room+" ไม่มีหมวด"+TOPIC[S.topic].name+" — เปิดหมวด"+alt.name+"ให้แทน");
+    S.topic = alt.id;
+  }
   go("room");
 }
 
@@ -919,7 +1035,7 @@ function judge(t, room, d){
   if(!acc) return {grade:"ยังไม่ได้กรอก", todo:1, why:"ยังไม่ได้เลือกว่าเข้าห้องได้หรือไม่"};
   if(acc !== "เข้าตรวจได้") return {grade:"ไม่ได้ตรวจ", why:acc};
 
-  const fs = visibleFields(t, d.vals).filter(f=> !f.access);
+  const fs = visibleFields(t, d.vals, room).filter(f=> !f.access);
   const miss = fs.filter(f=> !f.optional && !hasValue(d.vals[f.col]));
   if(miss.length) return {grade:"ยังไม่ได้กรอก", todo:miss.length,
     why:"เหลืออีก "+miss.length+" หัวข้อ: "+miss.map(f=>val(f.label, room)).join(", ")};
@@ -942,7 +1058,7 @@ function dirty(t){
 }
 /** หมวดที่พร้อมบันทึกในรอบนี้ */
 function pending(){
-  return TOPICS.filter(t=> dirty(t) && !judge(t, S.room, S.draft[t.id]).todo);
+  return topicsOf(S.room).filter(t=> dirty(t) && !judge(t, S.room, S.draft[t.id]).todo);
 }
 /* "ทั้งหมดปกติ" เติมให้เฉพาะหัวข้อที่เป็นตัวเลือก — ตัวเลขที่ต้องวัดจริงไม่เดาให้ */
 function setAllOk(t){
@@ -950,7 +1066,7 @@ function setAllOk(t){
   fieldsOf(t).forEach(f=>{
     if(f.type === "num"){ if(f.dflt !== undefined && !hasValue(d.vals[f.col])) d.vals[f.col] = String(f.dflt); }
     else if(f.type === "door") d.vals[f.col] = "";
-    else d.vals[f.col] = goodOf(f, S.room);
+    else if(shown(f, d.vals, S.room)) d.vals[f.col] = goodOf(f, S.room);
   });
   Object.keys(S.remember).forEach(c=>{ if(d.vals[c] !== undefined && S.remember[c]) d.vals[c] = S.remember[c]; });
 }
@@ -985,7 +1101,7 @@ function render(){
       S.view === "home" ? "เลือกหมวดที่จะตรวจ"
     : S.view === "all"  ? TOPICS.length+" หมวด · "+TOTAL_ROOMS+" ห้อง · "+thDate(S.date)
     : S.view === "room" ? "ห้อง "+S.room+" · "+thDate(S.date)
-    : t.en + " · ทั้งหมด " + TOTAL_ROOMS + " ห้อง";
+    : t.en + " · ทั้งหมด " + totalOf(t) + " ห้อง";
 
   if(S.view === "all")  renderAll();
   if(S.view === "home") renderHome();
@@ -1013,7 +1129,7 @@ function renderHome(){
     return '<button class="tcard" data-t="'+t.id+'">'+
       '<span class="ico">'+t.icon+'</span>'+
       '<span class="b"><span class="n">'+t.name+'<em>'+t.en+'</em></span>'+
-      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+TOTAL_ROOMS+' ห้อง'+
+      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+totalOf(t)+' ห้อง'+
       (c["ไม่ผ่าน"] ? ' · ต้องแก้ '+c["ไม่ผ่าน"]+' ห้อง' : '')+'</span>'+
       '<span class="bar">'+seg+'</span></span><span class="go">›</span></button>';
   }).join("");
@@ -1035,17 +1151,17 @@ function renderHome(){
 
 /* ---------- ภาพรวมทุกหมวด ---------- */
 function renderAll(){
-  const allRooms = FLOORS.reduce((a,f)=> a.concat(roomsOfFloor(f)), []);
   const gradeOf = (t, rn) => { const r = (S.latest[t.id]||{})[rn]; return r ? r[t.grade] : ""; };
 
   let full = 0, none = 0;
   const fixRooms = [];
-  allRooms.forEach(rn=>{
-    const g = TOPICS.map(t=> gradeOf(t, rn));
+  ALL_ROOMS.forEach(rn=>{
+    const ts = topicsOf(rn);                 /* บางห้องมีหมวดที่ต้องตรวจน้อยกว่าห้องอื่น */
+    const g = ts.map(t=> gradeOf(t, rn));
     const done = g.filter(x=>x).length;
-    if(done === TOPICS.length) full++;
+    if(done === ts.length) full++;
     if(done === 0) none++;
-    const bad = TOPICS.filter((t,i)=> g[i]==="ไม่ผ่าน" || g[i]==="เกือบผ่าน");
+    const bad = ts.filter((t,i)=> g[i]==="ไม่ผ่าน" || g[i]==="เกือบผ่าน");
     if(bad.length) fixRooms.push({room:rn, topics:bad});
   });
 
@@ -1056,16 +1172,16 @@ function renderAll(){
     '<div class="sc" data-g="ไม่ผ่าน"><div class="n">'+fixRooms.length+'</div><div class="t">ต้องกลับไปแก้</div></div>';
 
   $("allTopics").innerHTML = TOPICS.map(t=>{
-    const m = S.latest[t.id] || {}, rooms = Object.keys(m);
+    const m = S.latest[t.id] || {}, rooms = Object.keys(m), tot = totalOf(t);
     const c = {}; GRADES.forEach(g=> c[g]=0);
     rooms.forEach(rn=>{ const g = m[rn][t.grade]; if(c[g]!==undefined) c[g]++; });
     const seg = GRADES.map(g=> c[g] ? '<i style="flex:'+c[g]+';background:'+GC[g]+'"></i>' : "").join("")
-      + (rooms.length < TOTAL_ROOMS
-         ? '<i style="flex:'+(TOTAL_ROOMS-rooms.length)+';background:#DCE3EB"></i>' : "");
+      + (rooms.length < tot
+         ? '<i style="flex:'+(tot-rooms.length)+';background:#DCE3EB"></i>' : "");
     return '<button class="tcard" data-t="'+t.id+'"><span class="ico">'+t.icon+'</span>'+
       '<span class="b"><span class="n">'+t.name+
-      '<em>'+Math.round(rooms.length/TOTAL_ROOMS*100)+'%</em></span>'+
-      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+TOTAL_ROOMS+' · เหลือ '+(TOTAL_ROOMS-rooms.length)+
+      '<em>'+Math.round(rooms.length/tot*100)+'%</em></span>'+
+      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+tot+' · เหลือ '+(tot-rooms.length)+
       (c["ไม่ผ่าน"] ? ' · ไม่ผ่าน '+c["ไม่ผ่าน"] : '')+
       (c["เกือบผ่าน"] ? ' · เกือบผ่าน '+c["เกือบผ่าน"] : '')+'</span>'+
       '<span class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</span></span>'+
@@ -1090,9 +1206,10 @@ function renderAll(){
   $("allFloorBody").innerHTML = FLOORS.map(f=>{
     const rs = roomsOfFloor(f);
     const cells = TOPICS.map(t=>{
-      const n = rs.filter(rn=> (S.latest[t.id]||{})[rn]).length;
-      return '<td class="n'+(n===ROOMS_PER_FLOOR ? " ok" : n ? "" : " na")+'">'+
-        n+'/'+ROOMS_PER_FLOOR+'</td>';
+      const app = rs.filter(rn=> topicOn(t, rn));
+      const n = app.filter(rn=> (S.latest[t.id]||{})[rn]).length;
+      return '<td class="n'+(n===app.length ? " ok" : n ? "" : " na")+'">'+
+        n+'/'+app.length+'</td>';
     }).join("");
     const bad = fixRooms.filter(x=> floorOf(x.room) === String(f)).length;
     return '<tr><td class="k">'+f+'</td>'+cells+
@@ -1120,19 +1237,25 @@ function saveMe(){ LS.set(K_ME, JSON.stringify({inspector:S.inspector, date:S.da
 function renderRooms(){
   const t = TOPIC[S.topic], m = S.latest[t.id] || {};
   $("fVal").textContent = S.floor;
-  $("floorNote").textContent = "ชั้น "+FLOOR_FROM+"–"+FLOOR_TO+" · ชั้นละ "+ROOMS_PER_FLOOR+" ห้อง";
+  $("floorNote").textContent = "ชั้น "+FLOOR_FROM+"–"+FLOOR_TO+" · ชั้นละ "+ROOMS_PER_FLOOR+" ห้อง"+
+    (t.na ? " · หมวดนี้ตรวจ "+totalOf(t)+" ห้อง" : "");
   $("floorJump").innerHTML = FLOORS.map(f=>
     '<button data-f="'+f+'" aria-pressed="'+(f===S.floor)+'">'+f+'</button>').join("");
   $("floorJump").querySelectorAll("button").forEach(b=>
     b.onclick = ()=>{ S.floor = +b.dataset.f; renderRooms(); });
 
   $("roomGrid").innerHTML = roomsOfFloor(S.floor).map(rn=>{
+    if(!topicOn(t, rn))                       /* หมวดนี้ไม่ต้องตรวจห้องนี้ตามแบบ */
+      return '<button class="rbtn off" data-r="'+rn+'" title="ห้อง '+rn+
+        ' · ไม่มีหมวดนี้ตามแบบ"><i></i><div class="no">'+rn.slice(-2)+
+        '</div><div class="st">ไม่มี</div></button>';
     const r = m[rn], g = r ? r[t.grade] : "";
     return '<button class="rbtn" data-r="'+rn+'"'+(g?' data-g="'+g+'"':'')+
       ' title="ห้อง '+rn+(r ? " · "+g+" · "+showDate(r["วันที่ตรวจ"]) : " · ยังไม่ตรวจ")+'">'+
       '<i></i><div class="no">'+rn.slice(-2)+'</div></button>';
   }).join("");
   $("roomGrid").querySelectorAll(".rbtn").forEach(b=> b.onclick = ()=> openRoom(b.dataset.r));
+  $("legNa").classList.toggle("hide", !t.na);
 }
 $("fMinus").onclick = ()=>{ if(S.floor>FLOOR_FROM){ S.floor--; renderRooms(); } };
 $("fPlus").onclick  = ()=>{ if(S.floor<FLOOR_TO){ S.floor++; renderRooms(); } };
@@ -1147,11 +1270,12 @@ function renderRoom(){
     (rec ? "เคยบันทึก "+showDate(rec["วันที่ตรวจ"])+" — แก้แล้วบันทึกทับได้" : "ยังไม่เคยบันทึกหมวดนี้");
   $("who2").value = S.inspector; $("dt2").value = S.date;
   $("dtNote2").textContent = thDate(S.date) + " (เวลาไทย)";
-  $("rPrev").disabled = (room === String(FLOOR_FROM*100+1));
-  $("rNext").disabled = (room === String(FLOOR_TO*100+ROOMS_PER_FLOOR));
+  $("rPrev").disabled = !nextRoom(-1);
+  $("rNext").disabled = !nextRoom(1);
 
-  /* แถบหมวด — เห็นทุกหมวดของห้องนี้ในหน้าเดียว กดสลับได้โดยไม่เสียของที่กรอกไว้ */
-  $("topicTabs").innerHTML = TOPICS.map(x=>{
+  /* แถบหมวด — เห็นทุกหมวดของห้องนี้ในหน้าเดียว กดสลับได้โดยไม่เสียของที่กรอกไว้
+     หมวดที่ห้องนี้ไม่ต้องตรวจจะไม่ขึ้นเลย */
+  $("topicTabs").innerHTML = topicsOf(room).map(x=>{
     const v = judge(x, room, S.draft[x.id]);
     const had = (S.latest[x.id]||{})[room];
     const g = v.todo ? (had ? String(had[x.grade]||"ยังไม่ตรวจ") : "ยังไม่ตรวจ") : v.grade;
@@ -1170,7 +1294,7 @@ function renderRoom(){
   $("formBox").innerHTML = t.sections.map(sec=>{
     const isAccess = sec.fields.length===1 && sec.fields[0].access;
     if(off && !isAccess) return "";
-    const body = sec.fields.filter(f=> shown(f, d.vals)).map(f=>{
+    const body = sec.fields.filter(f=> shown(f, d.vals, room)).map(f=>{
       const cur = d.vals[f.col] || "";
       const head = '<div class="lab">'+val(f.label, room)+
         (f.en ? ' <span>'+f.en+'</span>' : '')+(f.optional ? ' <span>(ไม่บังคับ)</span>' : '')+'</div>';
@@ -1196,12 +1320,15 @@ function renderRoom(){
       } else {
         body = '<div class="opts" data-c="'+f.col+'">'+
           optsOf(f, room).map(o=>'<button class="opt" data-v="'+o.v+'" data-k="'+
-            (f.plain?"plain":o.bad?"bad":o.warn?"warn":"good")+'" aria-pressed="'+
+            (f.plain||o.plain?"plain":o.bad?"bad":o.warn?"warn":"good")+'" aria-pressed="'+
             (o.v===cur)+'">'+o.v+'</button>').join("")+'</div>';
       }
-      return '<div class="fld">'+head+body+(f.hint ? '<div class="hint">'+f.hint+'</div>' : '')+'</div>';
+      const hint = val(f.hint, room);
+      return '<div class="fld">'+head+body+(hint ? '<div class="hint">'+hint+'</div>' : '')+'</div>';
     }).join("");
-    return body ? '<div class="card"><div class="cap">'+sec.cap+'</div>'+body+'</div>' : "";
+    const art = sec.art ? sec.art(room, d.vals) : "";
+    return body ? '<div class="card"><div class="cap">'+sec.cap+'</div>'+
+      (art ? '<div class="art">'+art+'</div>' : '')+body+'</div>' : "";
   }).join("") +
   '<div class="card"><div class="cap">Note · หมายเหตุ</div><div class="fld">'+
   '<textarea id="fNote" placeholder="เช่น สวิตช์ม่านทึบกดแล้วไม่ทำงาน / ตัดขอบสวยแต่สีผิดสเปก"></textarea></div></div>';
@@ -1262,11 +1389,18 @@ function refreshVerdict(){
 $("btnAllOk").onclick = ()=>{ setAllOk(TOPIC[S.topic]); renderRoom(); };
 $("rPrev").onclick = ()=> stepRoom(-1);
 $("rNext").onclick = ()=> stepRoom(1);
+/* ห้องถัดไปที่หมวดนี้ต้องตรวจ — ห้องที่หมวดนี้ข้ามอยู่แล้วก็ข้ามไปเลย ไม่ต้องแวะ */
+function nextRoom(dir){
+  const t = TOPIC[S.topic];
+  let i = ALL_ROOMS.indexOf(S.room);
+  if(i < 0) return null;
+  for(i += dir; i >= 0 && i < ALL_ROOMS.length; i += dir){
+    if(topicOn(t, ALL_ROOMS[i])) return ALL_ROOMS[i];
+  }
+  return null;
+}
 function stepRoom(dir){
-  const all = FLOORS.reduce((a,f)=> a.concat(roomsOfFloor(f)), []);
-  const i = all.indexOf(S.room);
-  if(i < 0) return;
-  const n = all[i+dir];
+  const n = nextRoom(dir);
   if(n) openRoom(n);
 }
 
@@ -1276,7 +1410,7 @@ function refreshSave(){
   btn.disabled = !list.length;
   btn.textContent = list.length > 1 ? "บันทึก "+list.length+" หมวด" : "บันทึก";
 
-  const half = TOPICS.filter(t=> dirty(t) && judge(t, S.room, S.draft[t.id]).todo);
+  const half = topicsOf(S.room).filter(t=> dirty(t) && judge(t, S.room, S.draft[t.id]).todo);
   $("saveMsg").className = "msg";
   $("saveMsg").textContent =
       half.length ? "· " + half.map(t=>t.name).join(", ") + " ยังกรอกไม่ครบ"
@@ -1300,7 +1434,7 @@ $("btnSave").onclick = async ()=>{
     Object.assign(values, val(t.auto, S.room) || {});
     fieldsOf(t).forEach(f=>{
       if(f.access) values[f.col] = d.vals[f.col] || "";
-      else if(off || !shown(f, d.vals)) values[f.col] = "-";
+      else if(off || !shown(f, d.vals, S.room)) values[f.col] = "-";
       else values[f.col] = d.vals[f.col] || "";
     });
     if(t.derive && !off) Object.assign(values, t.derive(d));
@@ -1333,7 +1467,7 @@ $("btnSave").onclick = async ()=>{
 };
 /* หลังบันทึก: ตั้งฐานเทียบใหม่ ไม่ให้ค้างว่ายังแก้ค้างอยู่ */
 function afterSave(){
-  TOPICS.forEach(t=>{
+  topicsOf(S.room).forEach(t=>{
     const rec = (S.latest[t.id]||{})[S.room];
     S.draft[t.id] = rec ? fromRow(t, rec, S.room) : S.draft[t.id];
     S.base[t.id] = JSON.parse(JSON.stringify(S.draft[t.id]));
@@ -1353,17 +1487,20 @@ function renderSum(){
   $("sumBar").innerHTML = GRADES.map(g=> c[g] ?
     '<i style="flex:'+c[g]+';background:'+GC[g]+'"></i>' : "").join("") ||
     '<i style="flex:1;background:#E3E9E7"></i>';
-  $("progressTxt").textContent = "ตรวจแล้ว "+rooms.length+" จาก "+TOTAL_ROOMS+" ห้อง ("+
-    (rooms.length/TOTAL_ROOMS*100).toFixed(1)+"%) · เหลืออีก "+(TOTAL_ROOMS-rooms.length)+" ห้อง";
+  const tot = totalOf(t);
+  $("progressTxt").textContent = "ตรวจแล้ว "+rooms.length+" จาก "+tot+" ห้อง ("+
+    (rooms.length/tot*100).toFixed(1)+"%) · เหลืออีก "+(tot-rooms.length)+" ห้อง"+
+    (t.naNote ? " · "+t.naNote : "");
 
   $("floorBody").innerHTML = FLOORS.map(f=>{
-    const rs = roomsOfFloor(f).filter(rn=> m[rn]);
+    const app = roomsOfFloor(f).filter(rn=> topicOn(t, rn));
+    const rs = app.filter(rn=> m[rn]);
     if(!rs.length) return "";
     const cc = {}; GRADES.forEach(g=> cc[g]=0);
     rs.forEach(rn=>{ const g = m[rn][t.grade]; if(cc[g]!==undefined) cc[g]++; });
     const seg = GRADES.map(g=> cc[g] ?
       '<i style="width:'+(cc[g]/rs.length*100)+'%;background:'+GC[g]+'"></i>' : "").join("");
-    return '<tr><td class="k">'+f+'</td><td class="n">'+rs.length+"/"+ROOMS_PER_FLOOR+'</td>'+
+    return '<tr><td class="k">'+f+'</td><td class="n">'+rs.length+"/"+app.length+'</td>'+
       '<td class="n ok">'+cc["ผ่าน"]+'</td><td class="n">'+cc["เกือบผ่าน"]+'</td>'+
       '<td class="n no">'+cc["ไม่ผ่าน"]+'</td><td class="n na">'+cc["ไม่ได้ตรวจ"]+'</td>'+
       '<td><div class="minibar">'+seg+'</div></td></tr>';
@@ -1402,10 +1539,11 @@ function renderLog(){
 
   let html = "";
   FLOORS.forEach(f=>{
-    const rs = roomsOfFloor(f).filter(rn=> m[rn]);
+    const app = roomsOfFloor(f).filter(rn=> topicOn(t, rn));
+    const rs = app.filter(rn=> m[rn]);
     if(!rs.length) return;
     html += '<tr class="band"><td colspan="'+(cols.length+4)+'">ชั้น '+f+
-      '<span>'+rs.length+"/"+ROOMS_PER_FLOOR+' ห้อง</span></td></tr>';
+      '<span>'+rs.length+"/"+app.length+' ห้อง</span></td></tr>';
     rs.forEach(rn=>{
       const r = m[rn];
       html += '<tr data-r="'+rn+'"><td class="k">'+rn+'</td>'+
