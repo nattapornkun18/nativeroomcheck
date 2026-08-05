@@ -25,6 +25,11 @@ const HEAD_RIGHT = ['หมายเหตุ', 'ผู้ตรวจ', 'บั
 const ACCESS = 'การเข้าห้อง';
 const ACCESS_CHOICES = ['เข้าตรวจได้', 'ไม่มีกุญแจ', 'มีแขกพัก', 'ห้องปิดปรับปรุง'];
 
+/* จำนวนห้องทั้งหมด ใช้คิด % ในหน้าสรุป — ต้องตรงกับที่ตั้งไว้ใน index.html */
+const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
+/** แท็บสรุป ตั้งชื่อว่า "สรุปรวม" เพื่อไม่ไปทับแท็บ "สรุป" เดิมที่ทำไว้เอง */
+const SUMMARY_SHEET = 'สรุปรวม';
+
 const GRADES = ['ผ่าน', 'เกือบผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ'];
 const GRADE_ICON  = {'ผ่าน':'✅', 'เกือบผ่าน':'⚠️', 'ไม่ผ่าน':'❌', 'ไม่ได้ตรวจ':'⬜'};
 const GRADE_COLOR = {
@@ -369,6 +374,7 @@ function doPost(e) {
     });
 
     notifySave_(saved, body);
+    try { buildSummary_(); } catch (err) { console.error('อัปเดตหน้าสรุปไม่สำเร็จ: ' + err); }
 
     return json_({ ok: true, saved: saved.map(function (s) {
       return { topic: s.topic, room: s.room, grade: s.rec[s.t.grade] || '' };
@@ -588,7 +594,8 @@ function notifySave_(saved, body) {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('เช็คห้อง')
-    .addItem('ตั้งค่าชีตทุกหมวด (ดรอปดาวน์ + สีเกรด + แปลงคำเก่า)', 'setupSheet')
+    .addItem('อัปเดตหน้าสรุป', 'buildSummary')
+    .addItem('ตั้งค่าชีตทุกหมวด (จัดหน้าตา + ดรอปดาวน์ + สีเกรด)', 'setupSheet')
     .addItem('แปลงคำเก่าให้ตรงกับหน้าเว็บ', 'migrateLabels')
     .addItem('แปลงวันที่เป็นแบบไทย วัน/เดือน/ปี', 'migrateDates')
     .addItem('จัดรูปแบบทุกแถวให้เหมือนกัน', 'restyleAll')
@@ -679,7 +686,8 @@ function setupSheet() {
     styleSheet_(t, sh, head);
     restyleAll_(sh, head);   /* แถวที่บันทึกไปก่อนหน้านี้จะได้หน้าตาเหมือนกันทั้งตาราง */
   });
-  SpreadsheetApp.getActive().toast('ตั้งค่าชีตทุกหมวดเรียบร้อย', 'เช็คห้อง', 5);
+  buildSummary_();
+  SpreadsheetApp.getActive().toast('ตั้งค่าชีตทุกหมวด + หน้าสรุปเรียบร้อย', 'เช็คห้อง', 5);
 }
 
 /** ดรอปดาวน์ + กฎสีของช่องที่เป็นข้อบกพร่อง */
@@ -822,6 +830,177 @@ function restyleAll_(sh, head) {
   sh.getRange(2, 1, 1, head.length)
     .copyTo(sh.getRange(3, 1, last - 2, head.length), { formatOnly: true });
   return last - 2;
+}
+
+/* =============== แท็บสรุปรวม =============== */
+
+/** แถวล่าสุดของแต่ละห้องในหมวดหนึ่ง (แถวท้ายสุดของห้องนั้นชนะ) */
+function latestByRoom_(id) {
+  const m = {};
+  rowsOf_(id).forEach(function (r) {
+    const k = String(r['ห้อง']).trim();
+    if (k) m[k] = r;
+  });
+  return m;
+}
+
+function numBad_(spec, v) {
+  if (isNaN(v)) return false;
+  if (spec.ok !== undefined) return v > spec.ok;
+  return v < spec.min || v > spec.max;
+}
+
+/** สรุปเป็นข้อความว่าห้องนี้ตกเพราะอะไร */
+function whyOf_(t, row) {
+  const out = [];
+  if (row[ACCESS] && row[ACCESS] !== ACCESS_CHOICES[0]) return row[ACCESS];
+  t.cols.forEach(function (c) {
+    if (c === t.grade || c === ACCESS || t.auto.indexOf(c) !== -1) return;
+    const v = String(row[c] || '').trim();
+    if (!v || v === '-') return;
+    if (t.num && t.num[c]) { if (numBad_(t.num[c], Number(v))) out.push(c + ': ' + v); return; }
+    if (!isGood_(t, c, v)) out.push(c + ': ' + v);
+  });
+  return out.join(' · ');
+}
+
+const TOTAL_ROOMS = (FLOOR_TO - FLOOR_FROM + 1) * ROOMS_PER_FLOOR;
+
+/** สร้าง/อัปเดตแท็บสรุปรวม — เรียกจากเมนู และเรียกเองทุกครั้งที่บันทึก */
+function buildSummary_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SUMMARY_SHEET);
+  if (!sh) sh = ss.insertSheet(SUMMARY_SHEET, 0);
+
+  const ids = Object.keys(TOPICS);
+  const latest = {};
+  ids.forEach(function (id) { latest[id] = latestByRoom_(id); });
+
+  const rows = [];
+  const now = Utilities.formatDate(new Date(), TZ, 'dd/MM/yyyy HH:mm');
+  rows.push(['📋 สรุปการตรวจห้อง', '', '', '', '', '', '', '', '']);
+  rows.push(['อัปเดตล่าสุด ' + now + ' · ทั้งหมด ' + TOTAL_ROOMS + ' ห้อง (ชั้น ' +
+             FLOOR_FROM + '–' + FLOOR_TO + ' ชั้นละ ' + ROOMS_PER_FLOOR + ' ห้อง)',
+             '', '', '', '', '', '', '', '']);
+  rows.push(['', '', '', '', '', '', '', '', '']);
+
+  /* ---- ภาพรวมรายหมวด ---- */
+  const headA = ['หมวด', 'ตรวจแล้ว', 'เหลือ', 'ความคืบหน้า',
+                 'ผ่าน', 'เกือบผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ', 'ต้องกลับไปแก้'];
+  rows.push(headA);
+  const bandA = rows.length;                       /* แถวหัวของบล็อกแรก */
+  const totals = { done: 0, fix: 0 };
+  ids.forEach(function (id) {
+    const t = TOPICS[id], m = latest[id], rooms = Object.keys(m);
+    const c = {}; GRADES.forEach(function (g) { c[g] = 0; });
+    rooms.forEach(function (rn) { const g = m[rn][t.grade]; if (c[g] !== undefined) c[g]++; });
+    const fix = c['ไม่ผ่าน'] + c['เกือบผ่าน'];
+    totals.done += rooms.length; totals.fix += fix;
+    rows.push([t.icon + ' ' + t.name, rooms.length, TOTAL_ROOMS - rooms.length,
+               rooms.length / TOTAL_ROOMS,
+               c['ผ่าน'], c['เกือบผ่าน'], c['ไม่ผ่าน'], c['ไม่ได้ตรวจ'], fix]);
+  });
+  rows.push(['รวมทุกหมวด', totals.done, ids.length * TOTAL_ROOMS - totals.done,
+             totals.done / (ids.length * TOTAL_ROOMS), '', '', '', '', totals.fix]);
+  const endA = rows.length;
+
+  /* ---- ความคืบหน้ารายชั้น ---- */
+  rows.push(['', '', '', '', '', '', '', '', '']);
+  rows.push(['ความคืบหน้ารายชั้น (ตรวจแล้วกี่ห้องจาก ' + ROOMS_PER_FLOOR + ')',
+             '', '', '', '', '', '', '', '']);
+  const headB = ['ชั้น'].concat(ids.map(function (id) { return TOPICS[id].icon + ' ' + TOPICS[id].name; }));
+  while (headB.length < 9) headB.push('');
+  rows.push(headB);
+  const bandB = rows.length;
+  for (let f = FLOOR_FROM; f <= FLOOR_TO; f++) {
+    const line = ['ชั้น ' + f];
+    ids.forEach(function (id) {
+      let n = 0;
+      for (let i = 1; i <= ROOMS_PER_FLOOR; i++) if (latest[id][String(f * 100 + i)]) n++;
+      line.push(n + '/' + ROOMS_PER_FLOOR);
+    });
+    while (line.length < 9) line.push('');
+    rows.push(line);
+  }
+  const endB = rows.length;
+
+  /* ---- ห้องที่ต้องกลับไปแก้ ---- */
+  rows.push(['', '', '', '', '', '', '', '', '']);
+  rows.push(['ห้องที่ต้องกลับไปแก้', '', '', '', '', '', '', '', '']);
+  rows.push(['ห้อง', 'ชั้น', 'หมวด', 'ผล', 'รายละเอียด', 'วันที่ตรวจ', 'ผู้ตรวจ', '', '']);
+  const bandC = rows.length;
+
+  const fixes = [];
+  ids.forEach(function (id) {
+    const t = TOPICS[id], m = latest[id];
+    Object.keys(m).forEach(function (rn) {
+      const g = m[rn][t.grade];
+      if (g !== 'ไม่ผ่าน' && g !== 'เกือบผ่าน') return;
+      fixes.push([rn, m[rn]['ชั้น'], t.icon + ' ' + t.name, g, whyOf_(t, m[rn]),
+                  fmtDate_(m[rn]['วันที่ตรวจ']), m[rn]['ผู้ตรวจ'] || '', '', '']);
+    });
+  });
+  fixes.sort(function (a, b) { return String(a[0]).localeCompare(String(b[0]), 'th', { numeric: true }); });
+  if (fixes.length) fixes.forEach(function (f) { rows.push(f); });
+  else rows.push(['— ยังไม่มีห้องที่ต้องแก้ —', '', '', '', '', '', '', '', '']);
+  const endC = rows.length;
+
+  /* ---- เขียนลงชีต ---- */
+  if (sh.getMaxRows() < rows.length + 20) {
+    sh.insertRowsAfter(sh.getMaxRows(), rows.length + 20 - sh.getMaxRows());
+  }
+  sh.clear();
+  sh.clearConditionalFormatRules();
+  sh.getBandings().forEach(function (b) { b.remove(); });
+  sh.getRange(1, 1, rows.length, 9).setValues(rows);
+
+  /* ---- แต่งหน้า ---- */
+  sh.setFrozenRows(3);
+  sh.getRange('A1').setFontSize(15).setFontWeight('bold').setFontColor(LOOK.headBg);
+  sh.getRange('A2').setFontSize(10).setFontColor('#6B7A8D');
+  [bandA, bandB, bandC].forEach(function (r) {
+    sh.getRange(r, 1, 1, 9).setBackground(LOOK.headBg).setFontColor(LOOK.headFg)
+      .setFontWeight('bold').setFontSize(10).setHorizontalAlignment('center');
+  });
+  [bandB - 1, bandC - 1].forEach(function (r) {
+    sh.getRange(r, 1, 1, 9).setFontWeight('bold').setFontSize(11).setFontColor(LOOK.headBg);
+  });
+  sh.setColumnWidth(1, 190);
+  for (let c = 2; c <= 9; c++) sh.setColumnWidth(c, c === 5 ? 300 : 108);
+
+  sh.getRange(bandA + 1, 2, ids.length + 1, 8).setHorizontalAlignment('center');
+  sh.getRange(bandA + 1, 4, ids.length + 1, 1).setNumberFormat('0.0%');
+  sh.getRange(endA, 1, 1, 9).setFontWeight('bold').setBackground('#EFF3F7');
+  sh.getRange(bandB + 1, 2, endB - bandB, 8).setHorizontalAlignment('center');
+  sh.getRange(bandC + 1, 1, endC - bandC, 4).setHorizontalAlignment('center');
+  sh.getRange(bandC + 1, 5, endC - bandC, 1).setHorizontalAlignment('left');
+
+  [[bandA, endA], [bandB, endB], [bandC, endC]].forEach(function (b) {
+    sh.getRange(b[0], 1, b[1] - b[0] + 1, 9)
+      .setBorder(true, true, true, true, true, true, LOOK.grid, SpreadsheetApp.BorderStyle.SOLID);
+  });
+
+  /* สีของช่องผลตรวจ */
+  const rules = [];
+  const gradeRanges = [sh.getRange(bandA + 1, 5, ids.length, 4), sh.getRange(bandC + 1, 4, endC - bandC, 1)];
+  GRADES.forEach(function (g) {
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(g)
+      .setBackground(GRADE_COLOR[g].bg).setFontColor(GRADE_COLOR[g].fg)
+      .setRanges(gradeRanges).build());
+  });
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberGreaterThan(0).setBackground(LOOK.bad.bg).setFontColor(LOOK.bad.fg)
+    .setRanges([sh.getRange(bandA + 1, 7, ids.length, 1), sh.getRange(bandA + 1, 9, ids.length, 1)]).build());
+  sh.setConditionalFormatRules(rules);
+
+  return sh;
+}
+
+/** เมนู: อัปเดตหน้าสรุป */
+function buildSummary() {
+  const sh = buildSummary_();
+  SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sh);
+  SpreadsheetApp.getActive().toast('อัปเดตหน้าสรุปแล้ว', 'เช็คห้อง', 5);
 }
 
 /* สรุปประจำวันทุกหมวด — ผูกกับ Trigger แบบ Time-driven ถ้าอยากให้ส่งทุกเย็น */
