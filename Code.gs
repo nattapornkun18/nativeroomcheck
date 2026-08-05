@@ -214,7 +214,8 @@ function headOfSheet_(sh, t) {
 
   if (!head.length) {
     sh.getRange(1, 1, 1, want.length).setValues([want]);
-    sh.setFrozenRows(1);
+    styleSheet_(t, sh, want);      /* แท็บใหม่ได้หน้าตาเหมือนแท็บอื่นตั้งแต่แรก
+                                      ไม่ต้องรอให้ไปกดเมนูตั้งค่าชีต */
     return want.slice();
   }
   const missing = want.filter(function (h) { return head.indexOf(h) === -1; });
@@ -623,40 +624,67 @@ function warnValues_(t) {
   return (t.warn || []).concat(ACCESS_CHOICES.slice(1));
 }
 
+/** จัดหน้าตาแท็บหนึ่งให้เหมือนกันหมด — หัวเขียว เส้นตาราง แถบสลับสี ดรอปดาวน์ สีข้อบกพร่อง
+ *  แยกออกมาเพราะเรียกสองที่: ตอนสร้างแท็บใหม่ กับตอนกดเมนูตั้งค่าชีต  */
+function styleSheet_(t, sh, head) {
+  /* แท็บใหม่ของ Google มี 1000 แถว — ขยายให้พอก่อน ไม่งั้น getRange จะหลุดขอบชีต */
+  const WANT_ROWS = 2000;
+  if (sh.getMaxRows() < WANT_ROWS + 1) {
+    sh.insertRowsAfter(sh.getMaxRows(), WANT_ROWS + 1 - sh.getMaxRows());
+  }
+  if (sh.getMaxColumns() > head.length) {
+    sh.deleteColumns(head.length + 1, sh.getMaxColumns() - head.length);
+  }
+  const rows = sh.getMaxRows() - 1;
+
+  /* ---- หัวตาราง ---- */
+  sh.getRange(1, 1, 1, head.length)
+    .setBackground(LOOK.headBg).setFontColor(LOOK.headFg)
+    .setFontWeight('bold').setFontSize(10)
+    .setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(true);
+  sh.setRowHeight(1, 34);
+  sh.setFrozenRows(1);
+  sh.setFrozenColumns(Math.min(3, head.length));
+  if (!sh.getFilter()) sh.getRange(1, 1, sh.getMaxRows(), head.length).createFilter();
+
+  /* ---- แถบสลับสีอ่อน ๆ แบบเดียวกับแท็บซิลิโคน ---- */
+  sh.getBandings().forEach(function (b) { b.remove(); });
+  sh.getRange(1, 1, sh.getMaxRows(), head.length)
+    .applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREEN, true, false);
+
+  /* ---- ความกว้าง / การจัดวาง / เส้นตาราง ---- */
+  head.forEach(function (h, i) {
+    sh.setColumnWidth(i + 1, LOOK.width[h] || 132);
+    const col = sh.getRange(2, i + 1, rows, 1);
+    col.setFontSize(10).setVerticalAlignment('middle').setWrap(false);
+    col.setHorizontalAlignment(
+      (LOOK.center.indexOf(h) !== -1 || h === t.grade) ? 'center' : 'left');
+  });
+  const iDate = head.indexOf('วันที่ตรวจ') + 1;
+  if (iDate > 0) sh.getRange(2, iDate, rows, 1).setNumberFormat('dd/MM/yyyy')
+    .setHorizontalAlignment('center');
+  const iRoom = head.indexOf('ห้อง') + 1;
+  if (iRoom > 0) sh.getRange(2, iRoom, rows, 1).setFontWeight('bold');
+  sh.getRange(1, 1, sh.getMaxRows(), head.length)
+    .setBorder(true, true, true, true, true, true, LOOK.grid, SpreadsheetApp.BorderStyle.SOLID);
+
+  styleRules_(t, sh, head, rows);
+}
+
 /* ตั้งค่าชีตให้กรอกมือได้โดยไม่พิมพ์ผิด + จัดหน้าตาให้เหมือนกันทุกแท็บ
    รันซ้ำได้ไม่มีผลเสีย */
 function setupSheet() {
-  const rows = 2000;
-
   eachTopic_(function (t, sh, head) {
     migrateLabels_(t, sh, head);
+    styleSheet_(t, sh, head);
+    restyleAll_(sh, head);   /* แถวที่บันทึกไปก่อนหน้านี้จะได้หน้าตาเหมือนกันทั้งตาราง */
+  });
+  SpreadsheetApp.getActive().toast('ตั้งค่าชีตทุกหมวดเรียบร้อย', 'เช็คห้อง', 5);
+}
 
-    /* ---- หัวตาราง ---- */
-    const headRange = sh.getRange(1, 1, 1, head.length);
-    headRange.setBackground(LOOK.headBg).setFontColor(LOOK.headFg)
-      .setFontWeight('bold').setFontSize(10)
-      .setVerticalAlignment('middle').setWrap(true);
-    sh.setRowHeight(1, 34);
-    sh.setFrozenRows(1);
-    sh.setFrozenColumns(Math.min(3, head.length));
-    if (!sh.getFilter()) sh.getRange(1, 1, Math.max(2, sh.getLastRow()), head.length).createFilter();
-
-    /* ---- ความกว้าง / การจัดวาง ---- */
-    head.forEach(function (h, i) {
-      sh.setColumnWidth(i + 1, LOOK.width[h] || 132);
-      const col = sh.getRange(2, i + 1, rows, 1);
-      col.setFontSize(10).setVerticalAlignment('middle');
-      if (LOOK.center.indexOf(h) !== -1 || h === t.grade) col.setHorizontalAlignment('center');
-      else col.setHorizontalAlignment('left');
-    });
-    const iDate = head.indexOf('วันที่ตรวจ') + 1;
-    if (iDate > 0) sh.getRange(2, iDate, rows, 1).setNumberFormat('dd/MM/yyyy')
-      .setHorizontalAlignment('center');
-    const iRoom = head.indexOf('ห้อง') + 1;
-    if (iRoom > 0) sh.getRange(2, iRoom, rows, 1).setFontWeight('bold');
-    sh.getRange(1, 1, rows + 1, head.length)
-      .setBorder(true, true, true, true, true, true, LOOK.grid, SpreadsheetApp.BorderStyle.SOLID);
-
+/** ดรอปดาวน์ + กฎสีของช่องที่เป็นข้อบกพร่อง */
+function styleRules_(t, sh, head, rows) {
+  {
     /* ---- ดรอปดาวน์ ---- */
     const all = {};
     Object.keys(t.choices || {}).forEach(function (c) { all[c] = t.choices[c]; });
@@ -726,11 +754,7 @@ function setupSheet() {
     /* ทับกฎเดิมของแท็บนี้ทั้งหมด — ทุกแท็บสคริปต์เป็นคนดูแลอยู่แล้ว
        จัดใหม่ทุกครั้งที่รัน จะได้ไม่ซ้อนกันและได้หน้าตาเหมือนกันหมด */
     sh.setConditionalFormatRules(rules);
-
-    restyleAll_(sh, head);   /* แถวที่บันทึกไปก่อนหน้านี้จะได้หน้าตาเหมือนกันทั้งตาราง */
-  });
-
-  SpreadsheetApp.getActive().toast('ตั้งค่าชีตทุกหมวดเรียบร้อย', 'เช็คห้อง', 5);
+  }
 }
 
 /* แปลงค่าคำเก่าให้เป็นคำใหม่ ทุกหมวด ทุกคอลัมน์ที่มีตัวเลือก */
