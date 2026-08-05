@@ -129,6 +129,35 @@ const TOPICS = {
     good: { 'บานประตู': ['มือจับซ้าย', 'มือจับขวา'] },   /* เป็นข้อมูลห้อง ไม่ใช่ข้อบกพร่อง */
     warn: ['มีแสงเล็ดลอด'],
     num: { 'จำนวนจุดที่มีแสง': { ok: 0, warn: 2 } }
+  },
+
+  molding: {
+    name: 'คิ้วบัวใต้ซิงค์', en: 'Sink molding', icon: '🪵',
+    sheet: 'บันทึกคิ้วบัวใต้ซิงค์',
+    grade: 'ผลตรวจ',
+    auto: [],
+    /* ท้ายเลขห้องที่หมวดนี้ไม่ต้องมีเรคคอร์ดเลย — ห้องมุมไม่มีบัวใต้ซิงค์
+       ห้อง 02/11 ยังต้องมีเรคคอร์ด แต่ช่องบัวจะเป็น "-" เพราะตามแบบไม่มีบัว */
+    skip: ['01', '12'],
+    cols: ['บัวซ้าย', 'บัวกลาง', 'บัวขวา',
+           'ช่องรูซ้าย', 'ช่องรูกลาง', 'ช่องรูขวา',
+           ACCESS, 'ผลตรวจ'],
+    choices: {
+      'บัวซ้าย':    ['ติดเรียบร้อย', 'ขอบบัวไม่สุดขาไม้', 'ไม่ได้ติดบัว'],
+      'บัวกลาง':   ['ติดเรียบร้อย', 'ขอบบัวไม่สุดขาไม้', 'ไม่ได้ติดบัว'],
+      'บัวขวา':     ['ติดเรียบร้อย', 'ขอบบัวไม่สุดขาไม้', 'ไม่ได้ติดบัว'],
+      'ช่องรูซ้าย':  ['ไม่มีช่องรู', 'มีช่องรู'],
+      'ช่องรูกลาง': ['ไม่มีช่องรู', 'มีช่องรู'],
+      'ช่องรูขวา':   ['ไม่มีช่องรู', 'มีช่องรู']
+    },
+    /* แต่ละห้องติดบัวไม่เหมือนกันตามหน้างาน "ไม่ได้ติด" จึงไม่ใช่ข้อบกพร่อง
+       เอา 'ไม่ได้ติดบัว' ออกจากบรรทัดนี้ ถ้าอยากให้ห้องที่ไม่ได้ติดขึ้นเป็นของที่ต้องแก้ */
+    good: {
+      'บัวซ้าย':  ['ติดเรียบร้อย', 'ไม่ได้ติดบัว'],
+      'บัวกลาง': ['ติดเรียบร้อย', 'ไม่ได้ติดบัว'],
+      'บัวขวา':   ['ติดเรียบร้อย', 'ไม่ได้ติดบัว']
+    },
+    warn: ['มีช่องรู']
   }
 
 };
@@ -866,6 +895,12 @@ function whyOf_(t, row) {
 
 const TOTAL_ROOMS = (FLOOR_TO - FLOOR_FROM + 1) * ROOMS_PER_FLOOR;
 
+/* บางหมวดไม่ต้องตรวจบางห้องตามแบบ (skip = ท้ายเลขห้องที่ข้าม)
+   ห้องพวกนั้นไม่ต้องมีเรคคอร์ด และไม่ถูกนับเป็นห้องที่ยังตรวจไม่ครบ */
+function skipOf_(t)     { return t.skip || []; }
+function perFloorOf_(t) { return ROOMS_PER_FLOOR - skipOf_(t).length; }
+function totalOf_(t)    { return (FLOOR_TO - FLOOR_FROM + 1) * perFloorOf_(t); }
+
 /** สร้าง/อัปเดตแท็บสรุปรวม — เรียกจากเมนู และเรียกเองทุกครั้งที่บันทึก */
 function buildSummary_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -889,24 +924,25 @@ function buildSummary_() {
                  'ผ่าน', 'เกือบผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ', 'ต้องกลับไปแก้'];
   rows.push(headA);
   const bandA = rows.length;                       /* แถวหัวของบล็อกแรก */
-  const totals = { done: 0, fix: 0 };
+  const totals = { done: 0, fix: 0, want: 0 };
   ids.forEach(function (id) {
     const t = TOPICS[id], m = latest[id], rooms = Object.keys(m);
+    const want = totalOf_(t);
     const c = {}; GRADES.forEach(function (g) { c[g] = 0; });
     rooms.forEach(function (rn) { const g = m[rn][t.grade]; if (c[g] !== undefined) c[g]++; });
     const fix = c['ไม่ผ่าน'] + c['เกือบผ่าน'];
-    totals.done += rooms.length; totals.fix += fix;
-    rows.push([t.icon + ' ' + t.name, rooms.length, TOTAL_ROOMS - rooms.length,
-               rooms.length / TOTAL_ROOMS,
+    totals.done += rooms.length; totals.fix += fix; totals.want += want;
+    rows.push([t.icon + ' ' + t.name, rooms.length, want - rooms.length,
+               rooms.length / want,
                c['ผ่าน'], c['เกือบผ่าน'], c['ไม่ผ่าน'], c['ไม่ได้ตรวจ'], fix]);
   });
-  rows.push(['รวมทุกหมวด', totals.done, ids.length * TOTAL_ROOMS - totals.done,
-             totals.done / (ids.length * TOTAL_ROOMS), '', '', '', '', totals.fix]);
+  rows.push(['รวมทุกหมวด', totals.done, totals.want - totals.done,
+             totals.done / totals.want, '', '', '', '', totals.fix]);
   const endA = rows.length;
 
   /* ---- ความคืบหน้ารายชั้น ---- */
   rows.push(['', '', '', '', '', '', '', '', '']);
-  rows.push(['ความคืบหน้ารายชั้น (ตรวจแล้วกี่ห้องจาก ' + ROOMS_PER_FLOOR + ')',
+  rows.push(['ความคืบหน้ารายชั้น (ตรวจแล้ว / ที่ต้องตรวจในชั้นนั้น)',
              '', '', '', '', '', '', '', '']);
   const headB = ['ชั้น'].concat(ids.map(function (id) { return TOPICS[id].icon + ' ' + TOPICS[id].name; }));
   while (headB.length < 9) headB.push('');
@@ -917,7 +953,7 @@ function buildSummary_() {
     ids.forEach(function (id) {
       let n = 0;
       for (let i = 1; i <= ROOMS_PER_FLOOR; i++) if (latest[id][String(f * 100 + i)]) n++;
-      line.push(n + '/' + ROOMS_PER_FLOOR);
+      line.push(n + '/' + perFloorOf_(TOPICS[id]));
     });
     while (line.length < 9) line.push('');
     rows.push(line);
