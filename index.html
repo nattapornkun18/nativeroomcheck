@@ -76,6 +76,9 @@
     text-transform:uppercase;color:var(--brass);margin-left:7px}
   .tcard .s{font-size:12px;color:var(--mute);display:block}
   .tcard .go{color:var(--mute);font-size:20px;flex:none}
+  .allbtn{width:100%;margin-top:6px;padding:13px;border-radius:var(--r);border:1.5px solid var(--ink);
+    background:var(--card);color:var(--ink);font-size:14px;font-weight:700}
+  .allbtn:active{background:#F2F5F9}
   .bar{display:flex;height:5px;margin-top:7px;border-radius:3px;overflow:hidden;background:var(--paper)}
   .bar i{display:block}
 
@@ -320,8 +323,24 @@
     <div class="sechead">หมวดที่ตรวจ</div>
     <div id="topicCards"></div>
 
+    <button class="allbtn" id="btnAll">📊 ดูภาพรวมทั้งหมด — ทุกหมวด ทุกชั้น</button>
+
     <div class="sechead">ภาพรวมวันนี้</div>
     <div class="card"><div id="todayBox"></div></div>
+  </div>
+
+  <!-- ============ ภาพรวมทุกหมวด ============ -->
+  <div class="pane hide" id="viewAll">
+    <div class="score" id="allScore"></div>
+    <div class="sechead">ความคืบหน้าแต่ละหมวด</div>
+    <div id="allTopics"></div>
+    <div class="sechead">ห้องที่ต้องกลับไปแก้ <span id="allFixCount"></span></div>
+    <div class="card"><table><tbody id="allFix"></tbody></table></div>
+    <div class="sechead">ความคืบหน้ารายชั้น</div>
+    <div class="card scroll"><table>
+      <thead><tr id="allFloorHead"></tr></thead>
+      <tbody id="allFloorBody"></tbody>
+    </table></div>
   </div>
 
   <!-- ============ หน้าเลือกห้อง ============ -->
@@ -459,7 +478,7 @@
 /* =====================================================================
    ตั้งค่า
    ===================================================================== */
-const API_URL = "https://script.google.com/macros/s/AKfycbw0yuXUkJZll-T7eeAAbmOhXpmY4A0OlKz_eWiI4tqm840u05ENbO-z4FTi9XSERpo9/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxDnumIqna4nrsfmvAVpT1UBGMAUROr5OQ7cIcOxsSjgALgvQif6xJlaY8wWSRRC4If/exec";
 const API_TOKEN = "";              /* ต้องตรงกับ TOKEN ใน Code.gs — เว้นว่าง = ไม่ล็อก */
 const PIN_LEN   = 3;               /* ความยาวรหัส ให้ตรงกับ TOKEN ใน Code.gs */
 
@@ -940,7 +959,8 @@ const hasChoices = t => fieldsOf(t).some(f=> !f.access && !f.type);
 /* =====================================================================
    วาดหน้าจอ
    ===================================================================== */
-const VIEWS = {home:"viewHome", rooms:"viewRooms", sum:"viewSum", log:"viewLog", room:"viewRoom"};
+const VIEWS = {home:"viewHome", all:"viewAll", rooms:"viewRooms", sum:"viewSum",
+               log:"viewLog", room:"viewRoom"};
 function go(view){
   S.view = view;
   Object.keys(VIEWS).forEach(v=> $(VIEWS[v]).classList.toggle("hide", v !== view));
@@ -954,16 +974,20 @@ function go(view){
   render();
 }
 $("back").onclick = ()=> go(S.view === "room" ? S.tab : "home");
+document.addEventListener("keydown", e=>{ if(e.key === "Escape" && S.view === "all") go("home"); });
 document.querySelectorAll(".tabbar button").forEach(b=> b.onclick = ()=> go(b.dataset.t));
 
 function render(){
   const t = TOPIC[S.topic];
-  $("ttl").firstChild.nodeValue = S.view === "home" ? "เช็คห้อง" : t.icon+" "+t.name;
+  $("ttl").firstChild.nodeValue =
+      S.view === "home" ? "เช็คห้อง" : S.view === "all" ? "ภาพรวมทั้งหมด" : t.icon+" "+t.name;
   $("sub").textContent =
       S.view === "home" ? "เลือกหมวดที่จะตรวจ"
+    : S.view === "all"  ? TOPICS.length+" หมวด · "+TOTAL_ROOMS+" ห้อง · "+thDate(S.date)
     : S.view === "room" ? "ห้อง "+S.room+" · "+thDate(S.date)
     : t.en + " · ทั้งหมด " + TOTAL_ROOMS + " ห้อง";
 
+  if(S.view === "all")  renderAll();
   if(S.view === "home") renderHome();
   if(S.view === "rooms") renderRooms();
   if(S.view === "sum")  renderSum();
@@ -1008,6 +1032,74 @@ function renderHome(){
   $("todayBox").innerHTML = '<table><thead><tr><th>หมวด</th><th>บันทึก</th><th>ผ่าน</th>'+
     '<th>เกือบ</th><th>ไม่ผ่าน</th><th>ไม่ได้ตรวจ</th></tr></thead><tbody>'+rows.join("")+'</tbody></table>';
 }
+
+/* ---------- ภาพรวมทุกหมวด ---------- */
+function renderAll(){
+  const allRooms = FLOORS.reduce((a,f)=> a.concat(roomsOfFloor(f)), []);
+  const gradeOf = (t, rn) => { const r = (S.latest[t.id]||{})[rn]; return r ? r[t.grade] : ""; };
+
+  let full = 0, none = 0;
+  const fixRooms = [];
+  allRooms.forEach(rn=>{
+    const g = TOPICS.map(t=> gradeOf(t, rn));
+    const done = g.filter(x=>x).length;
+    if(done === TOPICS.length) full++;
+    if(done === 0) none++;
+    const bad = TOPICS.filter((t,i)=> g[i]==="ไม่ผ่าน" || g[i]==="เกือบผ่าน");
+    if(bad.length) fixRooms.push({room:rn, topics:bad});
+  });
+
+  $("allScore").innerHTML =
+    '<div class="sc" data-g="ผ่าน"><div class="n">'+full+'</div><div class="t">ตรวจครบทุกหมวด</div></div>'+
+    '<div class="sc"><div class="n">'+(TOTAL_ROOMS-full-none)+'</div><div class="t">ตรวจบางหมวด</div></div>'+
+    '<div class="sc" data-g="ไม่ได้ตรวจ"><div class="n">'+none+'</div><div class="t">ยังไม่แตะเลย</div></div>'+
+    '<div class="sc" data-g="ไม่ผ่าน"><div class="n">'+fixRooms.length+'</div><div class="t">ต้องกลับไปแก้</div></div>';
+
+  $("allTopics").innerHTML = TOPICS.map(t=>{
+    const m = S.latest[t.id] || {}, rooms = Object.keys(m);
+    const c = {}; GRADES.forEach(g=> c[g]=0);
+    rooms.forEach(rn=>{ const g = m[rn][t.grade]; if(c[g]!==undefined) c[g]++; });
+    const seg = GRADES.map(g=> c[g] ? '<i style="flex:'+c[g]+';background:'+GC[g]+'"></i>' : "").join("")
+      + (rooms.length < TOTAL_ROOMS
+         ? '<i style="flex:'+(TOTAL_ROOMS-rooms.length)+';background:#DCE3EB"></i>' : "");
+    return '<button class="tcard" data-t="'+t.id+'"><span class="ico">'+t.icon+'</span>'+
+      '<span class="b"><span class="n">'+t.name+
+      '<em>'+Math.round(rooms.length/TOTAL_ROOMS*100)+'%</em></span>'+
+      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+TOTAL_ROOMS+' · เหลือ '+(TOTAL_ROOMS-rooms.length)+
+      (c["ไม่ผ่าน"] ? ' · ไม่ผ่าน '+c["ไม่ผ่าน"] : '')+
+      (c["เกือบผ่าน"] ? ' · เกือบผ่าน '+c["เกือบผ่าน"] : '')+'</span>'+
+      '<span class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</span></span>'+
+      '<span class="go">›</span></button>';
+  }).join("");
+  $("allTopics").querySelectorAll(".tcard").forEach(b=>
+    b.onclick = ()=>{ S.topic = b.dataset.t; go("rooms"); });
+
+  $("allFixCount").textContent = fixRooms.length ? "("+fixRooms.length+" ห้อง)" : "";
+  $("allFix").innerHTML = fixRooms.length ? fixRooms.map(x=>
+    '<tr data-r="'+x.room+'"><td class="k">'+x.room+'</td><td>'+
+    x.topics.map(t=>{
+      const g = gradeOf(t, x.room);
+      return '<span class="badge" data-g="'+g+'">'+t.icon+' '+t.name+'</span>';
+    }).join(" ")+'</td></tr>').join("")
+    : '<tr><td class="empty">ยังไม่มีห้องที่ต้องแก้</td></tr>';
+  $("allFix").querySelectorAll("tr[data-r]").forEach(tr=>
+    tr.onclick = ()=>{ S.topic = TOPICS[0].id; openRoom(tr.dataset.r); });
+
+  $("allFloorHead").innerHTML = '<th>ชั้น</th>' +
+    TOPICS.map(t=>'<th>'+t.icon+' '+t.name+'</th>').join("") + '<th>ต้องแก้</th>';
+  $("allFloorBody").innerHTML = FLOORS.map(f=>{
+    const rs = roomsOfFloor(f);
+    const cells = TOPICS.map(t=>{
+      const n = rs.filter(rn=> (S.latest[t.id]||{})[rn]).length;
+      return '<td class="n'+(n===ROOMS_PER_FLOOR ? " ok" : n ? "" : " na")+'">'+
+        n+'/'+ROOMS_PER_FLOOR+'</td>';
+    }).join("");
+    const bad = fixRooms.filter(x=> floorOf(x.room) === String(f)).length;
+    return '<tr><td class="k">'+f+'</td>'+cells+
+      '<td class="n'+(bad ? " no" : " na")+'">'+bad+'</td></tr>';
+  }).join("");
+}
+$("btnAll").onclick = ()=> go("all");
 
 function bindWho(inputId, dateId, noteId){
   $(inputId).oninput = e=>{ S.inspector = e.target.value; saveMe();
