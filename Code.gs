@@ -14,9 +14,14 @@
 
 const TZ = 'Asia/Bangkok';
 
-/** รหัสผ่าน — เว้นว่าง = ใครเปิดลิงก์ก็ใช้ได้
- *  ถ้าใส่ไว้ หน้าเว็บจะขึ้นหน้าล็อกให้กรอกก่อนถึงจะอ่าน/เขียนชีตได้ */
+/** รหัสผ่านสำหรับ "บันทึกข้อมูล" — เว้นว่าง = ใครเปิดลิงก์ก็บันทึกได้
+ *  ถ้าใส่ไว้ หน้าเว็บจะขึ้นหน้าล็อกให้กรอกรหัสก่อนถึงจะบันทึกได้ */
 var TOKEN = '';
+
+/** true  = ใครก็ "ดู" ข้อมูลได้โดยไม่ต้องใส่รหัส (บันทึกยังต้องใช้ TOKEN เหมือนเดิม)
+ *          ใช้คู่กับลิงก์หน้าเว็บที่ต่อท้ายว่า ?view สำหรับคนที่ให้ดูอย่างเดียว
+ *  false = ต้องใส่รหัสทั้งดูและบันทึก */
+var READ_OPEN = true;
 
 /* คอลัมน์ที่ทุกหมวดมีเหมือนกัน — ซ้ายสุดกับขวาสุดของตาราง */
 const HEAD_LEFT  = ['วันที่ตรวจ', 'ชั้น', 'ห้อง'];
@@ -348,9 +353,14 @@ function doGet(e) {
     const action = p.action || 'list';
 
     if (action === 'ping') {
-      return json_({ ok: true, locked: !!TOKEN, topics: Object.keys(TOPICS) });
+      return json_({ ok: true, locked: !!TOKEN, readOpen: !!READ_OPEN,
+                     topics: Object.keys(TOPICS) });
     }
-    if (!authed_(p)) return json_({ ok: false, error: 'unauthorized' });
+    /* อ่านข้อมูลเปิดให้ทุกคนได้ถ้า READ_OPEN — การเขียนอยู่ที่ doPost ยังต้องมีรหัสเสมอ */
+    const readOnly = (action === 'list' || action === 'config');
+    if (!authed_(p) && !(READ_OPEN && readOnly)) {
+      return json_({ ok: false, error: 'unauthorized' });
+    }
     if (action === 'verify') return json_({ ok: true });
 
     if (action === 'config') {
@@ -652,6 +662,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('เช็คห้อง')
     .addItem('อัปเดตหน้าสรุป', 'buildSummary')
+    .addItem('ล้างข้อมูลทั้งห้อง (ทุกหมวดในครั้งเดียว)', 'clearRoom')
     .addItem('ตั้งค่าชีตทุกหมวด (จัดหน้าตา + ดรอปดาวน์ + สีเกรด)', 'setupSheet')
     .addItem('แปลงคำเก่าให้ตรงกับหน้าเว็บ', 'migrateLabels')
     .addItem('แปลงวันที่เป็นแบบไทย วัน/เดือน/ปี', 'migrateDates')
@@ -820,6 +831,63 @@ function styleRules_(t, sh, head, rows) {
        จัดใหม่ทุกครั้งที่รัน จะได้ไม่ซ้อนกันและได้หน้าตาเหมือนกันหมด */
     sh.setConditionalFormatRules(rules);
   }
+}
+
+/* =============== ล้างข้อมูลทั้งห้อง ===============
+   หน้าเว็บมีแต่ "เพิ่ม" ไม่เคยลบอะไรในชีต การลบจึงทำจากในชีตอย่างเดียว
+   เมนูนี้ลบให้ครบทุกหมวดในครั้งเดียว จะได้ไม่ต้องไล่ลบทีละแท็บ           */
+
+/** เลขแถวของห้องที่ระบุในแท็บนี้ (ห้องหนึ่งมีได้หลายแถว ถ้าเคยบันทึกทับ) */
+function roomRows_(sh, head, rooms) {
+  const last = sh.getLastRow();
+  const iRoom = head.indexOf('ห้อง');
+  if (last < 2 || iRoom < 0) return [];
+  const values = sh.getRange(2, iRoom + 1, last - 1, 1).getValues();
+  const out = [];
+  values.forEach(function (r, i) {
+    if (rooms.indexOf(String(r[0]).trim()) !== -1) out.push(i + 2);
+  });
+  return out;
+}
+
+/** เมนู: ล้างข้อมูลของห้องที่ระบุ ทุกหมวด — ใช้ตอนอยากเริ่มตรวจห้องนั้นใหม่หมด */
+function clearRoom() {
+  const ui = SpreadsheetApp.getUi();
+  const ask = ui.prompt('ล้างข้อมูลทั้งห้อง',
+    'ใส่เลขห้องที่จะลบ ระบบจะลบให้ครบทุกหมวดในครั้งเดียว\n' +
+    'ใส่หลายห้องได้ คั่นด้วยเว้นวรรคหรือจุลภาค เช่น   304 305, 411',
+    ui.ButtonSet.OK_CANCEL);
+  if (ask.getSelectedButton() !== ui.Button.OK) return;
+
+  const rooms = String(ask.getResponseText() || '').split(/[\s,]+/)
+    .map(function (s) { return s.trim(); })
+    .filter(function (s) { return s; });
+  if (!rooms.length) { ui.alert('ยังไม่ได้ใส่เลขห้อง'); return; }
+
+  const detail = [];
+  let total = 0;
+  eachTopic_(function (t, sh, head) {
+    const n = roomRows_(sh, head, rooms).length;
+    if (n) { detail.push('• ' + t.icon + ' ' + t.name + ' — ' + n + ' แถว'); total += n; }
+  });
+  if (!total) { ui.alert('ไม่พบข้อมูลของห้อง ' + rooms.join(', ') + ' ในหมวดไหนเลย'); return; }
+
+  const yes = ui.alert('ยืนยันการลบ',
+    'ห้อง ' + rooms.join(', ') + ' จะถูกลบทั้งหมด ' + total + ' แถว\n\n' +
+    detail.join('\n') + '\n\nลบแล้วห้องนี้จะกลับไปเป็น "ยังไม่ตรวจ" ทุกหมวด',
+    ui.ButtonSet.YES_NO);
+  if (yes !== ui.Button.YES) return;
+
+  const n = eachTopic_(function (t, sh, head) {
+    const rows = roomRows_(sh, head, rooms);
+    for (let i = rows.length - 1; i >= 0; i--) sh.deleteRow(rows[i]);   /* ลบจากล่างขึ้นบน เลขแถวจะได้ไม่เลื่อน */
+    return rows.length;
+  }).reduce(function (a, b) { return a + b; }, 0);
+
+  buildSummary_();
+  SpreadsheetApp.getActive().toast(
+    'ลบแล้ว ' + n + ' แถว · อัปเดตหน้าสรุปให้แล้ว — หน้าเว็บจะตามภายในไม่เกินครึ่งนาที',
+    'เช็คห้อง', 8);
 }
 
 /* แปลงค่าคำเก่าให้เป็นคำใหม่ ทุกหมวด ทุกคอลัมน์ที่มีตัวเลือก */

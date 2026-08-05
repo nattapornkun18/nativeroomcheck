@@ -130,11 +130,10 @@
     font-size:17px;color:var(--ink-2);font-family:var(--mono)}
   .nav button:disabled{opacity:.3}
 
-  /* ---------- แท็บหมวดในห้อง ---------- */
-  .ttabs{display:flex;gap:6px;margin:10px 0 12px;overflow-x:auto;padding-bottom:2px;
-    scrollbar-width:none}
-  .ttabs::-webkit-scrollbar{display:none}
-  .ttab{flex:0 0 auto;min-width:124px;max-width:60%;position:relative;background:var(--card);
+  /* ---------- แท็บหมวดในห้อง ----------
+     ขึ้นบรรทัดใหม่เมื่อไม่พอ — เห็นครบทุกหมวดในจอเดียว ไม่ต้องเลื่อนหา */
+  .ttabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
+  .ttab{flex:1 1 30%;min-width:96px;position:relative;background:var(--card);
     border:1px solid var(--line);border-radius:9px;padding:8px 10px;text-align:left;color:var(--ink)}
   .ttab[aria-selected="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--brass-soft)}
   .ttab .n{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -300,6 +299,16 @@
 
   .warnbox{background:var(--warn-soft);border-left:4px solid var(--warn);padding:11px 13px;font-size:12.5px;
     color:#7A5312;border-radius:8px;margin-bottom:12px}
+
+  /* ---------- โหมดดูอย่างเดียว (?view) ---------- */
+  body.ro .foot,body.ro .allok,body.ro .who,body.ro .ttab .dirty{display:none !important}
+  body.ro .opt,body.ro .numbtn,body.ro .numin,body.ro .door,body.ro .dclear,
+  body.ro textarea,body.ro #syncChip{pointer-events:none}
+  body.ro textarea,body.ro .numin{background:#F4F7FA;color:var(--ink-2)}
+  body.ro .opt[aria-pressed="false"]{opacity:.5}
+  body.ro{padding-bottom:24px}
+  .robar{background:var(--ink-2);color:#CFD7E0;font-size:11.5px;font-weight:600;
+    padding:6px 14px;letter-spacing:.02em}
   button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -314,6 +323,8 @@
       <h1 id="ttl">เช็คห้อง<small id="sub">เลือกหมวดที่จะตรวจ</small></h1>
       <button class="sync" id="syncChip"><i></i><span id="syncTxt">เชื่อมชีต</span></button>
     </div>
+
+    <div class="robar hide" id="roBar">👁 โหมดดูอย่างเดียว — ดูผลตรวจได้ แต่แก้ไขหรือบันทึกไม่ได้</div>
 
     <div class="tabbar hide" id="tabbar">
       <button data-t="rooms" aria-selected="true">เลือกห้อง</button>
@@ -503,6 +514,11 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxDnumIqna4nrsfmvAVpT1UBGMAUROr5OQ7cIcOxsSjgALgvQif6xJlaY8wWSRRC4If/exec";
 const API_TOKEN = "";              /* ต้องตรงกับ TOKEN ใน Code.gs — เว้นว่าง = ไม่ล็อก */
 const PIN_LEN   = 3;               /* ความยาวรหัส ให้ตรงกับ TOKEN ใน Code.gs */
+
+/* เปิดลิงก์โดยต่อท้ายว่า ?view = โหมดดูอย่างเดียว
+   ดูข้อมูล/หน้าสรุปได้ครบ แต่กรอกไม่ได้ บันทึกไม่ได้ และไม่ต้องใส่รหัส
+   ใช้ส่งให้คนที่อยากให้ดูอย่างเดียว เช่น หัวหน้างานหรือผู้รับเหมา */
+const VIEW_ONLY = /[?&](view|ro)(=|&|$)/.test(location.search);
 
 const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
 const TOP_ONLY = ["01","12"];      /* ท้ายเลขห้องที่ซิลิโคนยิงเฉพาะขอบบนตามแบบ */
@@ -882,7 +898,7 @@ function loadCfg(){
   if(q.get("api")){                    /* ...index.html?api=<url>&token=<token> ตั้งเครื่องใหม่เร็ว ๆ */
     cfg = {url:q.get("api").trim(), token:(q.get("token")||"").trim()};
     saveCfg();
-    history.replaceState(null,"",location.pathname+location.hash);
+    history.replaceState(null,"",location.pathname+(VIEW_ONLY?"?view":"")+location.hash);
   }
 }
 const saveCfg = ()=> LS.set(K_CFG, JSON.stringify(cfg));
@@ -1081,7 +1097,7 @@ function go(view){
   S.view = view;
   Object.keys(VIEWS).forEach(v=> $(VIEWS[v]).classList.toggle("hide", v !== view));
   $("tabbar").classList.toggle("hide", !(view==="rooms"||view==="sum"||view==="log"));
-  $("foot").classList.toggle("hide", view !== "room");
+  $("foot").classList.toggle("hide", view !== "room" || VIEW_ONLY);
   $("back").classList.toggle("hide", view === "home");
   if(view==="rooms"||view==="sum"||view==="log") S.tab = view;
   document.querySelectorAll(".tabbar button").forEach(b=>
@@ -1097,11 +1113,11 @@ function render(){
   const t = TOPIC[S.topic];
   $("ttl").firstChild.nodeValue =
       S.view === "home" ? "เช็คห้อง" : S.view === "all" ? "ภาพรวมทั้งหมด" : t.icon+" "+t.name;
-  $("sub").textContent =
+  $("sub").textContent = (VIEW_ONLY ? "👁 ดูอย่างเดียว · " : "") + (
       S.view === "home" ? "เลือกหมวดที่จะตรวจ"
     : S.view === "all"  ? TOPICS.length+" หมวด · "+TOTAL_ROOMS+" ห้อง · "+thDate(S.date)
     : S.view === "room" ? "ห้อง "+S.room+" · "+thDate(S.date)
-    : t.en + " · ทั้งหมด " + totalOf(t) + " ห้อง";
+    : t.en + " · ทั้งหมด " + totalOf(t) + " ห้อง");
 
   if(S.view === "all")  renderAll();
   if(S.view === "home") renderHome();
@@ -1290,7 +1306,7 @@ function renderRoom(){
 
   /* ฟอร์มของหมวดที่เลือก */
   const off = d.vals[ACCESS] && d.vals[ACCESS] !== "เข้าตรวจได้";
-  $("btnAllOk").classList.toggle("hide", !!off || !hasChoices(t));
+  $("btnAllOk").classList.toggle("hide", !!off || !hasChoices(t) || VIEW_ONLY);
   $("formBox").innerHTML = t.sections.map(sec=>{
     const isAccess = sec.fields.length===1 && sec.fields[0].access;
     if(off && !isAccess) return "";
@@ -1572,7 +1588,7 @@ function openCfg(){
   modal.classList.remove("hide");
 }
 const closeCfg = ()=> modal.classList.add("hide");
-$("syncChip").onclick = openCfg;
+$("syncChip").onclick = ()=>{ if(!VIEW_ONLY) openCfg(); };
 $("cfgClose").onclick = closeCfg;
 modal.onclick = e=>{ if(e.target === modal) closeCfg(); };
 $("cfgSave").onclick = async ()=>{
@@ -1654,6 +1670,9 @@ function passLock(){
 }
 async function gate(){
   if(!cfg.url){ unlocked = true; setSync("off"); $("setupWarn").classList.remove("hide"); return; }
+  /* โหมดดูอย่างเดียวไม่ต้องใส่รหัส — ฝั่ง Apps Script เปิดให้ "อ่าน" ได้อยู่แล้ว
+     ส่วนการ "เขียน" ยังต้องใช้รหัสเหมือนเดิม หน้านี้จึงบันทึกอะไรไม่ได้ */
+  if(VIEW_ONLY) return passLock();
   try{
     const j = await apiGet("ping");
     if(!j.locked) return passLock();
@@ -1673,6 +1692,10 @@ async function gate(){
    เริ่มต้น
    ===================================================================== */
 (function init(){
+  if(VIEW_ONLY){
+    document.body.classList.add("ro");
+    $("roBar").classList.remove("hide");
+  }
   loadCfg();
   try{ outbox = JSON.parse(LS.get(K_OUT)||"[]"); }catch(e){ outbox = []; }
   try{
