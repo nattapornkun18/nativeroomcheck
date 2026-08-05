@@ -27,8 +27,9 @@ const ACCESS_CHOICES = ['เข้าตรวจได้', 'ไม่มีก
 
 /* จำนวนห้องทั้งหมด ใช้คิด % ในหน้าสรุป — ต้องตรงกับที่ตั้งไว้ใน index.html */
 const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
-/** แท็บสรุป ตั้งชื่อว่า "สรุปรวม" เพื่อไม่ไปทับแท็บ "สรุป" เดิมที่ทำไว้เอง */
-const SUMMARY_SHEET = 'สรุปรวม';
+/** แท็บสรุป — ตั้งชื่อไม่ให้ชนกับแท็บ "สรุป" เดิมที่ทำไว้เอง */
+const SUMMARY_SHEET = 'summary';
+const SUMMARY_LEGACY = ['สรุปรวม'];
 
 const GRADES = ['ผ่าน', 'เกือบผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ'];
 const GRADE_ICON  = {'ผ่าน':'✅', 'เกือบผ่าน':'⚠️', 'ไม่ผ่าน':'❌', 'ไม่ได้ตรวจ':'⬜'};
@@ -51,7 +52,8 @@ const TOPICS = {
 
   curtain: {
     name: 'ม่าน', en: 'Curtain', icon: '🪟',
-    sheet: 'บันทึกม่าน',
+    sheet: 'curtainsheer',
+    legacy: ['บันทึกม่าน'],
     grade: 'ผลตรวจ',
     auto: ['Room type', 'แบรนด์'],
     cols: ['Room type', 'แบรนด์',
@@ -78,7 +80,8 @@ const TOPICS = {
 
   silicone: {
     name: 'ซิลิโคนขอบอ่าง', en: 'Silicone', icon: '🧴',
-    sheet: 'บันทึกตรวจ',          /* ชื่อเดิม — ข้อมูลที่เคยบันทึกไว้ยังอยู่ครบ */
+    sheet: 'silicone',
+    legacy: ['บันทึกตรวจ'],   /* ชื่อเดิม — ข้อมูลที่เคยบันทึกไว้ถูกย้ายตามมาให้ */
     grade: 'เกรด',
     auto: [],
     cols: ['ขอบเขตงาน', 'สีที่ใช้', 'ระยะขอบ', 'ตัดขอบ', 'ฟองอากาศ',
@@ -100,7 +103,8 @@ const TOPICS = {
 
   comfort: {
     name: 'น้ำร้อน & แอร์', en: 'Hot water & Aircon', icon: '🌡️',
-    sheet: 'บันทึกน้ำร้อนแอร์',
+    sheet: 'HW and A/C',
+    legacy: ['บันทึกน้ำร้อนแอร์'],
     grade: 'ผลตรวจ',
     auto: [],
     cols: ['เวลาน้ำร้อน (วินาที)', 'อุณหภูมิน้ำที่วัดได้ (°C)',
@@ -118,7 +122,8 @@ const TOPICS = {
 
   doorlight: {
     name: 'แสงรอบประตู', en: 'Door light leak', icon: '🚪',
-    sheet: 'บันทึกแสงรอบประตู',
+    sheet: 'door',
+    legacy: ['บันทึกแสงรอบประตู'],
     grade: 'ผลตรวจ',
     auto: ['บานประตู'],
     cols: ['บานประตู', 'แสงเล็ดลอด', 'จุดที่มีแสง', 'จำนวนจุดที่มีแสง', ACCESS, 'ผลตรวจ'],
@@ -199,12 +204,23 @@ function isGood_(t, col, v) {
   return s === '' || s === '-' || g.indexOf(s) !== -1;
 }
 
+/** หาแท็บของหมวดนี้ — ถ้ายังไม่มีชื่อใหม่แต่มีชื่อเดิมอยู่ ให้เปลี่ยนชื่อแท็บเดิม
+ *  ไม่ใช่สร้างแท็บเปล่าใหม่ ข้อมูลกับรูปแบบที่บันทึกไว้แล้วจะได้ตามมาด้วย */
+function renameOrCreate_(ss, name, legacy) {
+  let sh = ss.getSheetByName(name);
+  if (sh) return sh;
+  (legacy || []).forEach(function (old) {
+    if (sh) return;
+    const o = ss.getSheetByName(old);
+    if (o) { o.setName(name); sh = o; }
+  });
+  return sh || ss.insertSheet(name);
+}
+
 function sheetOf_(t) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('สคริปต์ไม่ได้ผูกกับชีต — ต้องเปิดจากเมนู ส่วนขยาย → Apps Script ในชีต');
-  let sh = ss.getSheetByName(t.sheet);
-  if (!sh) sh = ss.insertSheet(t.sheet);
-  return sh;
+  return renameOrCreate_(ss, t.sheet, t.legacy);
 }
 
 /** หัวตารางจริงของแท็บนี้ — แท็บเก่าที่ยังไม่มีคอลัมน์ใหม่จะได้คอลัมน์ต่อท้ายให้
@@ -869,8 +885,7 @@ const TOTAL_ROOMS = (FLOOR_TO - FLOOR_FROM + 1) * ROOMS_PER_FLOOR;
 /** สร้าง/อัปเดตแท็บสรุปรวม — เรียกจากเมนู และเรียกเองทุกครั้งที่บันทึก */
 function buildSummary_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(SUMMARY_SHEET);
-  if (!sh) sh = ss.insertSheet(SUMMARY_SHEET, 0);
+  const sh = renameOrCreate_(ss, SUMMARY_SHEET, SUMMARY_LEGACY);
 
   const ids = Object.keys(TOPICS);
   const latest = {};
