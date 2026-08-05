@@ -27,8 +27,10 @@ const ACCESS_CHOICES = ['เข้าตรวจได้', 'ไม่มีก
 
 /* จำนวนห้องทั้งหมด ใช้คิด % ในหน้าสรุป — ต้องตรงกับที่ตั้งไว้ใน index.html */
 const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
-/** แท็บสรุป ตั้งชื่อว่า "สรุปรวม" เพื่อไม่ไปทับแท็บ "สรุป" เดิมที่ทำไว้เอง */
-const SUMMARY_SHEET = 'สรุปรวม';
+/** แท็บสรุป — ชื่อแท็บทั้งชีตใช้อังกฤษให้อ่านง่ายเวลาสลับแท็บ
+ *  ชื่อไทยของเดิมอยู่ใน SUMMARY_WAS สคริปต์จะเปลี่ยนชื่อแท็บเก่าให้เอง ข้อมูลไม่หาย */
+const SUMMARY_SHEET = 'Summary';
+const SUMMARY_WAS   = ['สรุปรวม'];
 
 const GRADES = ['ผ่าน', 'เกือบผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ'];
 const GRADE_ICON  = {'ผ่าน':'✅', 'เกือบผ่าน':'⚠️', 'ไม่ผ่าน':'❌', 'ไม่ได้ตรวจ':'⬜'};
@@ -51,7 +53,7 @@ const TOPICS = {
 
   curtain: {
     name: 'ม่าน', en: 'Curtain', icon: '🪟',
-    sheet: 'บันทึกม่าน',
+    sheet: 'Curtain & Sheer', was: ['บันทึกม่าน'],
     grade: 'ผลตรวจ',
     auto: ['Room type', 'แบรนด์'],
     cols: ['Room type', 'แบรนด์',
@@ -78,7 +80,7 @@ const TOPICS = {
 
   silicone: {
     name: 'ซิลิโคนขอบอ่าง', en: 'Silicone', icon: '🧴',
-    sheet: 'บันทึกตรวจ',          /* ชื่อเดิม — ข้อมูลที่เคยบันทึกไว้ยังอยู่ครบ */
+    sheet: 'Silicone', was: ['บันทึกตรวจ'],   /* แท็บเดิมชื่อ บันทึกตรวจ ข้อมูลเก่ายังอยู่ครบ */
     grade: 'เกรด',
     auto: [],
     cols: ['ขอบเขตงาน', 'สีที่ใช้', 'ระยะขอบ', 'ตัดขอบ', 'ฟองอากาศ',
@@ -100,7 +102,7 @@ const TOPICS = {
 
   comfort: {
     name: 'น้ำร้อน & แอร์', en: 'Hot water & Aircon', icon: '🌡️',
-    sheet: 'บันทึกน้ำร้อนแอร์',
+    sheet: 'HW and A/C', was: ['บันทึกน้ำร้อนแอร์'],
     grade: 'ผลตรวจ',
     auto: [],
     cols: ['เวลาน้ำร้อน (วินาที)', 'อุณหภูมิน้ำที่วัดได้ (°C)',
@@ -118,7 +120,7 @@ const TOPICS = {
 
   doorlight: {
     name: 'แสงรอบประตู', en: 'Door light leak', icon: '🚪',
-    sheet: 'บันทึกแสงรอบประตู',
+    sheet: 'Door', was: ['บันทึกแสงรอบประตู'],
     grade: 'ผลตรวจ',
     auto: ['บานประตู'],
     cols: ['บานประตู', 'แสงเล็ดลอด', 'จุดที่มีแสง', 'จำนวนจุดที่มีแสง', ACCESS, 'ผลตรวจ'],
@@ -133,7 +135,7 @@ const TOPICS = {
 
   molding: {
     name: 'คิ้วบัวใต้ซิงค์', en: 'Sink molding', icon: '🪵',
-    sheet: 'บันทึกคิ้วบัวใต้ซิงค์',
+    sheet: 'Molding', was: ['บันทึกคิ้วบัวใต้ซิงค์'],
     grade: 'ผลตรวจ',
     auto: [],
     /* ท้ายเลขห้องที่หมวดนี้ไม่ต้องมีเรคคอร์ดเลย — ห้องมุมไม่มีบัวใต้ซิงค์
@@ -228,10 +230,36 @@ function isGood_(t, col, v) {
   return s === '' || s === '-' || g.indexOf(s) !== -1;
 }
 
+/* ชื่อแท็บแบบไม่ซีเรียส — ตัดช่องว่าง ตัวพิมพ์ใหญ่เล็ก และนับ & กับ and เป็นตัวเดียวกัน
+   จะได้จับ "Curtain&Sheer" กับ "curtain and sheer" ว่าเป็นแท็บเดียวกัน */
+function norm_(s) {
+  return String(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9฀-๿]/g, '');
+}
+
+/** หาแท็บของหมวดนี้แล้วจัดชื่อให้เป็นชื่อปัจจุบัน — ไม่เจอคืน null
+ *  รับได้ทั้งชื่อปัจจุบัน ชื่อเก่าที่อยู่ใน was และชื่อที่พิมพ์ต่างกันนิดหน่อย
+ *  ถ้าเข้าข่ายหลายแท็บ เลือกแท็บที่มีข้อมูลมากที่สุด (ข้อมูลเก่าจึงไม่ถูกทิ้ง)
+ *  แท็บที่ชื่อชนกันแต่ไม่ได้ถูกเลือก จะโดนต่อท้ายว่า (สำรอง) ให้เอง ไม่มีอะไรถูกลบ */
+function adoptSheet_(ss, name, was) {
+  const want = [name].concat(was || []).map(norm_);
+  const hits = ss.getSheets().filter(function (s) {
+    return want.indexOf(norm_(s.getName())) !== -1;
+  });
+  if (!hits.length) return null;
+
+  hits.sort(function (a, b) { return b.getLastRow() - a.getLastRow(); });
+  const keep = hits[0];
+  hits.slice(1).forEach(function (s) {
+    if (s.getName() === name) s.setName(name + ' (สำรอง)');
+  });
+  if (keep.getName() !== name) keep.setName(name);
+  return keep;
+}
+
 function sheetOf_(t) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('สคริปต์ไม่ได้ผูกกับชีต — ต้องเปิดจากเมนู ส่วนขยาย → Apps Script ในชีต');
-  let sh = ss.getSheetByName(t.sheet);
+  let sh = adoptSheet_(ss, t.sheet, t.was);
   if (!sh) sh = ss.insertSheet(t.sheet);
   return sh;
 }
@@ -904,7 +932,7 @@ function totalOf_(t)    { return (FLOOR_TO - FLOOR_FROM + 1) * perFloorOf_(t); }
 /** สร้าง/อัปเดตแท็บสรุปรวม — เรียกจากเมนู และเรียกเองทุกครั้งที่บันทึก */
 function buildSummary_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(SUMMARY_SHEET);
+  let sh = adoptSheet_(ss, SUMMARY_SHEET, SUMMARY_WAS);
   if (!sh) sh = ss.insertSheet(SUMMARY_SHEET, 0);
 
   const ids = Object.keys(TOPICS);
@@ -1146,7 +1174,7 @@ function checkLine() {
   out.push('');
   Object.keys(TOPICS).forEach(function (id) {
     const t = TOPICS[id];
-    const sh = ss.getSheetByName(t.sheet);
+    const sh = adoptSheet_(ss, t.sheet, t.was);
     out.push(t.icon + ' ' + t.name + ' → แท็บ "' + t.sheet + '": ' +
       (sh ? 'พบแล้ว มี ' + Math.max(0, sh.getLastRow() - 1) + ' แถว'
           : 'ยังไม่มี (จะสร้างให้เองตอนบันทึกครั้งแรก)'));
