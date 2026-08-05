@@ -67,7 +67,8 @@ const TOPICS = {
       'เสียงม่านโปร่ง':  ['ปกติ', 'ดัง'],
       'เสียงม่านทึบ':    ['ปกติ', 'ดัง'],
       'เดินลื่นทั้งระบบ': ['ลื่น ไม่สะดุด', 'สะดุด/ฝืด']
-    }
+    },
+    warn: ['ปิดเหลือระยะนิดหน่อย', 'ดัง']
   },
 
   silicone: {
@@ -88,7 +89,41 @@ const TOPICS = {
       'สภาพผนัง':  ['ปกติ', 'ถลอก - ต้องแตะสี']
     },
     /* ห้อง 01/12 ยิงแค่ขอบบนถือว่าปกติเหมือนกัน จึงมีค่าปกติสองค่า */
-    good: { 'ขอบเขตงาน': ['ยิงครบทุกด้าน', 'ยิงขอบบนแค่ขอบบน (01&12)'] }
+    good: { 'ขอบเขตงาน': ['ยิงครบทุกด้าน', 'ยิงขอบบนแค่ขอบบน (01&12)'] },
+    warn: ['มี 1 จุด', 'มีหลายจุด', 'ถลอก - ต้องแตะสี']
+  },
+
+  comfort: {
+    name: 'น้ำร้อน & แอร์', en: 'Hot water & Aircon', icon: '🌡️',
+    sheet: 'บันทึกน้ำร้อนแอร์',
+    grade: 'ผลตรวจ',
+    auto: [],
+    cols: ['เวลาน้ำร้อน (วินาที)', 'อุณหภูมิน้ำที่วัดได้ (°C)',
+           'อุณหภูมิที่ตั้งแอร์ (°C)', 'เวลาแอร์เย็น (นาที)', 'อุณหภูมิห้องที่วัดได้ (°C)',
+           ACCESS, 'ผลตรวจ'],
+    /* คอลัมน์เวลา/อุณหภูมิเป็นตัวเลข ไม่มีดรอปดาวน์ — เกณฑ์ตัดเกรดอยู่ที่หน้าเว็บ */
+    choices: {},
+    num: {
+      'เวลาน้ำร้อน (วินาที)':      { ok: 30, warn: 60 },
+      'เวลาแอร์เย็น (นาที)':        { ok: 15, warn: 30 },
+      'อุณหภูมิน้ำที่วัดได้ (°C)':  { min: 40, max: 45, warnMin: 38, warnMax: 48 },
+      'อุณหภูมิที่ตั้งแอร์ (°C)':   { min: 23, max: 25, warnMin: 22, warnMax: 26 }
+    }
+  },
+
+  doorlight: {
+    name: 'แสงรอบประตู', en: 'Door light leak', icon: '🚪',
+    sheet: 'บันทึกแสงรอบประตู',
+    grade: 'ผลตรวจ',
+    auto: ['บานประตู'],
+    cols: ['บานประตู', 'แสงเล็ดลอด', 'จุดที่มีแสง', 'จำนวนจุดที่มีแสง', ACCESS, 'ผลตรวจ'],
+    choices: {
+      'บานประตู':   ['มือจับซ้าย', 'มือจับขวา'],
+      'แสงเล็ดลอด': ['ไม่มีแสงเล็ดลอด', 'มีแสงเล็ดลอด']
+    },
+    good: { 'บานประตู': ['มือจับซ้าย', 'มือจับขวา'] },   /* เป็นข้อมูลห้อง ไม่ใช่ข้อบกพร่อง */
+    warn: ['มีแสงเล็ดลอด'],
+    num: { 'จำนวนจุดที่มีแสง': { ok: 0, warn: 2 } }
   }
 
 };
@@ -328,6 +363,7 @@ function doPost(e) {
                                    'วันที่ตรวจ');
 
       saved.push({ topic: en.topic, t: t, room: room, rec: rec, prev: prev,
+                   defects: en.defects || null,
                    changes: prev ? diff_(t, prev, rec) : null });
     });
 
@@ -499,10 +535,13 @@ function entryLines_(s) {
     lines.push('   เหตุผล: ' + (rec[ACCESS] || rec['หมายเหตุ'] || '-'));
     return lines;
   }
-  const bad = t.cols.filter(function (c) {
-    return c !== t.grade && c !== ACCESS && t.auto.indexOf(c) === -1 && !isGood_(t, c, rec[c]);
-  });
-  if (bad.length) bad.forEach(function (c) { lines.push('   • ' + c + ': ' + rec[c]); });
+  /* หน้าเว็บส่งรายการจุดที่เสียมาให้แล้ว (รู้เกณฑ์ของช่องตัวเลขด้วย) ใช้อันนั้นก่อน */
+  const bad = s.defects && s.defects.length !== undefined
+    ? s.defects
+    : t.cols.filter(function (c) {
+        return c !== t.grade && c !== ACCESS && t.auto.indexOf(c) === -1 && !isGood_(t, c, rec[c]);
+      }).map(function (c) { return c + ': ' + rec[c]; });
+  if (bad.length) bad.forEach(function (line) { lines.push('   • ' + line); });
   else lines.push('   ปกติทุกหัวข้อ');
   if (rec['หมายเหตุ']) lines.push('   หมายเหตุ: ' + rec['หมายเหตุ']);
   return lines;
@@ -567,19 +606,62 @@ function eachTopic_(fn) {
   });
 }
 
-/* ตั้งค่าชีตให้กรอกมือได้โดยไม่พิมพ์ผิด — รันซ้ำได้ไม่มีผลเสีย */
+/* หน้าตาตาราง — ให้ทุกแท็บโทนเดียวกันหมด */
+const LOOK = {
+  headBg: '#1F7A54', headFg: '#FFFFFF',
+  bad:  { bg: '#F7E2DF', fg: '#B23C31' },
+  warn: { bg: '#FBEBD2', fg: '#8A5D14' },
+  grid: '#D6DDE6',
+  width: { 'วันที่ตรวจ': 96, 'ชั้น': 52, 'ห้อง': 62, 'หมายเหตุ': 230,
+           'ผู้ตรวจ': 92, 'บันทึกเมื่อ': 128 },
+  center: ['ชั้น', 'ห้อง', 'จำนวนจุดที่มีแสง', 'เวลาน้ำร้อน (วินาที)', 'เวลาแอร์เย็น (นาที)',
+           'อุณหภูมิน้ำที่วัดได้ (°C)', 'อุณหภูมิที่ตั้งแอร์ (°C)', 'อุณหภูมิห้องที่วัดได้ (°C)']
+};
+
+/** ค่าที่ถือว่าเป็น "เกือบผ่าน" (เหลือง) ที่เหลือที่ไม่ใช่ค่าปกติ = แดง */
+function warnValues_(t) {
+  return (t.warn || []).concat(ACCESS_CHOICES.slice(1));
+}
+
+/* ตั้งค่าชีตให้กรอกมือได้โดยไม่พิมพ์ผิด + จัดหน้าตาให้เหมือนกันทุกแท็บ
+   รันซ้ำได้ไม่มีผลเสีย */
 function setupSheet() {
   const rows = 2000;
 
   eachTopic_(function (t, sh, head) {
     migrateLabels_(t, sh, head);
-    sh.setFrozenRows(1);
 
+    /* ---- หัวตาราง ---- */
+    const headRange = sh.getRange(1, 1, 1, head.length);
+    headRange.setBackground(LOOK.headBg).setFontColor(LOOK.headFg)
+      .setFontWeight('bold').setFontSize(10)
+      .setVerticalAlignment('middle').setWrap(true);
+    sh.setRowHeight(1, 34);
+    sh.setFrozenRows(1);
+    sh.setFrozenColumns(Math.min(3, head.length));
+    if (!sh.getFilter()) sh.getRange(1, 1, Math.max(2, sh.getLastRow()), head.length).createFilter();
+
+    /* ---- ความกว้าง / การจัดวาง ---- */
+    head.forEach(function (h, i) {
+      sh.setColumnWidth(i + 1, LOOK.width[h] || 132);
+      const col = sh.getRange(2, i + 1, rows, 1);
+      col.setFontSize(10).setVerticalAlignment('middle');
+      if (LOOK.center.indexOf(h) !== -1 || h === t.grade) col.setHorizontalAlignment('center');
+      else col.setHorizontalAlignment('left');
+    });
+    const iDate = head.indexOf('วันที่ตรวจ') + 1;
+    if (iDate > 0) sh.getRange(2, iDate, rows, 1).setNumberFormat('dd/MM/yyyy')
+      .setHorizontalAlignment('center');
+    const iRoom = head.indexOf('ห้อง') + 1;
+    if (iRoom > 0) sh.getRange(2, iRoom, rows, 1).setFontWeight('bold');
+    sh.getRange(1, 1, rows + 1, head.length)
+      .setBorder(true, true, true, true, true, true, LOOK.grid, SpreadsheetApp.BorderStyle.SOLID);
+
+    /* ---- ดรอปดาวน์ ---- */
     const all = {};
     Object.keys(t.choices || {}).forEach(function (c) { all[c] = t.choices[c]; });
     all[ACCESS] = ACCESS_CHOICES;
     all[t.grade] = GRADES;
-
     Object.keys(all).forEach(function (c) {
       const col = head.indexOf(c) + 1;
       if (col < 1) return;
@@ -591,34 +673,59 @@ function setupSheet() {
       sh.getRange(2, col, rows, 1).setDataValidation(rule);
     });
 
-    const iDate = head.indexOf('วันที่ตรวจ') + 1;
-    if (iDate > 0) sh.getRange(2, iDate, rows, 1).setNumberFormat('dd/MM/yyyy');
+    /* ---- สีของช่องที่เป็นข้อบกพร่อง ---- */
+    const warns = warnValues_(t);
+    const rules = [];
+    const add = function (col, value, look) {
+      rules.push(SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(value)
+        .setBackground(look.bg).setFontColor(look.fg)
+        .setRanges([sh.getRange(2, col, rows, 1)]).build());
+    };
 
-    const gradeCol = head.indexOf(t.grade) + 1;
-    if (gradeCol > 0) {
-      const range = sh.getRange(2, gradeCol, rows, 1);
-      const rules = GRADES.map(function (g) {
-        return SpreadsheetApp.newConditionalFormatRule()
-          .whenTextEqualTo(g)
-          .setBackground(GRADE_COLOR[g].bg)
-          .setFontColor(GRADE_COLOR[g].fg)
-          .setRanges([range])
-          .build();
+    Object.keys(t.choices || {}).forEach(function (c) {
+      const col = head.indexOf(c) + 1;
+      if (col < 1) return;
+      const good = goodOf_(t, c);
+      t.choices[c].forEach(function (v) {
+        if (good.indexOf(v) !== -1) return;
+        add(col, v, warns.indexOf(v) !== -1 ? LOOK.warn : LOOK.bad);
       });
-      /* ต่อท้ายกฎเดิม ไม่ทับ — ชีตมีกฎสีของช่องที่เป็นข้อบกพร่องอยู่แล้ว ห้ามลบทิ้ง
-         แต่ต้องเขี่ยกฎเกรดที่ฟังก์ชันนี้เคยใส่ไว้ออกก่อน จะได้ไม่ซ้อนกันตอนรันซ้ำ */
-      const ours = function (r) {
-        const c = r.getBooleanCondition();
-        if (!c || c.getCriteriaType() !== SpreadsheetApp.BooleanCriteria.TEXT_EQUAL_TO) return false;
-        const v = (c.getCriteriaValues() || [])[0];
-        if (GRADE_COLOR[String(v)] === undefined) return false;
-        return r.getRanges().every(function (rg) {
-          return rg.getColumn() === gradeCol && rg.getNumColumns() === 1;
-        });
-      };
-      const kept = sh.getConditionalFormatRules().filter(function (r) { return !ours(r); });
-      sh.setConditionalFormatRules(kept.concat(rules));
-    }
+    });
+    ACCESS_CHOICES.slice(1).forEach(function (v) {
+      const col = head.indexOf(ACCESS) + 1;
+      if (col > 0) add(col, v, LOOK.warn);
+    });
+    GRADES.forEach(function (g) {
+      const col = head.indexOf(t.grade) + 1;
+      if (col > 0) add(col, g, { bg: GRADE_COLOR[g].bg, fg: GRADE_COLOR[g].fg });
+    });
+
+    /* คอลัมน์ตัวเลข ใช้เกณฑ์ ok/warn แทนการเทียบข้อความ */
+    Object.keys(t.num || {}).forEach(function (c) {
+      const col = head.indexOf(c) + 1, n = t.num[c];
+      if (col < 1) return;
+      const range = [sh.getRange(2, col, rows, 1)];
+      if (n.ok !== undefined) {
+        rules.push(SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberGreaterThan(n.warn).setBackground(LOOK.bad.bg).setFontColor(LOOK.bad.fg)
+          .setRanges(range).build());
+        rules.push(SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberBetween(n.ok + 0.0001, n.warn).setBackground(LOOK.warn.bg)
+          .setFontColor(LOOK.warn.fg).setRanges(range).build());
+      } else {
+        rules.push(SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberNotBetween(n.warnMin, n.warnMax).setBackground(LOOK.bad.bg)
+          .setFontColor(LOOK.bad.fg).setRanges(range).build());
+        rules.push(SpreadsheetApp.newConditionalFormatRule()
+          .whenNumberNotBetween(n.min, n.max).setBackground(LOOK.warn.bg)
+          .setFontColor(LOOK.warn.fg).setRanges(range).build());
+      }
+    });
+
+    /* ทับกฎเดิมของแท็บนี้ทั้งหมด — ทุกแท็บสคริปต์เป็นคนดูแลอยู่แล้ว
+       จัดใหม่ทุกครั้งที่รัน จะได้ไม่ซ้อนกันและได้หน้าตาเหมือนกันหมด */
+    sh.setConditionalFormatRules(rules);
 
     restyleAll_(sh, head);   /* แถวที่บันทึกไปก่อนหน้านี้จะได้หน้าตาเหมือนกันทั้งตาราง */
   });

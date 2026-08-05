@@ -127,9 +127,11 @@
   .nav button:disabled{opacity:.3}
 
   /* ---------- แท็บหมวดในห้อง ---------- */
-  .ttabs{display:flex;gap:6px;margin:10px 0 12px}
-  .ttab{flex:1;min-width:0;position:relative;background:var(--card);border:1px solid var(--line);
-    border-radius:9px;padding:8px 10px;text-align:left;color:var(--ink)}
+  .ttabs{display:flex;gap:6px;margin:10px 0 12px;overflow-x:auto;padding-bottom:2px;
+    scrollbar-width:none}
+  .ttabs::-webkit-scrollbar{display:none}
+  .ttab{flex:0 0 auto;min-width:124px;max-width:60%;position:relative;background:var(--card);
+    border:1px solid var(--line);border-radius:9px;padding:8px 10px;text-align:left;color:var(--ink)}
   .ttab[aria-selected="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--brass-soft)}
   .ttab .n{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ttab .g{font-size:11px;margin-top:3px;display:block}
@@ -149,6 +151,35 @@
   .opt[aria-pressed="true"][data-k="bad"]{background:var(--bad);border-color:var(--bad)}
   .opt[aria-pressed="true"][data-k="plain"]{background:var(--ink);border-color:var(--ink)}
   .hint{font-size:11.5px;color:var(--mute);margin-top:7px}
+
+  /* ---------- ช่องตัวเลข ---------- */
+  .numrow{display:flex;align-items:center;gap:6px}
+  .numbtn{width:44px;height:46px;border:1px solid var(--line);background:var(--card);border-radius:8px;
+    font-family:var(--mono);font-size:20px;color:var(--ink);flex:none}
+  .numbtn:active{background:var(--paper)}
+  .numin{flex:1;min-width:0;height:46px;border:1px solid var(--line);border-radius:8px;text-align:center;
+    font-family:var(--mono);font-size:19px;font-weight:700;color:var(--ink);background:#fff;
+    -moz-appearance:textfield}
+  .numin::-webkit-outer-spin-button,.numin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .numin:focus{outline:2px solid var(--brass);outline-offset:-1px;border-color:var(--brass)}
+  .numrow .unit{font-size:12.5px;color:var(--mute);min-width:38px}
+
+  /* ---------- ผังประตู ---------- */
+  .doorbox{display:flex;gap:14px;align-items:flex-start}
+  .door{width:196px;flex:none;background:#F4F7FA;border-radius:6px;touch-action:manipulation}
+  .door .dleaf{fill:#E7DCC6;stroke:#CBB893;stroke-width:1}
+  .door .dhandle{fill:#8A6A3B}
+  .door .dcell{fill:#fff;stroke:#9AA7B6;stroke-width:1;cursor:pointer}
+  .door .dcell[data-on="1"]{fill:#F3D46B;stroke:#B26A0A;stroke-width:1.5}
+  .doorside{flex:1;min-width:0}
+  .dnote{font-size:11.5px;color:var(--mute);margin-bottom:7px}
+  .dlist{display:flex;flex-wrap:wrap;gap:4px}
+  .dtag{font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:6px;
+    background:var(--warn-soft);color:var(--warn)}
+  .dnone{font-size:12px;color:var(--mute)}
+  .dclear{margin-top:9px;padding:7px 12px;border:1px solid var(--line);background:#fff;
+    border-radius:8px;font-size:12px;color:var(--ink-2)}
+
   textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font-family:var(--sans);
     font-size:13.5px;resize:vertical;min-height:56px;color:var(--ink)}
   textarea:focus{outline:2px solid var(--brass);outline-offset:-1px;border-color:var(--brass)}
@@ -438,6 +469,18 @@ const ROOM_TYPE = {1:"grand corner",2:"deluxe twin",3:"deluxe king",4:"deluxe ki
   5:"deluxe king",6:"grand deluxe",7:"grand deluxe",8:"deluxe king",9:"deluxe king",
   10:"deluxe king",11:"deluxe twin",12:"grand corner"};
 
+/* ---- ประตู: จำนวนช่องรอบบาน นับซ้าย→ขวา และ บน→ล่าง ---- */
+const DOOR = {top:4, bottom:5, left:8, right:8};
+/* ห้องที่บานเปิดแบบมือจับซ้าย ที่เหลือมือจับขวา */
+const DOOR_LEFT = ["01","02","03","05","06","09"];
+const doorSide = r => DOOR_LEFT.indexOf(String(r).slice(-2)) !== -1 ? "left" : "right";
+
+/* ---- เกณฑ์เวลา แก้ตัวเลขตรงนี้ได้เลย ---- */
+const HOT_TARGET = "40–42 °C";   /* อุณหภูมิน้ำที่ถือว่าร้อนพอ */
+const HOT_OK = 30, HOT_WARN = 60;        /* วินาที */
+const AC_TARGET = 24;            /* °C ที่ตั้งแอร์เป็นมาตรฐาน */
+const AC_OK = 15, AC_WARN = 30;          /* นาที */
+
 const ACCESS = "การเข้าห้อง";
 const GRADES = ["ผ่าน","เกือบผ่าน","ไม่ผ่าน","ไม่ได้ตรวจ"];
 const GC = {"ผ่าน":"#1B7A4C","เกือบผ่าน":"#B26A0A","ไม่ผ่าน":"#B62D22","ไม่ได้ตรวจ":"#6B7A8D"};
@@ -516,6 +559,46 @@ const TOPICS = [
        opts:[{v:"ปกติ"},{v:"ถลอก - ต้องแตะสี",warn:1}]}
     ]}
   ]
+},
+{
+  id:"comfort", name:"น้ำร้อน & แอร์", en:"Hot water & Aircon", icon:"🌡️", grade:"ผลตรวจ",
+  sections:[
+    {cap:"Hot water · น้ำร้อน", fields:[
+      {col:"เวลาน้ำร้อน (วินาที)", type:"num", unit:"วินาที", step:5,
+       label:"เปิดน้ำร้อนกี่วินาทีถึงร้อนพอ", en:"ครั้งแรกของวัน",
+       hint:"เป้าหมาย "+HOT_TARGET+" · ผ่าน ≤"+HOT_OK+" วิ · เกือบผ่าน "+(HOT_OK+1)+"–"+HOT_WARN+" วิ · เกิน "+HOT_WARN+" วิ = ไม่ผ่าน",
+       good:n=> n<=HOT_OK, warn:n=> n<=HOT_WARN},
+      {col:"อุณหภูมิน้ำที่วัดได้ (°C)", type:"num", unit:"°C", step:1, optional:true,
+       label:"อุณหภูมิน้ำที่วัดได้", en:"ไม่มีเทอร์โมมิเตอร์เว้นว่างได้",
+       good:n=> n>=40 && n<=45, warn:n=> n>=38 && n<=48}
+    ]},
+    {cap:"Aircon · แอร์", fields:[
+      {col:"อุณหภูมิที่ตั้งแอร์ (°C)", type:"num", unit:"°C", step:1, dflt:AC_TARGET,
+       label:"ตั้งแอร์ไว้กี่องศา", hint:"มาตรฐานห้องพัก "+AC_TARGET+" °C",
+       good:n=> n>=23 && n<=25, warn:n=> n>=22 && n<=26},
+      {col:"เวลาแอร์เย็น (นาที)", type:"num", unit:"นาที", step:5,
+       label:"กี่นาทีห้องถึงเย็นถึงอุณหภูมิที่ตั้ง",
+       hint:"ผ่าน ≤"+AC_OK+" นาที · เกือบผ่าน "+(AC_OK+1)+"–"+AC_WARN+" นาที · เกิน "+AC_WARN+" นาที = ไม่ผ่าน",
+       good:n=> n<=AC_OK, warn:n=> n<=AC_WARN},
+      {col:"อุณหภูมิห้องที่วัดได้ (°C)", type:"num", unit:"°C", step:1, optional:true, plain:true,
+       label:"อุณหภูมิห้องที่วัดได้", en:"บันทึกไว้เฉย ๆ ไม่ตัดเกรด"}
+    ]}
+  ]
+},
+{
+  id:"doorlight", name:"แสงรอบประตู", en:"Door light leak", icon:"🚪", grade:"ผลตรวจ",
+  auto: r => ({ "บานประตู": doorSide(r)==="left" ? "มือจับซ้าย" : "มือจับขวา" }),
+  derive: d => ({ "จำนวนจุดที่มีแสง": String(doorIds(d.vals["จุดที่มีแสง"]).length) }),
+  sections:[
+    {cap:"Light leak · แสงเล็ดลอด", fields:[
+      {col:"แสงเล็ดลอด", label:"ปิดไฟในห้อง เปิดไฟทางเดิน แล้วดูขอบประตู",
+       opts:[{v:"ไม่มีแสงเล็ดลอด"},{v:"มีแสงเล็ดลอด",warn:1}]},
+      {col:"จุดที่มีแสง", type:"door", label:"แตะช่องที่เห็นแสงลอดออกมา",
+       hint:"แตะซ้ำเพื่อเอาออก · เลือกได้หลายจุด",
+       showIf: v => v["แสงเล็ดลอด"] === "มีแสงเล็ดลอด",
+       good:n=> n===0, warn:n=> n<=2}
+    ]}
+  ]
 }
 ];
 
@@ -542,12 +625,77 @@ const fieldsOf = t => t.sections.reduce((a,s)=>a.concat(s.fields), []);
 const scoreOf  = t => fieldsOf(t).filter(f=>!f.access);
 const optsOf   = (f,r) => val(f.opts, r);
 const goodOf   = (f,r) => optsOf(f,r)[0].v;
+const hasValue = v => v !== undefined && v !== null && String(v).trim() !== "";
+/* หัวข้อที่ต้องโชว์จริงตอนนี้ — บางหัวข้อโผล่เมื่อตอบข้อก่อนหน้าแบบหนึ่งเท่านั้น */
+const shown = (f, vals) => !f.showIf || f.showIf(vals);
+const visibleFields = (t, vals) => fieldsOf(t).filter(f=> shown(f, vals));
+
+/* ---------- ประตู: ช่องรอบบานกับการแปลงเป็นข้อความ ---------- */
+const DOOR_BOX = {w:210, h:320, m:8, t:24, gap:2};
+function doorCells(){
+  const B = DOOR_BOX, c = [];
+  const iw = B.w - 2*B.m - 2*B.t, ih = B.h - 2*B.m - 2*B.t;
+  const seg = (n, i, span) => { const s = (span - (n-1)*B.gap)/n; return {off:i*(s+B.gap), size:s}; };
+  for(let i=0;i<DOOR.top;i++){ const s = seg(DOOR.top,i,iw);
+    c.push({id:"บน"+(i+1), x:B.m+B.t+s.off, y:B.m, w:s.size, h:B.t}); }
+  for(let i=0;i<DOOR.bottom;i++){ const s = seg(DOOR.bottom,i,iw);
+    c.push({id:"ล่าง"+(i+1), x:B.m+B.t+s.off, y:B.h-B.m-B.t, w:s.size, h:B.t}); }
+  for(let i=0;i<DOOR.left;i++){ const s = seg(DOOR.left,i,ih);
+    c.push({id:"ซ้าย"+(i+1), x:B.m, y:B.m+B.t+s.off, w:B.t, h:s.size}); }
+  for(let i=0;i<DOOR.right;i++){ const s = seg(DOOR.right,i,ih);
+    c.push({id:"ขวา"+(i+1), x:B.w-B.m-B.t, y:B.m+B.t+s.off, w:B.t, h:s.size}); }
+  return c;
+}
+const DOOR_CELLS = doorCells();
+const DOOR_ORDER = DOOR_CELLS.map(c=>c.id);
+/* เก็บลงชีตเป็นข้อความล้วน ไม่เก็บรูป — "ล่าง1 มีแสง · ล่าง2 มีแสง" */
+const doorText = ids => DOOR_ORDER.filter(i=> ids.indexOf(i) !== -1).map(i=> i+" มีแสง").join(" · ");
+const doorIds  = txt => String(txt||"").split("·").map(s=> s.replace(/มีแสง/,"").trim()).filter(Boolean);
+
+function doorSvg(ids, side){
+  const B = DOOR_BOX;
+  const cells = DOOR_CELLS.map(c=>
+    '<rect class="dcell" data-id="'+c.id+'" x="'+c.x.toFixed(1)+'" y="'+c.y.toFixed(1)+
+    '" width="'+c.w.toFixed(1)+'" height="'+c.h.toFixed(1)+'" rx="2"'+
+    (ids.indexOf(c.id) !== -1 ? ' data-on="1"' : '')+'><title>'+c.id+'</title></rect>').join("");
+  const hx = side === "left" ? B.m+B.t+10 : B.w-B.m-B.t-56;
+  return '<svg class="door" viewBox="0 0 '+B.w+' '+B.h+'" role="group" aria-label="ช่องรอบประตู">'+
+    '<rect class="dleaf" x="'+(B.m+B.t)+'" y="'+(B.m+B.t)+'" width="'+(B.w-2*B.m-2*B.t)+
+    '" height="'+(B.h-2*B.m-2*B.t)+'"/>'+
+    '<rect class="dhandle" x="'+hx+'" y="'+(B.h/2-4)+'" width="46" height="8" rx="3"/>'+
+    cells+'</svg>';
+}
+
+/* ให้คะแนนหนึ่งหัวข้อ — คืน null ถ้ายังไม่ได้กรอก */
+function scoreField(f, room, v){
+  if(f.type === "num"){
+    if(!hasValue(v)) return null;
+    const n = Number(v);
+    if(isNaN(n)) return null;
+    const txt = f.col+": "+n+" "+(f.unit||"");
+    if(f.good && f.good(n)) return {k:"good"};
+    if(f.warn && f.warn(n)) return {k:"warn", text:txt};
+    return {k:"bad", text:txt};
+  }
+  if(f.type === "door"){
+    const n = doorIds(v).length;
+    if(!n) return {k:"good"};
+    const txt = f.col+": "+n+" จุด ("+doorIds(v).join(", ")+")";
+    if(f.good && f.good(n)) return {k:"good"};
+    if(f.warn && f.warn(n)) return {k:"warn", text:txt};
+    return {k:"bad", text:txt};
+  }
+  const s = String(v||"").trim();
+  if(!s || s === "-") return null;
+  const o = optsOf(f, room).filter(x=> x.v === s)[0];
+  if(!o) return {k:"bad", text:f.col+": "+s};
+  return {k: o.bad ? "bad" : o.warn ? "warn" : "good", text:f.col+": "+s};
+}
 /* ค่าที่บันทึกไว้ถือว่าเป็นข้อบกพร่องไหม — "" กับ "-" คือช่องของห้องที่ไม่ได้ตรวจ ไม่นับ */
 function notGood(f, room, v){
-  const s = String(v||"").trim();
-  if(!s || s === "-") return false;
-  const o = optsOf(f, room).filter(x=> x.v === s)[0];
-  return o ? !!(o.bad || o.warn) : s !== goodOf(f, room);
+  if(f.plain) return false;
+  const s = scoreField(f, room, v);
+  return !!s && s.k !== "good";
 }
 
 /* วันที่: เก็บเป็น yyyy-mm-dd แต่โชว์เป็น วัน/เดือน/ปี ตามเวลาไทยเสมอ */
@@ -721,14 +869,18 @@ function fromRow(t, row, room){
     fieldsOf(t).forEach(f=>{
       if(f.access) d.vals[f.col] = "เข้าตรวจได้";
       else if(f.remember && S.remember[f.col]) d.vals[f.col] = S.remember[f.col];
+      else if(f.type === "num" && f.dflt !== undefined) d.vals[f.col] = String(f.dflt);
     });
     return d;
   }
   d.note = row["หมายเหตุ"] || "";
   fieldsOf(t).forEach(f=>{
     const v = String(row[f.col]||"").trim();
-    if(v && v !== "-" && optsOf(f, room).some(o=> o.v === v)) d.vals[f.col] = v;
+    const usable = v && v !== "-" &&
+      (f.type === "num" ? !isNaN(Number(v)) : f.type === "door" ? true : optsOf(f, room).some(o=> o.v === v));
+    if(usable) d.vals[f.col] = v;
     else if(f.remember && S.remember[f.col]) d.vals[f.col] = S.remember[f.col];
+    else if(f.type === "num" && f.dflt !== undefined) d.vals[f.col] = String(f.dflt);
   });
 
   /* แถวเก่าที่ยังไม่มีคอลัมน์ "การเข้าห้อง" — เดาจากเกรดกับหมายเหตุให้ */
@@ -748,21 +900,21 @@ function judge(t, room, d){
   if(!acc) return {grade:"ยังไม่ได้กรอก", todo:1, why:"ยังไม่ได้เลือกว่าเข้าห้องได้หรือไม่"};
   if(acc !== "เข้าตรวจได้") return {grade:"ไม่ได้ตรวจ", why:acc};
 
-  const fs = scoreOf(t);
-  const miss = fs.filter(f=> !d.vals[f.col]);
+  const fs = visibleFields(t, d.vals).filter(f=> !f.access);
+  const miss = fs.filter(f=> !f.optional && !hasValue(d.vals[f.col]));
   if(miss.length) return {grade:"ยังไม่ได้กรอก", todo:miss.length,
-    why:"เหลืออีก "+miss.length+" หัวข้อ — หรือกด “ทั้งหมดปกติ” แล้วค่อยแก้เฉพาะจุดที่เสีย"};
+    why:"เหลืออีก "+miss.length+" หัวข้อ: "+miss.map(f=>val(f.label, room)).join(", ")};
 
-  const detail = [];
-  fs.forEach(f=>{
-    const o = optsOf(f, room).filter(x=> x.v === d.vals[f.col])[0];
-    if(o && (o.bad || o.warn)) detail.push({col:f.col, v:o.v, bad:!!o.bad});
+  const bads = [], warns = [];
+  fs.filter(f=> !f.plain).forEach(f=>{
+    const s = scoreField(f, room, d.vals[f.col]);
+    if(!s || s.k === "good") return;
+    (s.k === "bad" ? bads : warns).push(s.text);
   });
-  const bads = detail.filter(x=>x.bad), warns = detail.filter(x=>!x.bad);
-  if(bads.length)  return {grade:"ไม่ผ่าน",   why:bads.map(x=>x.col+": "+x.v).join(" · ")};
-  if(warns.length) return {grade:"เกือบผ่าน", why:warns.map(x=>x.col+": "+x.v).join(" · ")+
-    " — แก้เฉพาะจุดได้ ไม่ต้องรื้อทั้งชุด"};
-  return {grade:"ผ่าน", why:"ไม่พบข้อบกพร่อง"};
+  if(bads.length)  return {grade:"ไม่ผ่าน",   why:bads.join(" · "), bads:bads, warns:warns};
+  if(warns.length) return {grade:"เกือบผ่าน", why:warns.join(" · ")+
+    " — แก้เฉพาะจุดได้ ไม่ต้องรื้อทั้งชุด", bads:bads, warns:warns};
+  return {grade:"ผ่าน", why:"ไม่พบข้อบกพร่อง", bads:[], warns:[]};
 }
 
 /** หมวดนี้ถูกแก้จากตอนเปิดห้องไหม */
@@ -773,11 +925,17 @@ function dirty(t){
 function pending(){
   return TOPICS.filter(t=> dirty(t) && !judge(t, S.room, S.draft[t.id]).todo);
 }
+/* "ทั้งหมดปกติ" เติมให้เฉพาะหัวข้อที่เป็นตัวเลือก — ตัวเลขที่ต้องวัดจริงไม่เดาให้ */
 function setAllOk(t){
   const d = S.draft[t.id];
-  fieldsOf(t).forEach(f=>{ d.vals[f.col] = goodOf(f, S.room); });
+  fieldsOf(t).forEach(f=>{
+    if(f.type === "num"){ if(f.dflt !== undefined && !hasValue(d.vals[f.col])) d.vals[f.col] = String(f.dflt); }
+    else if(f.type === "door") d.vals[f.col] = "";
+    else d.vals[f.col] = goodOf(f, S.room);
+  });
   Object.keys(S.remember).forEach(c=>{ if(d.vals[c] !== undefined && S.remember[c]) d.vals[c] = S.remember[c]; });
 }
+const hasChoices = t => fieldsOf(t).some(f=> !f.access && !f.type);
 
 /* =====================================================================
    วาดหน้าจอ
@@ -916,20 +1074,42 @@ function renderRoom(){
 
   /* ฟอร์มของหมวดที่เลือก */
   const off = d.vals[ACCESS] && d.vals[ACCESS] !== "เข้าตรวจได้";
-  $("btnAllOk").classList.toggle("hide", !!off);
+  $("btnAllOk").classList.toggle("hide", !!off || !hasChoices(t));
   $("formBox").innerHTML = t.sections.map(sec=>{
     const isAccess = sec.fields.length===1 && sec.fields[0].access;
     if(off && !isAccess) return "";
-    return '<div class="card"><div class="cap">'+sec.cap+'</div>'+
-      sec.fields.map(f=>{
-        const opts = optsOf(f, room), cur = d.vals[f.col] || "";
-        return '<div class="fld"><div class="lab">'+val(f.label, room)+
-          (f.en ? ' <span>'+f.en+'</span>' : '')+'</div><div class="opts" data-c="'+f.col+'">'+
-          opts.map(o=>'<button class="opt" data-v="'+o.v+'" data-k="'+
+    const body = sec.fields.filter(f=> shown(f, d.vals)).map(f=>{
+      const cur = d.vals[f.col] || "";
+      const head = '<div class="lab">'+val(f.label, room)+
+        (f.en ? ' <span>'+f.en+'</span>' : '')+(f.optional ? ' <span>(ไม่บังคับ)</span>' : '')+'</div>';
+      let body;
+      if(f.type === "num"){
+        body = '<div class="numrow" data-c="'+f.col+'">'+
+          '<button class="numbtn" data-d="-1" aria-label="ลด">−</button>'+
+          '<input class="numin" type="number" inputmode="numeric" value="'+cur+
+          '" step="'+(f.step||1)+'" placeholder="—">'+
+          '<span class="unit">'+(f.unit||"")+'</span>'+
+          '<button class="numbtn" data-d="1" aria-label="เพิ่ม">+</button></div>';
+      } else if(f.type === "door"){
+        const ids = doorIds(cur);
+        body = '<div class="doorbox" data-c="'+f.col+'">'+ doorSvg(ids, doorSide(room)) +
+          '<div class="doorside">'+
+          '<div class="dnote">มือจับอยู่ทาง'+(doorSide(room)==="left" ? "ซ้าย" : "ขวา")+
+          ' · มองจากในห้อง</div>'+
+          '<div class="dlist">'+(ids.length
+            ? ids.map(i=>'<span class="dtag">'+i+'</span>').join("")
+            : '<span class="dnone">ยังไม่ได้เลือกจุด</span>')+'</div>'+
+          (ids.length ? '<button class="dclear">ล้างที่เลือก</button>' : '')+
+          '</div></div>';
+      } else {
+        body = '<div class="opts" data-c="'+f.col+'">'+
+          optsOf(f, room).map(o=>'<button class="opt" data-v="'+o.v+'" data-k="'+
             (f.plain?"plain":o.bad?"bad":o.warn?"warn":"good")+'" aria-pressed="'+
-            (o.v===cur)+'">'+o.v+'</button>').join("")+'</div>'+
-          (f.hint ? '<div class="hint">'+f.hint+'</div>' : '')+'</div>';
-      }).join("")+'</div>';
+            (o.v===cur)+'">'+o.v+'</button>').join("")+'</div>';
+      }
+      return '<div class="fld">'+head+body+(f.hint ? '<div class="hint">'+f.hint+'</div>' : '')+'</div>';
+    }).join("");
+    return body ? '<div class="card"><div class="cap">'+sec.cap+'</div>'+body+'</div>' : "";
   }).join("") +
   '<div class="card"><div class="cap">Note · หมายเหตุ</div><div class="fld">'+
   '<textarea id="fNote" placeholder="เช่น สวิตช์ม่านทึบกดแล้วไม่ทำงาน / ตัดขอบสวยแต่สีผิดสเปก"></textarea></div></div>';
@@ -950,7 +1130,40 @@ function renderRoom(){
     };
   });
 
-  const v = judge(t, room, d);
+  /* ---- ช่องตัวเลข ---- */
+  $("formBox").querySelectorAll(".numrow").forEach(g=>{
+    const col = g.dataset.c, input = g.querySelector(".numin");
+    const f = fieldsOf(t).filter(x=> x.col === col)[0];
+    input.oninput = ()=>{ d.vals[col] = input.value; refreshVerdict(); };
+    input.onblur  = ()=> renderRoom();
+    g.querySelectorAll(".numbtn").forEach(b=> b.onclick = ()=>{
+      const step = +(f.step||1), cur = Number(d.vals[col]);
+      const next = Math.max(0, (isNaN(cur) ? 0 : cur) + step * +b.dataset.d);
+      d.vals[col] = String(next);
+      renderRoom();
+    });
+  });
+
+  /* ---- ผังประตู ---- */
+  $("formBox").querySelectorAll(".doorbox").forEach(g=>{
+    const col = g.dataset.c;
+    g.querySelector(".door").onclick = e=>{
+      const cell = e.target.closest(".dcell"); if(!cell) return;
+      const ids = doorIds(d.vals[col]), id = cell.dataset.id, i = ids.indexOf(id);
+      if(i >= 0) ids.splice(i,1); else ids.push(id);
+      d.vals[col] = doorText(ids);
+      renderRoom();
+    };
+    const clr = g.querySelector(".dclear");
+    if(clr) clr.onclick = ()=>{ d.vals[col] = ""; renderRoom(); };
+  });
+
+  refreshVerdict();
+}
+/* อัปเดตแถบผลล่างจอโดยไม่วาดฟอร์มใหม่ — ใช้ตอนกำลังพิมพ์ตัวเลขอยู่ */
+function refreshVerdict(){
+  const t = TOPIC[S.topic];
+  const v = judge(t, S.room, S.draft[t.id]);
   $("verdict").dataset.g = v.grade; $("vG").textContent = v.grade; $("vW").textContent = v.why;
   refreshSave();
 }
@@ -995,10 +1208,13 @@ $("btnSave").onclick = async ()=>{
     Object.assign(values, val(t.auto, S.room) || {});
     fieldsOf(t).forEach(f=>{
       if(f.access) values[f.col] = d.vals[f.col] || "";
-      else values[f.col] = off ? "-" : (d.vals[f.col] || "");
+      else if(off || !shown(f, d.vals)) values[f.col] = "-";
+      else values[f.col] = d.vals[f.col] || "";
     });
+    if(t.derive && !off) Object.assign(values, t.derive(d));
     values[t.grade] = v.grade;
-    return {topic:t.id, room:S.room, floor:floorOf(S.room), values:values, note:d.note};
+    return {topic:t.id, room:S.room, floor:floorOf(S.room), values:values, note:d.note,
+            defects: off ? [] : (v.bads||[]).concat(v.warns||[])};
   });
   const job = {inspector:S.inspector.trim(), date:S.date, entries:entries};
 
