@@ -165,6 +165,30 @@ const TOPICS = {
       'บัวขวา':   ['ติดเรียบร้อย', 'ไม่ได้ติดบัว']
     },
     warn: ['มีช่องรู']
+  },
+
+  bathgap: {
+    name: 'หลืบห้องน้ำ', en: 'Bathroom shadow gap', icon: '🚿',
+    sheet: 'Bathroom', was: [],
+    grade: 'ผลตรวจ',
+    /* คอลัมน์ที่หน้าเว็บรวมค่าให้เอง ไม่ใช่ตัวเลือกให้กด */
+    auto: ['แบบ shadow gap'],
+    cols: ['กระเบื้อง shadow gap', 'สี shadow gap', 'แบบ shadow gap',
+           'สีหลืบ exhaust air', ACCESS, 'ผลตรวจ'],
+    choices: {
+      'กระเบื้อง shadow gap': ['กระเบื้องสุดขอบ', 'กระเบื้องไม่สุดขอบ'],
+      'สี shadow gap':        ['ไม่ทาสี', 'ทาสีน้ำตาล', 'ทาสีขาว'],
+      'สีหลืบ exhaust air':   ['ทาสีลงมาผนัง', 'ทาสีไม่ลงมาผนัง']
+    },
+    /* หมวดเก็บข้อมูล — ยังไม่สรุปว่าแบบไหนคือแบบที่ถูก ทุกแบบจึงยังไม่นับเป็นข้อบกพร่อง
+       วันไหนสรุปได้ ให้เหลือเฉพาะแบบที่ถูกไว้ในสามบรรทัดนี้ แล้วลบ survey ออก
+       ที่เหลือจะกลายเป็นข้อบกพร่องเองทั้งในชีตและในหน้าสรุป */
+    survey: true,
+    good: {
+      'กระเบื้อง shadow gap': ['กระเบื้องสุดขอบ', 'กระเบื้องไม่สุดขอบ'],
+      'สี shadow gap':        ['ไม่ทาสี', 'ทาสีน้ำตาล', 'ทาสีขาว'],
+      'สีหลืบ exhaust air':   ['ทาสีลงมาผนัง', 'ทาสีไม่ลงมาผนัง']
+    }
   }
 
 };
@@ -609,6 +633,13 @@ function entryLines_(s) {
     lines.push('   เหตุผล: ' + (rec[ACCESS] || rec['หมายเหตุ'] || '-'));
     return lines;
   }
+  /* หมวดเก็บข้อมูล ยังไม่ตัดเกรด — บอกไปเลยว่าห้องนี้เป็นแบบไหน แทนคำว่าปกติทุกหัวข้อ */
+  if (t.survey) {
+    t.cols.filter(function (c) { return c !== t.grade && c !== ACCESS; })
+      .forEach(function (c) { if (rec[c] && rec[c] !== '-') lines.push('   • ' + c + ': ' + rec[c]); });
+    if (rec['หมายเหตุ']) lines.push('   หมายเหตุ: ' + rec['หมายเหตุ']);
+    return lines;
+  }
   /* หน้าเว็บส่งรายการจุดที่เสียมาให้แล้ว (รู้เกณฑ์ของช่องตัวเลขด้วย) ใช้อันนั้นก่อน */
   const bad = s.defects && s.defects.length !== undefined
     ? s.defects
@@ -664,6 +695,7 @@ function onOpen() {
     .addItem('อัปเดตหน้าสรุป', 'buildSummary')
     .addItem('ล้างข้อมูลทั้งห้อง (ทุกหมวดในครั้งเดียว)', 'clearRoom')
     .addItem('ตั้งค่าชีตทุกหมวด (จัดหน้าตา + ดรอปดาวน์ + สีเกรด)', 'setupSheet')
+    .addItem('ตัดเกรดใหม่จากข้อมูลเดิม (ใช้ตอนเปลี่ยนเกณฑ์)', 'regrade')
     .addItem('แปลงคำเก่าให้ตรงกับหน้าเว็บ', 'migrateLabels')
     .addItem('แปลงวันที่เป็นแบบไทย วัน/เดือน/ปี', 'migrateDates')
     .addItem('จัดรูปแบบทุกแถวให้เหมือนกัน', 'restyleAll')
@@ -689,7 +721,9 @@ const LOOK = {
   warn: { bg: '#FBEBD2', fg: '#8A5D14' },
   grid: '#D6DDE6',
   width: { 'วันที่ตรวจ': 96, 'ชั้น': 52, 'ห้อง': 62, 'หมายเหตุ': 230,
-           'ผู้ตรวจ': 92, 'บันทึกเมื่อ': 128 },
+           'ผู้ตรวจ': 92, 'บันทึกเมื่อ': 128,
+           'กระเบื้อง shadow gap': 156, 'สี shadow gap': 108,
+           'แบบ shadow gap': 232, 'สีหลืบ exhaust air': 152 },
   center: ['ชั้น', 'ห้อง', 'จำนวนจุดที่มีแสง', 'เวลาน้ำร้อน (วินาที)', 'เวลาแอร์เย็น (นาที)',
            'อุณหภูมิน้ำที่วัดได้ (°C)', 'อุณหภูมิที่ตั้งแอร์ (°C)', 'อุณหภูมิห้องที่วัดได้ (°C)']
 };
@@ -888,6 +922,84 @@ function clearRoom() {
   SpreadsheetApp.getActive().toast(
     'ลบแล้ว ' + n + ' แถว · อัปเดตหน้าสรุปให้แล้ว — หน้าเว็บจะตามภายในไม่เกินครึ่งนาที',
     'เช็คห้อง', 8);
+}
+
+/* =============== ตัดเกรดใหม่จากข้อมูลเดิม ===============
+   ช่องผลตรวจในชีตเก็บเกรดที่ตัดไว้ ณ ตอนกดบันทึก ถ้าวันหลังเปลี่ยนเกณฑ์
+   (เช่น หมวดเก็บข้อมูลอย่างหลืบห้องน้ำ สรุปได้แล้วว่าแบบไหนคือแบบที่ถูก)
+   แถวเก่ายังถือเกรดเดิมอยู่ เมนูนี้คิดเกรดใหม่จากค่าที่เก็บไว้แล้วในแต่ละแถว
+   จะได้ไม่ต้องเดินไล่กรอกใหม่ทุกห้อง                                        */
+
+/** เกรดที่ควรจะเป็นของแถวหนึ่ง คิดจากค่าที่เก็บไว้ ตามเกณฑ์ล่าสุดของหมวดนั้น
+ *  ใช้เกณฑ์ชุดเดียวกับที่ระบายสีในชีต — ค่าที่ไม่ใช่ค่าปกติ ถ้าอยู่ใน warn = เกือบผ่าน
+ *  ที่เหลือ = ไม่ผ่าน  ·  คืนค่าว่าง = ยังบอกไม่ได้ ให้ปล่อยเกรดเดิมไว้ */
+function gradeOfRow_(t, row) {
+  const acc = String(row[ACCESS] || '').trim();
+  if (!acc) return '';                                  /* แถวเก่าก่อนมีคอลัมน์นี้ ไม่แตะ */
+  if (acc !== ACCESS_CHOICES[0]) return 'ไม่ได้ตรวจ';
+  const warns = warnValues_(t);
+  let warn = false;
+  for (let i = 0; i < t.cols.length; i++) {
+    const c = t.cols[i];
+    if (c === t.grade || c === ACCESS || t.auto.indexOf(c) !== -1) continue;
+    const v = String(row[c] || '').trim();
+    if (!v || v === '-') continue;                      /* ช่องที่หมวดนี้ไม่ตรวจในห้องนั้น */
+    if (t.num && t.num[c]) {
+      const n = Number(v), spec = t.num[c];
+      if (isNaN(n)) continue;
+      if (spec.ok !== undefined) {
+        if (n > spec.warn) return 'ไม่ผ่าน';
+        if (n > spec.ok) warn = true;
+      } else {
+        if (n < spec.warnMin || n > spec.warnMax) return 'ไม่ผ่าน';
+        if (n < spec.min || n > spec.max) warn = true;
+      }
+      continue;
+    }
+    if (isGood_(t, c, v)) continue;
+    if (warns.indexOf(v) !== -1) warn = true;
+    else return 'ไม่ผ่าน';
+  }
+  return warn ? 'เกือบผ่าน' : 'ผ่าน';
+}
+
+/** เมนู: ตัดเกรดใหม่ทุกแถวทุกหมวด — บอกก่อนว่าจะเปลี่ยนกี่แถว แล้วค่อยยืนยัน */
+function regrade() {
+  const ui = SpreadsheetApp.getUi();
+  const plan = eachTopic_(function (t, sh, head) {
+    const iG = head.indexOf(t.grade);
+    const last = sh.getLastRow();
+    if (iG < 0 || last < 2) return { t: t, sh: sh, iG: iG, rows: [] };
+    const values = sh.getRange(2, 1, last - 1, head.length).getValues();
+    const rows = [];
+    values.forEach(function (r, i) {
+      if (String(r[head.indexOf('ห้อง')]).trim() === '') return;
+      const row = {};
+      head.forEach(function (h, j) { row[h] = cellText_(r[j], h); });
+      const want = gradeOfRow_(t, row);
+      if (want && want !== String(r[iG]).trim()) rows.push({ n: i + 2, from: String(r[iG]).trim(), to: want });
+    });
+    return { t: t, sh: sh, iG: iG, rows: rows };
+  });
+
+  const total = plan.reduce(function (a, p) { return a + p.rows.length; }, 0);
+  if (!total) { ui.alert('ทุกแถวตรงกับเกณฑ์ล่าสุดอยู่แล้ว ไม่มีอะไรต้องเปลี่ยน'); return; }
+
+  const detail = plan.filter(function (p) { return p.rows.length; }).map(function (p) {
+    return '• ' + p.t.icon + ' ' + p.t.name + ' — ' + p.rows.length + ' แถว';
+  });
+  const yes = ui.alert('ตัดเกรดใหม่จากข้อมูลเดิม',
+    'จะเขียนทับช่องผลตรวจ ' + total + ' แถว\n\n' + detail.join('\n') +
+    '\n\nคิดจากค่าที่กรอกไว้แล้วในแต่ละแถว ไม่แตะค่าอื่นในตาราง',
+    ui.ButtonSet.YES_NO);
+  if (yes !== ui.Button.YES) return;
+
+  plan.forEach(function (p) {
+    p.rows.forEach(function (r) { p.sh.getRange(r.n, p.iG + 1).setValue(r.to); });
+  });
+  buildSummary_();
+  SpreadsheetApp.getActive().toast(
+    'ตัดเกรดใหม่แล้ว ' + total + ' แถว · อัปเดตหน้าสรุปให้แล้ว', 'เช็คห้อง', 8);
 }
 
 /* แปลงค่าคำเก่าให้เป็นคำใหม่ ทุกหมวด ทุกคอลัมน์ที่มีตัวเลือก */
