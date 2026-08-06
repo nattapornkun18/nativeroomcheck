@@ -113,6 +113,19 @@
   .rbtn[data-g="ไม่ได้ตรวจ"] i{background:var(--skip)}
   .rbtn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
   .rbtn.off{background:#F1F4F8;color:#AEB8C4;border-style:dashed}
+
+  /* ---------- ผังชั้นแบบย่อ ----------
+     วางปุ่มห้องตามตำแหน่งจริงในแปลน ไม่ลงรายละเอียดห้อง เอาแค่แนวผนังกั้น
+     ช่องไฟระหว่างช่อง = แนวผนัง จึงไม่ต้องตีเส้นให้ซ้อนกันสองชั้น */
+  .plan{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:10px;
+    background:var(--line);border:3px solid #B9C4D0;border-radius:10px;padding:3px;overflow:hidden}
+  .plan .rbtn{height:54px;border:0;border-radius:0}
+  .plan .rbtn.off{background:#EAEFF4;box-shadow:inset 0 0 0 1px #D3DBE4}
+  /* แกนกลางอาคาร — ลิฟต์ บันไดหนีไฟ ห้องช่าง ไม่ใช่ห้องพัก กดไม่ได้ */
+  .plan .core{grid-column:2/4;grid-row:1/5;display:flex;align-items:center;justify-content:center;
+    text-align:center;font-size:10px;line-height:1.6;color:#8A97A6;background:#EDF1F5;
+    background-image:repeating-linear-gradient(45deg,transparent 0 5px,rgba(80,100,120,.06) 5px 10px)}
+  .plannote{font-size:11px;color:var(--mute);margin-top:8px;text-align:center}
   .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--mute);margin-top:10px}
   .legend span{display:flex;align-items:center;gap:4px}
   .legend b{width:7px;height:7px;border-radius:50%;display:block}
@@ -390,6 +403,7 @@
           <div class="floorjump" id="floorJump"></div>
         </div>
         <div class="grid" id="roomGrid"></div>
+        <div class="plannote hide" id="planNote">วางตามผังชั้น · มองจากด้านบน หัวอาคารอยู่บน</div>
         <div class="legend">
           <span><b style="background:var(--ok)"></b>ผ่าน</span>
           <span><b style="background:var(--warn)"></b>เกือบผ่าน</span>
@@ -542,6 +556,27 @@ const EX_PAINT_OPTS = [{v:"ทาสีลงมาผนัง",plain:1},{v:"�
 const ROOM_TYPE = {1:"grand corner",2:"deluxe twin",3:"deluxe king",4:"deluxe king",
   5:"deluxe king",6:"grand deluxe",7:"grand deluxe",8:"deluxe king",9:"deluxe king",
   10:"deluxe king",11:"deluxe twin",12:"grand corner"};
+
+/* ---- ผังชั้น: ห้องไหนอยู่ตรงไหนในแปลน ----
+   [คอลัมน์, แถว] ในกริด 4 คอลัมน์ × 5 แถว นับจากมุมซ้ายบน
+   คอลัมน์ 2–3 แถว 1–4 คือแกนกลางอาคาร (ลิฟต์ บันไดหนีไฟ ห้องช่าง) ไม่มีห้องพัก
+
+        06 ┃         ┃ 07        ← หัวอาคาร ห้องมุมบน
+        05 ┃  ลิฟต์   ┃ 08
+        04 ┃  บันได   ┃ 09
+        03 ┃  ช่าง    ┃ 10
+        01 ┃ 02 ┃ 11 ┃ 12        ← ท้ายอาคาร ห้องมุมล่างคือ 01 กับ 12
+
+   ชั้นไหนวางไม่เหมือนกัน แก้ตารางนี้ที่เดียว
+   ถ้าห้องไหนไม่มีในตาราง หน้าเว็บจะถอยไปใช้ตารางเรียงธรรมดาให้เอง */
+const PLAN = {
+  6:[1,1],  7:[4,1],
+  5:[1,2],  8:[4,2],
+  4:[1,3],  9:[4,3],
+  3:[1,4], 10:[4,4],
+  1:[1,5],  2:[2,5], 11:[3,5], 12:[4,5]
+};
+const CORE_TEXT = "ลิฟต์ · บันไดหนีไฟ<br>ห้องช่าง";
 
 /* ---- ประตู: จำนวนช่องรอบบาน นับซ้าย→ขวา และ บน→ล่าง ---- */
 const DOOR = {top:4, bottom:5, left:8, right:8};
@@ -1313,16 +1348,27 @@ function renderRooms(){
   $("floorJump").querySelectorAll("button").forEach(b=>
     b.onclick = ()=>{ S.floor = +b.dataset.f; renderRooms(); });
 
-  $("roomGrid").innerHTML = roomsOfFloor(S.floor).map(rn=>{
+  /* วางตามผังชั้นถ้ารู้ตำแหน่งครบทุกห้อง ไม่งั้นถอยไปใช้ตารางเรียงธรรมดา
+     ลำดับใน DOM ยังเป็น 01→12 เหมือนเดิม การกด Tab ไล่ห้องจึงยังเรียงตามเลขห้อง */
+  const rooms = roomsOfFloor(S.floor);
+  const usePlan = rooms.every(rn=> PLAN[unitOf(rn)]);
+  $("roomGrid").className = usePlan ? "plan" : "grid";
+  $("planNote").classList.toggle("hide", !usePlan);
+
+  const cells = rooms.map(rn=>{
+    const p = PLAN[unitOf(rn)];
+    const at = usePlan ? ' style="grid-column:'+p[0]+';grid-row:'+p[1]+'"' : '';
     if(!topicOn(t, rn))                       /* หมวดนี้ไม่ต้องตรวจห้องนี้ตามแบบ */
-      return '<button class="rbtn off" data-r="'+rn+'" title="ห้อง '+rn+
+      return '<button class="rbtn off" data-r="'+rn+'"'+at+' title="ห้อง '+rn+
         ' · ไม่มีหมวดนี้ตามแบบ"><i></i><div class="no">'+rn.slice(-2)+
         '</div><div class="st">ไม่มี</div></button>';
     const r = m[rn], g = r ? r[t.grade] : "";
-    return '<button class="rbtn" data-r="'+rn+'"'+(g?' data-g="'+g+'"':'')+
+    return '<button class="rbtn" data-r="'+rn+'"'+at+(g?' data-g="'+g+'"':'')+
       ' title="ห้อง '+rn+(r ? " · "+g+" · "+showDate(r["วันที่ตรวจ"]) : " · ยังไม่ตรวจ")+'">'+
       '<i></i><div class="no">'+rn.slice(-2)+'</div></button>';
-  }).join("");
+  });
+  if(usePlan) cells.push('<div class="core">'+CORE_TEXT+'</div>');
+  $("roomGrid").innerHTML = cells.join("");
   $("roomGrid").querySelectorAll(".rbtn").forEach(b=> b.onclick = ()=> openRoom(b.dataset.r));
   $("legNa").classList.toggle("hide", !t.na);
 }
