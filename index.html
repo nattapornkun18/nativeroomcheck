@@ -185,18 +185,18 @@
 
   /* ---------- ผังบัวใต้ซิงค์ ---------- */
   .art{padding:10px 12px 0;background:#F7F9FC;border-bottom:1px solid #EDF1F5}
-  .sink{width:100%;max-width:300px;display:block;margin:0 auto}
-  .sink .leg{fill:none;stroke:#DCB3AA;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
-  .sink .top{stroke:#C4CDD8;stroke-width:2;stroke-linecap:round}
-  .sink .floor{stroke:#C9D2DC;stroke-width:1.5;stroke-dasharray:5 4}
-  .sink .m{fill:none;stroke-width:6;stroke-linecap:round}
+  .sink{width:100%;max-width:320px;display:block;margin:0 auto}
+  .sink .post{fill:#9A7B4F}                       /* ขาไม้ */
+  .sink .m{fill:none;stroke-width:7;stroke-linecap:butt}   /* คิ้วบัว */
   .sink .m-idle{stroke:#E4EAF0}
   .sink .m-ok{stroke:var(--ok)}
   .sink .m-bad{stroke:var(--bad)}
-  .sink .m-none{stroke:#A9B5C3;stroke-width:3;stroke-dasharray:7 6}
+  .sink .m-none{stroke:#BFC9D5;stroke-width:3;stroke-dasharray:7 6}
+  .sink .miss{stroke:var(--bad);stroke-width:2;stroke-dasharray:3 3;opacity:.75}
+  .sink .gap{fill:none;stroke:#D3DAE3;stroke-width:2;stroke-linecap:round}  /* แนวผนังชนพื้น */
+  .sink .gap-on{stroke:var(--warn);stroke-width:5}
   .sink .lb{font-size:12px;fill:var(--mute)}
-  .sink .hole-on{fill:var(--warn)}
-  .sink .hole-off{fill:#fff;stroke:#C9D2DC;stroke-width:1.5}
+  .sink .lb.sm{font-size:10.5px;fill:#9AA7B6}
   .artleg{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;
     font-size:11px;color:var(--mute);padding:7px 0 9px}
   .artleg span{display:flex;align-items:center;gap:4px}
@@ -766,50 +766,66 @@ function doorSvg(ids, side){
     cells+'</svg>';
 }
 
-/* ---------- ผังบัวใต้ซิงค์ — วาดตามที่สเก็ตช์ไว้ ----------
-   เส้นชมพู = ขาไม้ใต้ซิงค์ (สอบออกสองข้าง)  เส้นหนา = คิ้วบัวที่ติดจริง
-   บัวที่ "ขอบไม่สุดขาไม้" วาดสั้นกว่าขาไม้ให้เห็นว่าเหลือปลายโล่ง
-   จุดกลม = ช่องรูระหว่างผนังกับพื้น ซ้าย · กลาง · ขวา                        */
+/* ---------- ผังบัวใต้ซิงค์ — วางตามสเก็ตช์หน้างาน ----------
+   แท่งน้ำตาลตั้งสองอัน = ขาไม้ · เส้นหนาที่เดินซ้าย–กลาง–ขวา = คิ้วบัว
+   เส้นบางด้านในที่ขนานไปกับบัว = แนวผนังชนพื้น จุดที่มีช่องรูจะเน้นสีให้
+   ช่วงที่ตอบว่า "ขอบบัวไม่สุดขาไม้" จะเว้นช่วงตรงโคนขาไม้ไว้
+   แล้ววาดเส้นประคาไว้ว่าตรงนั้นคือส่วนที่บัวเดินไปไม่ถึง                      */
+const MOLD_CUT = .17;                    /* สัดส่วนช่วงที่บัวขาดตรงโคนขาไม้ */
 const MOLD_SIDES = [
-  {key:"ซ้าย",  col:"บัวซ้าย",  gap:"ช่องรูซ้าย",  line:[92,34,48,112],  hole:62},
-  {key:"กลาง", col:"บัวกลาง", gap:"ช่องรูกลาง", line:[92,34,188,34], hole:140},
-  {key:"ขวา",   col:"บัวขวา",   gap:"ช่องรูขวา",   line:[188,34,232,112], hole:218}
+  {key:"ซ้าย",  col:"บัวซ้าย",  gapCol:"ช่องรูซ้าย",
+   line:[90,62,20,158],   gap:[95.6,73,28.9,164.5],  legs:[1,0]},
+  {key:"กลาง", col:"บัวกลาง", gapCol:"ช่องรูกลาง",
+   line:[90,62,210,62],   gap:[95.6,73,204.4,73],    legs:[1,1]},
+  {key:"ขวา",   col:"บัวขวา",   gapCol:"ช่องรูขวา",
+   line:[210,62,280,158], gap:[204.4,73,271.1,164.5], legs:[1,0]}
 ];
-/* เส้นบัวหนึ่งช่วง — frac<1 คือบัวสั้นกว่าขาไม้ */
-function moldPath(p, frac){
-  const x = p[0] + (p[2]-p[0])*frac, y = p[1] + (p[3]-p[1])*frac;
-  return "M"+p[0]+" "+p[1]+" L"+x.toFixed(1)+" "+y.toFixed(1);
+/* เส้นหนึ่งช่วง ตัดหัวตัดท้ายตามสัดส่วนที่สั่ง */
+function segPath(p, cutA, cutB){
+  const dx = p[2]-p[0], dy = p[3]-p[1];
+  const x1 = p[0]+dx*cutA,       y1 = p[1]+dy*cutA;
+  const x2 = p[0]+dx*(1-cutB),   y2 = p[1]+dy*(1-cutB);
+  return "M"+x1.toFixed(1)+" "+y1.toFixed(1)+" L"+x2.toFixed(1)+" "+y2.toFixed(1);
 }
 function sinkArt(room, vals){
   const none = gapOnlyRoom(room);
-  const segs = MOLD_SIDES.map(s=>{
+  let art = "";
+
+  MOLD_SIDES.forEach(s=>{
     const v = none ? "ไม่ได้ติดบัว" : String(vals[s.col]||"");
-    const cls = v === "ขอบบัวไม่สุดขาไม้" ? "m-bad"
-              : v === "ไม่ได้ติดบัว"      ? "m-none"
-              : v                          ? "m-ok" : "m-idle";
-    return '<path class="m '+cls+'" d="'+moldPath(s.line, v === "ขอบบัวไม่สุดขาไม้" ? .62 : 1)+
-      '"><title>บัว'+s.key+(v ? " · "+v : "")+'</title></path>';
-  }).join("");
-  const holes = MOLD_SIDES.map(s=>{
-    const on = vals[s.gap] === "มีช่องรู";
-    return '<circle class="'+(on ? "hole-on" : "hole-off")+'" cx="'+s.hole+'" cy="126" r="'+
-      (on ? 5.5 : 3.5)+'"><title>ช่องรู'+s.key+(on ? " · มีช่องรู" : "")+'</title></circle>';
-  }).join("");
-  return '<svg class="sink" viewBox="0 0 280 140" role="img" aria-label="ผังคิ้วบัวใต้ซิงค์">'+
-      '<path class="top" d="M74 10 H206"/>'+
-      '<path class="leg" d="M92 10 V34 L48 112 M188 10 V34 L232 112 M92 34 H188"/>'+
-      segs +
-      '<path class="floor" d="M34 126 H246"/>'+ holes +
-      '<text class="lb" x="20" y="90">ซ้าย</text>'+
-      '<text class="lb" x="140" y="26" text-anchor="middle">กลาง</text>'+
-      '<text class="lb" x="260" y="90" text-anchor="end">ขวา</text>'+
+    const short = v === "ขอบบัวไม่สุดขาไม้";
+    const cls = short ? "m-bad" : v === "ไม่ได้ติดบัว" ? "m-none" : v ? "m-ok" : "m-idle";
+    const cutA = short && s.legs[0] ? MOLD_CUT : 0;
+    const cutB = short && s.legs[1] ? MOLD_CUT : 0;
+    /* ช่วงที่บัวเดินไปไม่ถึงขาไม้ — เส้นประบอกว่าตรงนี้ควรมีบัวแต่ยังไม่มี */
+    if(cutA) art += '<path class="m miss" d="'+segPath(s.line, 0, 1-cutA)+'"/>';
+    if(cutB) art += '<path class="m miss" d="'+segPath(s.line, 1-cutB, 0)+'"/>';
+    art += '<path class="m '+cls+'" d="'+segPath(s.line, cutA, cutB)+
+      '"><title>บัว'+s.key+(v ? " · "+v : " · ยังไม่ได้กรอก")+'</title></path>';
+  });
+
+  MOLD_SIDES.forEach(s=>{
+    const on = vals[s.gapCol] === "มีช่องรู";
+    art += '<path class="gap'+(on ? " gap-on" : "")+'" d="'+segPath(s.gap, 0, 0)+
+      '"><title>ผนังชนพื้นช่วง'+s.key+(on ? " · มีช่องรู" : "")+'</title></path>';
+  });
+
+  return '<svg class="sink" viewBox="0 0 300 178" role="img" aria-label="ผังคิ้วบัวใต้ซิงค์">'+
+      art +
+      '<rect class="post" x="85" y="4" width="10" height="66" rx="2"><title>ขาไม้</title></rect>'+
+      '<rect class="post" x="205" y="4" width="10" height="66" rx="2"><title>ขาไม้</title></rect>'+
+      '<text class="lb sm" x="150" y="22" text-anchor="middle">ขาไม้</text>'+
+      '<text class="lb" x="150" y="50" text-anchor="middle">กลาง</text>'+
+      '<text class="lb" x="34" y="98" text-anchor="middle">ซ้าย</text>'+
+      '<text class="lb" x="266" y="98" text-anchor="middle">ขวา</text>'+
     '</svg>'+
     '<div class="artleg">'+
       (none ? '<span>ห้องนี้ตามแบบไม่มีบัว — ตรวจแค่ช่องรู</span>'
-            : '<span><b style="background:var(--ok)"></b>ติดเรียบร้อย</span>'+
+            : '<span><b style="background:var(--ok)"></b>บัวติดเรียบร้อย</span>'+
               '<span><b style="background:var(--bad)"></b>ขอบไม่สุดขาไม้</span>'+
-              '<span><b style="background:#BFC9D5"></b>ไม่ได้ติด</span>')+
-      '<span><b class="dot" style="background:var(--warn)"></b>ช่องรูผนัง–พื้น</span></div>';
+              '<span><b style="background:#BFC9D5"></b>ไม่ได้ติดบัว</span>')+
+      '<span><b style="background:var(--warn)"></b>ช่องรูผนัง–พื้น</span>'+
+      '<span><b style="background:#9A7B4F"></b>ขาไม้</span></div>';
 }
 
 /* ให้คะแนนหนึ่งหัวข้อ — คืน null ถ้ายังไม่ได้กรอก */
