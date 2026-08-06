@@ -414,7 +414,7 @@
       <tbody id="floorBody"></tbody>
     </table></div>
 
-    <div class="sechead">แยกตามข้อบกพร่อง</div>
+    <div class="sechead" id="defectHead">แยกตามข้อบกพร่อง</div>
     <div class="card"><table><tbody id="defectBody"></tbody></table></div>
 
     <div class="sechead">ห้องที่ต้องกลับไปแก้</div>
@@ -530,6 +530,15 @@ const MOLD_GAP  = ["02","11"];    /* ไม่มีบัวตามแบบ 
    ถ้าวันหลังอยากให้ห้องที่ไม่ได้ติดขึ้นเป็นของที่ต้องแก้ ใส่ bad:1 แทน plain:1 */
 const MOLD_OPTS = [{v:"ติดเรียบร้อย"},{v:"ขอบบัวไม่สุดขาไม้",bad:1},{v:"ไม่ได้ติดบัว",plain:1}];
 const GAP_OPTS  = [{v:"ไม่มีช่องรู"},{v:"มีช่องรู",warn:1}];
+/* ---- หลืบห้องน้ำ: หมวดเก็บข้อมูล ยังไม่ตัดเกรด ----
+   หน้างานทำมาไม่เหมือนกันทุกห้อง และยังไม่สรุปว่าแบบไหนคือแบบที่ถูก
+   จึงให้ทุกตัวเลือกเป็น plain (สีกลาง ไม่นับเป็นข้อบกพร่อง) เก็บไว้ก่อนว่าห้องไหนเป็นแบบไหน
+   วันไหนสรุปได้ว่าแบบไหนถูก ให้เอา plain:1 ออกจากตัวเลือกที่ถูก แล้วใส่ bad:1 ให้ตัวที่เหลือ
+   ตรงนี้ที่เดียว แล้วลบ survey:true ของหมวดออก หน้าเว็บจะเริ่มตัดเกรดให้เอง */
+const SG_TILE_OPTS  = [{v:"กระเบื้องสุดขอบ",plain:1},{v:"กระเบื้องไม่สุดขอบ",plain:1}];
+const SG_PAINT_OPTS = [{v:"ไม่ทาสี",plain:1},{v:"ทาสีน้ำตาล",plain:1},{v:"ทาสีขาว",plain:1}];
+const EX_PAINT_OPTS = [{v:"ทาสีลงมาผนัง",plain:1},{v:"ทาสีไม่ลงมาผนัง",plain:1}];
+
 const ROOM_TYPE = {1:"grand corner",2:"deluxe twin",3:"deluxe king",4:"deluxe king",
   5:"deluxe king",6:"grand deluxe",7:"grand deluxe",8:"deluxe king",9:"deluxe king",
   10:"deluxe king",11:"deluxe twin",12:"grand corner"};
@@ -687,6 +696,31 @@ const TOPICS = [
          : "ก้มดูแนวผนังชนพื้นใต้ซิงค์ ทั้งสามช่วง"},
       {col:"ช่องรูกลาง", label:"ช่องรูช่วงกลาง", en:"middle", opts:GAP_OPTS},
       {col:"ช่องรูขวา", label:"ช่องรูฝั่งขวา", en:"right", opts:GAP_OPTS}
+    ]}
+  ]
+},
+{
+  id:"bathgap", name:"หลืบห้องน้ำ", en:"Bathroom shadow gap", icon:"🚿", grade:"ผลตรวจ",
+  /* หมวดเก็บข้อมูล ยังไม่ตัดเกรด — ทุกแบบยังถือว่าใช้ได้จนกว่าจะสรุปว่าแบบไหนคือแบบที่ถูก
+     survey:true ทำสามอย่าง: ซ่อนปุ่ม "ทั้งหมดปกติ" · หน้าสรุปนับเป็นรูปแบบแทนข้อบกพร่อง
+     · ตารางบันทึกแล้วโชว์ทุกคอลัมน์ให้เห็นว่าห้องไหนเป็นแบบไหน */
+  survey: true,
+  /* สองช่องแรกรวมกันเป็นแบบเดียว เก็บลงชีตอีกคอลัมน์ไว้นับว่าแบบไหนเจอกี่ห้อง */
+  derive: d => ({ "แบบ shadow gap":
+    (d.vals["กระเบื้อง shadow gap"] && d.vals["สี shadow gap"])
+      ? d.vals["กระเบื้อง shadow gap"] + " + " + d.vals["สี shadow gap"] : "" }),
+  sections:[
+    {cap:"Shadow gap · ร่องหลืบขอบผนังห้องน้ำ", fields:[
+      {col:"กระเบื้อง shadow gap", label:"แนวกระเบื้องเดินถึงขอบร่องไหม", en:"tile", plain:true,
+       opts:SG_TILE_OPTS,
+       hint:"ยังไม่สรุปว่าแบบไหนคือแบบที่ถูก — ตอบตามที่เห็นจริงในห้องนี้ ยังไม่ตัดเกรด"},
+      {col:"สี shadow gap", label:"ในร่องทาสีไหม สีอะไร", en:"paint", plain:true,
+       opts:SG_PAINT_OPTS}
+    ]},
+    {cap:"Exhaust air · ช่องหลืบพัดลมดูดอากาศ", fields:[
+      {col:"สีหลืบ exhaust air", label:"สีในหลืบทาลงมาถึงผนังไหม", en:"paint", plain:true,
+       opts:EX_PAINT_OPTS,
+       hint:"ดูรอยต่อหลืบกับผนังกระเบื้อง ว่าสีจบที่ในหลืบ หรือทาลงมาบนผนังด้วย"}
     ]}
   ]
 }
@@ -1081,7 +1115,10 @@ function judge(t, room, d){
   if(bads.length)  return {grade:"ไม่ผ่าน",   why:bads.join(" · "), bads:bads, warns:warns};
   if(warns.length) return {grade:"เกือบผ่าน", why:warns.join(" · ")+
     " — แก้เฉพาะจุดได้ ไม่ต้องรื้อทั้งชุด", bads:bads, warns:warns};
-  return {grade:"ผ่าน", why:"ไม่พบข้อบกพร่อง", bads:[], warns:[]};
+  /* หมวดเก็บข้อมูล: กรอกครบ = เก็บแล้ว ไม่ได้แปลว่าห้องนี้ทำถูก */
+  return {grade:"ผ่าน", bads:[], warns:[],
+    why: t.survey ? "เก็บข้อมูลแล้ว — หมวดนี้ยังไม่ตัดเกรด รอสรุปว่าแบบไหนคือแบบที่ถูก"
+                  : "ไม่พบข้อบกพร่อง"};
 }
 
 /** หมวดนี้ถูกแก้จากตอนเปิดห้องไหม */
@@ -1322,7 +1359,8 @@ function renderRoom(){
 
   /* ฟอร์มของหมวดที่เลือก */
   const off = d.vals[ACCESS] && d.vals[ACCESS] !== "เข้าตรวจได้";
-  $("btnAllOk").classList.toggle("hide", !!off || !hasChoices(t) || VIEW_ONLY);
+  /* หมวดเก็บข้อมูลไม่มี "ค่าปกติ" ให้เติมล่วงหน้า ต้องดูของจริงทุกห้อง — ซ่อนปุ่มลัดไว้ */
+  $("btnAllOk").classList.toggle("hide", !!off || !hasChoices(t) || t.survey || VIEW_ONLY);
   $("formBox").innerHTML = t.sections.map(sec=>{
     const isAccess = sec.fields.length===1 && sec.fields[0].access;
     if(off && !isAccess) return "";
@@ -1522,7 +1560,8 @@ function renderSum(){
   const tot = totalOf(t);
   $("progressTxt").textContent = "ตรวจแล้ว "+rooms.length+" จาก "+tot+" ห้อง ("+
     (rooms.length/tot*100).toFixed(1)+"%) · เหลืออีก "+(tot-rooms.length)+" ห้อง"+
-    (t.naNote ? " · "+t.naNote : "");
+    (t.naNote ? " · "+t.naNote : "")+
+    (t.survey ? " · หมวดนี้ยังไม่ตัดเกรด เก็บไว้ดูก่อนว่าแบบไหนเจอกี่ห้อง" : "");
 
   $("floorBody").innerHTML = FLOORS.map(f=>{
     const app = roomsOfFloor(f).filter(rn=> topicOn(t, rn));
@@ -1538,17 +1577,39 @@ function renderSum(){
       '<td><div class="minibar">'+seg+'</div></td></tr>';
   }).join("") || '<tr><td class="empty">ยังไม่มีข้อมูล</td></tr>';
 
-  /* ข้อบกพร่อง: นับตามหัวข้อว่ามีกี่ห้องที่ค่าไม่ใช่ค่าปกติของห้องนั้น */
-  const defects = scoreOf(t).filter(f=>!f.plain).map(f=>{
-    const hit = rooms.filter(rn=> notGood(f, rn, m[rn][f.col]));
-    return [f.col, hit.length];
-  }).filter(d=> d[1] > 0).sort((a,b)=> b[1]-a[1]);
+  /* หมวดปกติ: นับตามหัวข้อว่ามีกี่ห้องที่ค่าไม่ใช่ค่าปกติของห้องนั้น
+     หมวดเก็บข้อมูล (survey): ยังไม่มีค่าปกติให้เทียบ จึงนับว่าแบบไหนเจอกี่ห้องแทน */
+  let defects;
+  if(t.survey){
+    defects = [];
+    /* คอลัมน์ที่รวมคำตอบหลายช่องเป็นแบบเดียว ขึ้นก่อน — เป็นตัวที่ใช้ตัดสินใจจริง ๆ
+       ว่าหน้างานทำมากี่แบบ แบบไหนเจอบ่อยสุด */
+    if(t.derive) Object.keys(t.derive({vals:{}})).forEach(col=>{
+      const seen = {};
+      rooms.forEach(rn=>{ const v = String(m[rn][col]||"").trim();
+        if(v && v !== "-") seen[v] = (seen[v]||0) + 1; });
+      Object.keys(seen).sort((a,b)=> seen[b]-seen[a])
+        .forEach(v=> defects.push([col+" · "+v, seen[v]]));
+    });
+    scoreOf(t).filter(f=> !f.type).forEach(f=>{
+      optsOf(f, rooms[0] || ALL_ROOMS[0]).forEach(o=>{
+        const n = rooms.filter(rn=> String(m[rn][f.col]||"").trim() === o.v).length;
+        if(n) defects.push([f.col+" · "+o.v, n]);
+      });
+    });
+  } else {
+    defects = scoreOf(t).filter(f=>!f.plain).map(f=>{
+      const hit = rooms.filter(rn=> notGood(f, rn, m[rn][f.col]));
+      return [f.col, hit.length];
+    }).filter(d=> d[1] > 0).sort((a,b)=> b[1]-a[1]);
+  }
   if(c["ไม่ได้ตรวจ"]) defects.push(["เข้าห้องไม่ได้", c["ไม่ได้ตรวจ"]]);
+  $("defectHead").textContent = t.survey ? "แยกตามแบบที่เจอหน้างาน" : "แยกตามข้อบกพร่อง";
   const mx = defects.length ? Math.max.apply(null, defects.map(d=>d[1])) : 1;
   $("defectBody").innerHTML = defects.map(([l,n])=>
     '<tr><td>'+l+'</td><td style="width:45%"><div class="minibar"><i style="width:'+
     (n/mx*100)+'%;background:#14605A"></i></div></td><td class="n">'+n+'</td></tr>').join("")
-    || '<tr><td class="empty">ยังไม่พบข้อบกพร่อง</td></tr>';
+    || '<tr><td class="empty">'+(t.survey ? "ยังไม่มีข้อมูล" : "ยังไม่พบข้อบกพร่อง")+'</td></tr>';
 
   const fix = rooms.filter(rn=> m[rn][t.grade]==="ไม่ผ่าน" || m[rn][t.grade]==="เกือบผ่าน").sort();
   $("fixBody").innerHTML = fix.length ? fix.map(rn=>{
@@ -1565,7 +1626,8 @@ function renderSum(){
 /* ---------- บันทึกแล้ว ---------- */
 function renderLog(){
   const t = TOPIC[S.topic], m = S.latest[t.id] || {};
-  const cols = scoreOf(t).filter(f=>!f.plain).map(f=>f.col);
+  /* หมวดเก็บข้อมูลต้องเห็นทุกช่อง เพราะทั้งหมวดเป็นช่องที่ยังไม่ตัดเกรด */
+  const cols = scoreOf(t).filter(f=> t.survey || !f.plain).map(f=>f.col);
   $("logHead").innerHTML = '<th>ห้อง</th>' + cols.map(c=>'<th>'+c+'</th>').join("") +
     '<th>'+t.grade+'</th><th>วันที่</th><th>ผู้ตรวจ</th>';
 
@@ -1582,7 +1644,9 @@ function renderLog(){
         cols.map(col=>{
           const f = scoreOf(t).filter(x=> x.col === col)[0];
           const v = String(r[col]||"").trim() || "-";
-          return '<td class="'+(v==="-" ? "na" : (notGood(f, rn, v) ? "no" : "ok"))+'">'+v+'</td>';
+          /* ช่องที่ไม่ตัดเกรดปล่อยสีกลาง — เขียวจะอ่านเหมือนว่าห้องนี้ทำถูก ทั้งที่ยังไม่ได้ตัดสิน */
+          const cls = v==="-" ? "na" : (f && f.plain) ? "" : (notGood(f, rn, v) ? "no" : "ok");
+          return '<td class="'+cls+'">'+v+'</td>';
         }).join("") +
         '<td><span class="badge" data-g="'+r[t.grade]+'">'+(r[t.grade]||"")+'</span></td>'+
         '<td>'+showDate(r["วันที่ตรวจ"])+'</td><td>'+(r["ผู้ตรวจ"]||"")+'</td></tr>';
