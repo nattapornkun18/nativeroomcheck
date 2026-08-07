@@ -537,6 +537,10 @@ const VIEW_ONLY = /[?&](view|ro)(=|&|$)/.test(location.search);
 
 const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
 const TOP_ONLY = ["01","12"];      /* ท้ายเลขห้องที่ซิลิโคนยิงเฉพาะขอบบนตามแบบ */
+/* ห้องที่ยังไม่ได้ยิงซิลิโคน = ยังไม่มีงานให้ตรวจคุณภาพ
+   ซ่อนหัวข้อที่เหลือให้หมด จะได้กดบันทึกได้เลยโดยไม่ต้องกรอกอะไรต่อ */
+const NOT_SHOT = "ยังไม่ได้ยิง";
+const shotYet  = v => v["ขอบเขตงาน"] !== NOT_SHOT && v["สีที่ใช้"] !== NOT_SHOT;
 
 /* ---- คิ้วบัวใต้ซิงค์: ห้องมุมไม่มีบัวเลย ห้องทวินมีแต่เรื่องช่องรู ---- */
 const MOLD_NONE = ["01","12"];    /* ไม่ต้องมีเรคคอร์ดหมวดบัวเลย */
@@ -649,23 +653,27 @@ const TOPICS = [
     {cap:"Scope · ขอบเขตที่ยิง", fields:[
       {col:"ขอบเขตงาน",
        label: r => isTopOnly(r) ? "ห้องนี้ตามแบบยิงแค่ขอบบน" : "ห้องนี้ตามแบบยิงครบทุกด้าน",
+       hint: "ถ้าห้องนี้"+NOT_SHOT+" กดปุ่มนั้นแล้วบันทึกได้เลย ไม่ต้องกรอกหัวข้อคุณภาพ",
        opts: r => isTopOnly(r)
-         ? [{v:"ยิงขอบบนแค่ขอบบน (01&12)"},{v:"ยิงด้านข้างมาด้วย",bad:1},{v:"ยังไม่ได้ยิง",bad:1}]
-         : [{v:"ยิงครบทุกด้าน"},{v:"ยิงไม่ครบสามด้าน",bad:1},{v:"ยังไม่ได้ยิง",bad:1}]}
+         ? [{v:"ยิงขอบบนแค่ขอบบน (01&12)"},{v:"ยิงด้านข้างมาด้วย",bad:1},{v:NOT_SHOT,bad:1}]
+         : [{v:"ยิงครบทุกด้าน"},{v:"ยิงไม่ครบสามด้าน",bad:1},{v:NOT_SHOT,bad:1}]}
     ]},
-    {cap:"Quality · คุณภาพงาน", fields:[
+    {cap:"Quality · คุณภาพงาน",
+     skip: v => shotYet(v) ? "" : NOT_SHOT+" — ยังไม่มีงานให้ตรวจคุณภาพ กดบันทึกได้เลย",
+     fields:[
       {col:"สีที่ใช้", label:"สีที่ใช้", en:"สเปกคือแมตช์",
-       opts:[{v:"แมตช์"},{v:"เงา",bad:1},{v:"ยังไม่ได้ยิง",bad:1}]},
-      {col:"ระยะขอบ", label:"ระยะขอบ",
+       showIf: v => v["ขอบเขตงาน"] !== NOT_SHOT,
+       opts:[{v:"แมตช์"},{v:"เงา",bad:1},{v:NOT_SHOT,bad:1}]},
+      {col:"ระยะขอบ", label:"ระยะขอบ", showIf:shotYet,
        opts:[{v:"เท่ากันทุกด้าน"},{v:"มีด้านใดด้านหนึ่งหนากว่าผิดปกติ",bad:1}]},
-      {col:"ตัดขอบ", label:"ตัดขอบ",
+      {col:"ตัดขอบ", label:"ตัดขอบ", showIf:shotYet,
        opts:[{v:"เรียบร้อย"},{v:"เก็บไม่เรียบฝั่งซ้าย",bad:1},{v:"เก็บไม่เรียบฝั่งขวา",bad:1},
              {v:"เก็บไม่เรียบรอบด้าน",bad:1}]},
-      {col:"ฟองอากาศ", label:"ฟองอากาศ",
+      {col:"ฟองอากาศ", label:"ฟองอากาศ", showIf:shotYet,
        opts:[{v:"ไม่พบ"},{v:"มี 1 จุด",warn:1},{v:"มีหลายจุด",warn:1}]},
-      {col:"กินผนัง", label:"กินผนัง", en:"ฝั่งหน้าหิน",
+      {col:"กินผนัง", label:"กินผนัง", en:"ฝั่งหน้าหิน", showIf:shotYet,
        opts:[{v:"ไม่พบ"},{v:"ฝั่งซ้าย",bad:1},{v:"ฝั่งขวา",bad:1},{v:"สองฝั่ง",bad:1}]},
-      {col:"สภาพผนัง", label:"สภาพผนัง",
+      {col:"สภาพผนัง", label:"สภาพผนัง", showIf:shotYet,
        opts:[{v:"ปกติ"},{v:"ถลอก - ต้องแตะสี",warn:1}]}
     ]}
   ]
@@ -1518,8 +1526,14 @@ function renderRoom(){
       return '<div class="fld">'+head+body+(hint ? '<div class="hint">'+hint+'</div>' : '')+'</div>';
     }).join("");
     const art = sec.art ? sec.art(room, d.vals) : "";
-    return body ? '<div class="card"><div class="cap">'+sec.cap+'</div>'+
-      (art ? '<div class="art">'+art+'</div>' : '')+body+'</div>' : "";
+    /* ทุกหัวข้อในบล็อกถูกซ่อน — บอกเหตุผลไว้ ไม่งั้นดูเหมือนฟอร์มหาย */
+    if(!body){
+      const skip = sec.skip ? sec.skip(d.vals, room) : "";
+      return skip ? '<div class="card"><div class="cap">'+sec.cap+'</div>'+
+        '<div class="fld"><div class="hint">'+skip+'</div></div></div>' : "";
+    }
+    return '<div class="card"><div class="cap">'+sec.cap+'</div>'+
+      (art ? '<div class="art">'+art+'</div>' : '')+body+'</div>';
   }).join("") +
   '<div class="card"><div class="cap">Note · หมายเหตุ</div><div class="fld">'+
   '<textarea id="fNote" placeholder="เช่น สวิตช์ม่านทึบกดแล้วไม่ทำงาน / ตัดขอบสวยแต่สีผิดสเปก"></textarea></div></div>';
