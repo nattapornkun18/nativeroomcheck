@@ -106,11 +106,12 @@
     border-radius:8px;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink-2);padding:0}
   .rbtn .no{font-family:var(--mono);font-size:14px;font-weight:600;line-height:1;color:inherit}
   .rbtn .st{font-size:9px;color:var(--mute);font-family:var(--sans);line-height:1.2;margin-top:2px}
-  .rbtn i{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:transparent}
-  .rbtn[data-g="ผ่าน"] i{background:var(--ok)}
-  .rbtn[data-g="เกือบผ่าน"] i{background:var(--warn)}
-  .rbtn[data-g="ไม่ผ่าน"] i{background:var(--bad)}
-  .rbtn[data-g="ไม่ได้ตรวจ"] i{background:var(--skip)}
+  /* ห้องที่ตรวจแล้วระบายสีสถานะทึบทั้งช่อง — กวาดตาทีเดียวเห็นทั้งชั้นว่าเหลือห้องไหน */
+  .rbtn[data-g]{color:#fff;border-color:transparent}
+  .rbtn[data-g="ผ่าน"]{background:var(--ok)}
+  .rbtn[data-g="เกือบผ่าน"]{background:var(--warn)}
+  .rbtn[data-g="ไม่ผ่าน"]{background:var(--bad)}
+  .rbtn[data-g="ไม่ได้ตรวจ"]{background:var(--skip)}
   .rbtn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
   .rbtn.off{background:#F1F4F8;color:#AEB8C4;border-style:dashed}
 
@@ -1360,12 +1361,12 @@ function renderRooms(){
     const at = usePlan ? ' style="grid-column:'+p[0]+';grid-row:'+p[1]+'"' : '';
     if(!topicOn(t, rn))                       /* หมวดนี้ไม่ต้องตรวจห้องนี้ตามแบบ */
       return '<button class="rbtn off" data-r="'+rn+'"'+at+' title="ห้อง '+rn+
-        ' · ไม่มีหมวดนี้ตามแบบ"><i></i><div class="no">'+rn.slice(-2)+
+        ' · ไม่มีหมวดนี้ตามแบบ"><div class="no">'+rn.slice(-2)+
         '</div><div class="st">ไม่มี</div></button>';
     const r = m[rn], g = r ? r[t.grade] : "";
     return '<button class="rbtn" data-r="'+rn+'"'+at+(g?' data-g="'+g+'"':'')+
       ' title="ห้อง '+rn+(r ? " · "+g+" · "+showDate(r["วันที่ตรวจ"]) : " · ยังไม่ตรวจ")+'">'+
-      '<i></i><div class="no">'+rn.slice(-2)+'</div></button>';
+      '<div class="no">'+rn.slice(-2)+'</div></button>';
   });
   if(usePlan) cells.push('<div class="core">'+CORE_TEXT+'</div>');
   $("roomGrid").innerHTML = cells.join("");
