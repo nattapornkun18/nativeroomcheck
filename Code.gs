@@ -329,6 +329,19 @@ function json_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+/*  จำคำตอบของการบันทึกที่สำเร็จไว้ 6 ชั่วโมง (เพดานของ CacheService)
+    ใช้กันการบันทึกซ้ำเวลาหน้าเว็บส่งก้อนเดิมมาใหม่เพราะไม่ได้รับคำตอบครั้งแรก  */
+function doneReply_(reqId) {
+  if (!reqId) return null;
+  try { return CacheService.getScriptCache().get('req:' + reqId); }
+  catch (err) { return null; }
+}
+function keepReply_(reqId, obj) {
+  if (!reqId) return;
+  try { CacheService.getScriptCache().put('req:' + reqId, JSON.stringify(obj), 21600); }
+  catch (err) { console.error('จำ reqId ไม่ได้: ' + err); }
+}
+
 /** ค่าที่อ่านจากชีตอาจกลับมาเป็น Date — ส่งให้หน้าเว็บเป็นข้อความที่อ่านออกเสมอ */
 function cellText_(v, col) {
   if (v === '' || v === null || v === undefined) return '';
@@ -419,6 +432,16 @@ function doGet(e) {
  *   ยังรับแบบเก่า (form-urlencoded หนึ่งแถวของหมวดซิลิโคน) ได้เหมือนเดิม
  */
 function doPost(e) {
+  /*  เน็ตหลุดตอนรอคำตอบ หน้าเว็บจะส่งก้อนเดิมมาใหม่พร้อม reqId เดิม
+      ถ้าก้อนนี้เคยบันทึกไปแล้ว ตอบคำตอบเดิมกลับไปเฉย ๆ จะได้ไม่มีแถวซ้ำและไม่ยิงไลน์ซ้ำ  */
+  let body;
+  try { body = parseBody_(e); }
+  catch (err) { return json_({ ok: false, error: 'อ่านข้อมูลที่ส่งมาไม่ได้: ' + err }); }
+  const reqId = String(body.reqId || '');
+  const cached = doneReply_(reqId);
+  if (cached) return ContentService.createTextOutput(cached)
+    .setMimeType(ContentService.MimeType.JSON);
+
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
@@ -426,7 +449,11 @@ function doPost(e) {
     return json_({ ok: false, error: 'ชีตกำลังถูกเขียนอยู่ ลองใหม่อีกครั้ง' });
   }
   try {
-    const body = parseBody_(e);
+    /* ก้อนเดิมอาจกำลังเขียนอยู่ตอนที่เราเข้าคิว — พอได้ล็อกแล้วเช็คซ้ำอีกที */
+    const again = doneReply_(reqId);
+    if (again) return ContentService.createTextOutput(again)
+      .setMimeType(ContentService.MimeType.JSON);
+
     if (!authed_(body)) return json_({ ok: false, error: 'unauthorized' });
 
     const entries = body.entries || [];
@@ -467,9 +494,11 @@ function doPost(e) {
     notifySave_(saved, body);
     try { buildSummary_(); } catch (err) { console.error('อัปเดตหน้าสรุปไม่สำเร็จ: ' + err); }
 
-    return json_({ ok: true, saved: saved.map(function (s) {
+    const out = { ok: true, saved: saved.map(function (s) {
       return { topic: s.topic, room: s.room, grade: s.rec[s.t.grade] || '' };
-    }) });
+    }) };
+    keepReply_(reqId, out);
+    return json_(out);
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   } finally {

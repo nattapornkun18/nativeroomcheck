@@ -968,6 +968,7 @@ const S = {
 let cfg = {url:API_URL, token:API_TOKEN};
 let outbox = [], syncState = "off", syncMsg = "";
 let unlocked = false, pinBuf = "", flushing = false, pulling = false, pollTimer = null;
+let failStreak = 0, retryTimer = null;
 
 const LS = {
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
@@ -1000,6 +1001,56 @@ function setSync(state, msg){
     : state==="err"  ? (outbox.length ? "ค้าง "+outbox.length : "ต่อไม่ติด")
     : "ชีตซิงก์แล้ว";
   chip.title = msg || "แตะเพื่อตั้งค่าการเชื่อมต่อ";
+  if(state === "ok" || state === "off") clearRetry();
+}
+
+/* Apps Script ตื่นจากหลับใช้เวลาหลายวินาที ให้เวลามันหน่อย แต่ต้องมีเพดาน
+   ไม่งั้น fetch ค้างยาวจนแอปดูเหมือนแฮงก์ตอนเน็ตมือถือหลุดกลางคัน */
+const T_GET = 20000, T_POST = 45000;
+const sleep = ms => new Promise(r=> setTimeout(r, ms));
+const uid = ()=> Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,10);
+
+/* ผิดพลาดแบบ "ลองใหม่แล้วน่าจะหาย" (เน็ตสะดุด/หมดเวลา/เซิร์ฟเวอร์ยุ่ง)
+   ต่างจากผิดพลาดแบบตอบมาชัด ๆ ว่ารหัสผิด ซึ่งลองกี่ครั้งก็เหมือนเดิม */
+function softErr(msg){ const e = new Error(msg); e.soft = true; return e; }
+
+async function apiFetch(url, opts, ms){
+  const ac = new AbortController();
+  const timer = setTimeout(()=> ac.abort(), ms);
+  let r;
+  try{
+    r = await fetch(url, Object.assign({redirect:"follow", signal:ac.signal}, opts));
+  }catch(e){
+    throw softErr(ac.signal.aborted ? "เซิร์ฟเวอร์ตอบช้าเกินไป" : "ต่อเซิร์ฟเวอร์ไม่ได้");
+  }finally{ clearTimeout(timer); }
+
+  const text = await r.text().catch(()=> "");
+  let j = null;
+  try{ j = JSON.parse(text); }catch(e){}
+  if(!j){
+    /* ได้ HTML แทน JSON เกือบทุกครั้งแปลว่า deploy ไม่ได้เปิดให้ Anyone เข้าถึง
+       Google เลยเด้งไปหน้าล็อกอินแทนที่จะตอบข้อมูล */
+    if(/^\s*</.test(text))
+      throw new Error("Google ตอบกลับเป็นหน้าเว็บ ไม่ใช่ข้อมูล — ตั้ง Deploy › Who has access เป็น Anyone");
+    throw softErr(r.ok ? "อ่านคำตอบจากเซิร์ฟเวอร์ไม่ได้" : "เซิร์ฟเวอร์ตอบผิดพลาด (HTTP "+r.status+")");
+  }
+  if(!j.ok){
+    const e = new Error(j.error || ("HTTP "+r.status));
+    e.soft = /ลองใหม่|กำลังถูกเขียน/.test(String(j.error||""));   /* ชีตติดล็อกอยู่ = รอแล้วลองใหม่ได้ */
+    throw e;
+  }
+  return j;
+}
+
+/* เน็ตมือถือสะดุดครั้งเดียวไม่ควรทำให้แอปขึ้นว่าต่อไม่ติด — ลองซ้ำเงียบ ๆ ก่อน */
+async function withRetry(fn, tries){
+  for(let i=0;;i++){
+    try{ return await fn(); }
+    catch(e){
+      if(!e.soft || i >= tries-1 || navigator.onLine === false) throw e;
+      await sleep(1200 * Math.pow(2, i));
+    }
+  }
 }
 
 async function apiGet(action, extra){
@@ -1007,37 +1058,55 @@ async function apiGet(action, extra){
   u.searchParams.set("action", action);
   if(cfg.token) u.searchParams.set("token", cfg.token);
   Object.entries(extra||{}).forEach(([k,v])=> u.searchParams.set(k,v));
-  const r = await fetch(u.toString(), {method:"GET", redirect:"follow", cache:"no-store"});
-  const j = await r.json();
-  if(!j.ok) throw new Error(j.error || ("HTTP "+r.status));
-  return j;
+  return withRetry(()=> apiFetch(u.toString(), {method:"GET", cache:"no-store"}, T_GET), 3);
 }
-/* text/plain เพื่อเลี่ยง CORS preflight ที่ Apps Script ตอบไม่ได้ */
+/* text/plain เพื่อเลี่ยง CORS preflight ที่ Apps Script ตอบไม่ได้
+   reqId ทำให้ส่งซ้ำได้อย่างปลอดภัย ฝั่งชีตจะจำไว้ว่าก้อนนี้บันทึกไปแล้ว
+   ไม่เพิ่มแถวซ้ำและไม่ยิงไลน์ซ้ำ แม้คำตอบครั้งแรกจะหายไปกับเน็ตที่หลุด */
 async function apiPost(body){
-  const r = await fetch(cfg.url, {method:"POST", redirect:"follow",
-    headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body: JSON.stringify(Object.assign({token:cfg.token}, body))});
-  const j = await r.json();
-  if(!j.ok) throw new Error(j.error || ("HTTP "+r.status));
-  return j;
+  if(!body.reqId) body.reqId = uid();
+  const payload = JSON.stringify(Object.assign({token:cfg.token}, body));
+  return withRetry(()=> apiFetch(cfg.url, {method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"}, body: payload}, T_POST), 3);
 }
 
 /* หนึ่งก้อนในคิว = หนึ่งครั้งที่กดบันทึก = หนึ่งข้อความแจ้งเตือนใน LINE
    ต่อให้ส่งช้าเพราะเน็ตหลุด ก็ยังนับเป็นครั้ง ๆ ไป ไม่ยุบรวมกัน */
+/* พลาดครั้งเดียวยังไม่ขึ้นแดง — บอกว่ากำลังลองใหม่ แล้วค่อยลองเองตามจังหวะที่ถอยห่างขึ้นเรื่อย ๆ
+   ถ้ายังไม่ผ่านอีกจึงยอมรับว่าต่อไม่ติด ผู้ใช้จะได้ไม่เห็นชิปแดงจากเน็ตกระตุกแวบเดียว */
+const RETRY_WAIT = [4000, 8000, 15000, 30000, 60000];
+function clearRetry(){
+  failStreak = 0;
+  if(retryTimer){ clearTimeout(retryTimer); retryTimer = null; }
+}
+function syncFail(e){
+  const msg = String((e && e.message) || e);
+  failStreak++;
+  if(navigator.onLine === false) setSync("err", "ออฟไลน์ — ข้อมูลถูกเก็บไว้ในเครื่องก่อน");
+  else if(failStreak < 2 && !outbox.length) setSync("busy", msg + " — กำลังลองใหม่");
+  else setSync("err", msg);
+  if(retryTimer) return;
+  retryTimer = setTimeout(()=>{
+    retryTimer = null;
+    if(!unlocked || !cfg.url || document.visibilityState !== "visible") return;
+    outbox.length ? flush() : pull(true);
+  }, RETRY_WAIT[Math.min(failStreak - 1, RETRY_WAIT.length - 1)]);
+}
+
 async function flush(){
   if(flushing || !unlocked || !cfg.url || !outbox.length) return;
   if(navigator.onLine === false){ setSync("err","ออฟไลน์ — เก็บไว้ส่งเมื่อกลับมาออนไลน์"); return; }
   flushing = true; setSync("busy");
   try{
     while(outbox.length){
+      if(!outbox[0].reqId){ outbox[0].reqId = uid(); saveOutbox(); }  /* ล็อกรหัสก้อนไว้ก่อนส่ง กันส่งซ้ำแล้วได้แถวซ้ำ */
       await apiPost(outbox[0]);
       outbox.shift(); saveOutbox();
     }
     flushing = false;
     await pull(true);
-    setSync("ok");
   }catch(e){
-    setSync("err", String(e.message||e));
+    syncFail(e);
   }finally{ flushing = false; }
 }
 async function pull(force){
@@ -1049,23 +1118,28 @@ async function pull(force){
     const j = await apiGet("list");
     S.data = j.data || {};
     LS.set(K_CACHE, JSON.stringify(S.data));
-    index(); render();
+    index();
+    if(S.view !== "room") render();      /* กำลังกรอกห้องอยู่ อย่าวาดฟอร์มใหม่ทับสิ่งที่พิมพ์ค้างไว้ */
     setSync(outbox.length ? "busy" : "ok");
   }catch(e){
-    setSync("err", String(e.message||e));
+    syncFail(e);
   }finally{ pulling = false; }
 }
 function startPolling(){
   if(pollTimer) clearInterval(pollTimer);
   if(!cfg.url) return;
   pollTimer = setInterval(()=>{
-    if(document.visibilityState === "visible" && S.view !== "room") outbox.length ? flush() : pull();
+    if(document.visibilityState !== "visible") return;
+    if(S.view === "room" && syncState !== "err") return;   /* ในห้อง ดึงเฉพาะตอนต้องกู้การเชื่อมต่อ */
+    outbox.length ? flush() : pull();
   }, 25000);
 }
 document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState === "visible" && S.view !== "room") pull();
+  if(document.visibilityState !== "visible") return;
+  if(syncState === "err") clearRetry();                   /* กลับมาดูแอป = เริ่มนับถอยจังหวะใหม่ */
+  if(S.view !== "room" || syncState === "err") pull();
 });
-window.addEventListener("online",  ()=>{ flush(); });
+window.addEventListener("online",  ()=>{ clearRetry(); outbox.length ? flush() : pull(true); });
 window.addEventListener("offline", ()=> setSync("err","ออฟไลน์ — ข้อมูลถูกเก็บไว้ในเครื่องก่อน"));
 
 /* แถวล่าสุดของแต่ละห้องในแต่ละหมวด */
@@ -1559,7 +1633,8 @@ $("btnSave").onclick = async ()=>{
     return {topic:t.id, room:S.room, floor:floorOf(S.room), values:values, note:d.note,
             defects: off ? [] : (v.bads||[]).concat(v.warns||[])};
   });
-  const job = {inspector:S.inspector.trim(), date:S.date, entries:entries};
+  /* ติดรหัสก้อนไว้ตั้งแต่ตอนกด ถ้าต้องส่งซ้ำทีหลังก็ยังเป็นก้อนเดิม ไม่กลายเป็นบันทึกสองครั้ง */
+  const job = {reqId:uid(), inspector:S.inspector.trim(), date:S.date, entries:entries};
 
   $("btnSave").disabled = true;
   $("saveMsg").className = "msg"; $("saveMsg").textContent = "กำลังบันทึก…";
@@ -1576,7 +1651,7 @@ $("btnSave").onclick = async ()=>{
     afterSave();
   }catch(e){
     outbox.push(job); saveOutbox();          /* เก็บไว้ส่งทีหลัง ยังนับเป็นหนึ่งครั้งเหมือนเดิม */
-    setSync("err", String(e.message||e));
+    syncFail(e);
     $("saveMsg").className = "msg err";
     $("saveMsg").textContent = "ส่งไม่สำเร็จ เก็บไว้ในเครื่องก่อน จะส่งให้เองเมื่อเน็ตกลับมา";
     afterSave();
