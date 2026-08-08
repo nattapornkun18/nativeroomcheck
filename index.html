@@ -379,7 +379,7 @@
 
     <button class="allbtn" id="btnAll">📊 ดูภาพรวมทั้งหมด — ทุกหมวด ทุกชั้น</button>
 
-    <div class="sechead">ภาพรวมวันนี้</div>
+    <div class="sechead" id="todayHead">ภาพรวมวันนี้</div>
     <div class="card"><div id="todayBox"></div></div>
   </div>
 
@@ -1390,16 +1390,22 @@ function renderHome(){
   }).join("");
   document.querySelectorAll(".tcard").forEach(b=> b.onclick = ()=>{ S.topic = b.dataset.t; go("rooms"); });
 
-  /* ภาพรวมวันนี้ */
+  /* ภาพรวมของ "วันที่" ที่เลือกไว้ข้างบน ไม่ใช่ยอดสะสม — ยอดสะสมอยู่ในการ์ดหมวด
+     บอกวันที่ไว้ที่หัวข้อด้วย ไม่งั้นวันที่ยังไม่ได้ตรวจจะเห็นเลข 0 แล้วนึกว่าเสีย */
   const rows = [];
+  let saved = 0;
   TOPICS.forEach(t=>{
-    const today = (S.data[t.id]||[]).filter(r=> isoDate(r["วันที่ตรวจ"]) === S.date);
-    const c = count(t, today);
+    const day = (S.data[t.id]||[]).filter(r=> isoDate(r["วันที่ตรวจ"]) === S.date);
+    saved += day.length;
     rows.push('<tr><td>'+t.icon+' '+t.name+'</td>'+
-      '<td class="n'+(today.length ? '' : ' na')+'">'+today.length+'</td>'+ lvCells(c) +'</tr>');
+      '<td class="n'+(day.length ? '' : ' na')+'">'+day.length+'</td>'+ lvCells(count(t, day)) +'</tr>');
   });
+  $("todayHead").textContent = (S.date === todayTH() ? "ภาพรวมวันนี้ · " : "ภาพรวมวันที่ ") +
+    thDate(S.date);
   $("todayBox").innerHTML = '<table><thead><tr><th>หมวด</th><th>บันทึก</th>'+
-    lvHead()+'</tr></thead><tbody>'+rows.join("")+'</tbody></table>';
+    lvHead()+'</tr></thead><tbody>'+rows.join("")+'</tbody></table>'+
+    (saved ? "" : '<div class="empty">ยังไม่มีใครบันทึกในวันที่นี้'+
+      '<br>ยอดที่ตรวจไปแล้วทั้งหมดดูได้ที่การ์ดหมวดด้านบน</div>');
 }
 
 /* ---------- ภาพรวมทุกหมวด ---------- */
