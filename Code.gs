@@ -37,14 +37,27 @@ const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
 const SUMMARY_SHEET = 'Summary';
 const SUMMARY_WAS   = ['สรุปรวม'];
 
-const GRADES = ['ผ่าน', 'เกือบผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ'];
-const GRADE_ICON  = {'ผ่าน':'✅', 'เกือบผ่าน':'⚠️', 'ไม่ผ่าน':'❌', 'ไม่ได้ตรวจ':'⬜'};
-const GRADE_COLOR = {
-  'ผ่าน':       {bg:'#E2F0E9', fg:'#1B7A4B'},
-  'เกือบผ่าน':  {bg:'#F7EEDC', fg:'#8A5D14'},
-  'ไม่ผ่าน':     {bg:'#F7E2DF', fg:'#B23C31'},
-  'ไม่ได้ตรวจ': {bg:'#E7ECEB', fg:'#6B7877'}
+/* ==================== ผลตรวจ ====================
+ *  คำที่ใช้มีแค่สองคำ: ผ่าน กับ ไม่ผ่าน (บวก ไม่ได้ตรวจ ตอนเข้าห้องไม่ได้)
+ *  ความหนักเบาของ "ไม่ผ่าน" บอกด้วยสีอย่างเดียว ไม่มีคำที่สาม
+ *    warn = เหลือง — เสียเล็กน้อย แก้เฉพาะจุดได้   (ของเดิมเรียกว่า "เกือบผ่าน")
+ *    bad  = แดง    — เสียจริงจัง ต้องกลับไปแก้
+ *  ช่องผลตรวจในชีตเก็บ "คำ" ส่วน "ระดับ" คิดจากค่าที่กรอกไว้ในแถวนั้นตอนระบายสี
+ */
+const LEVELS = ['ok', 'warn', 'bad', 'skip'];
+const LEVEL_TEXT  = {ok:'ผ่าน', warn:'ไม่ผ่าน', bad:'ไม่ผ่าน', skip:'ไม่ได้ตรวจ'};
+const LEVEL_ICON  = {ok:'✅', warn:'⚠️', bad:'❌', skip:'⬜'};
+const LEVEL_COLOR = {
+  ok:   {bg:'#E2F0E9', fg:'#1B7A4B'},
+  warn: {bg:'#F7EEDC', fg:'#8A5D14'},
+  bad:  {bg:'#F7E2DF', fg:'#B23C31'},
+  skip: {bg:'#E7ECEB', fg:'#6B7877'}
 };
+
+/* คำที่ใช้ได้ในช่องผลตรวจ = ดรอปดาวน์ในชีต (ไม่ซ้ำกัน จึงมีสามคำ) */
+const GRADES = ['ผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ'];
+/** คำเก่าก่อนรวมเหลือสองคำ — แถวที่ยังไม่ได้แปลงยังอ่านได้ ถือเป็นเหลือง */
+const OLD_WARN = 'เกือบผ่าน';
 
 /* ==================== หมวดที่เปิดใช้ ====================
  *  cols     = คอลัมน์กลางตาราง เรียงตามที่อยากให้ขึ้นในชีต
@@ -198,7 +211,9 @@ const RENAMED = {
   'ครบสามด้าน':      'ยิงครบทุกด้าน',
   'ขอบบนอย่างเดียว': 'ยิงขอบบนแค่ขอบบน (01&12)',
   'PASS':            'ผ่าน',
-  'DEFECT':          'ไม่ผ่าน'
+  'DEFECT':          'ไม่ผ่าน',
+  /* เลิกใช้คำว่า "เกือบผ่าน" แล้ว — รวมเป็น "ไม่ผ่าน" แยกหนักเบาด้วยสีแทน */
+  'เกือบผ่าน':        'ไม่ผ่าน'
 };
 
 /* ==================== แจ้งเตือนเข้า LINE ====================
@@ -221,7 +236,7 @@ var APP_TAG = '[เช็คห้อง]';
  *  กดบันทึกรอบเดียวแต่อัปเดตหลายหมวด ก็รวมอยู่ในข้อความเดียว
  *  'all'    = ทุกครั้งที่กดบันทึก ทั้งตรวจครั้งแรกและตอนแก้ไข  ← ค่าเริ่มต้น
  *  'change' = เฉพาะรอบที่มีค่าเปลี่ยนจริง (กดทับด้วยค่าเดิมเป๊ะ ๆ จะเงียบ)
- *  'defect' = เฉพาะรอบที่มีหมวดไหนสักหมวดออกมาไม่ผ่าน/เกือบผ่าน
+ *  'defect' = เฉพาะรอบที่มีหมวดไหนสักหมวดออกมาไม่ผ่าน (ทั้งเหลืองและแดง)
  *  'off'    = ไม่แจ้งเลย */
 var NOTIFY_WHEN = 'all';
 
@@ -485,6 +500,8 @@ function doPost(e) {
       const rowIndex = appendRow_(sh, head, rec, body.date);
       rec['วันที่ตรวจ'] = cellText_(sh.getRange(rowIndex, head.indexOf('วันที่ตรวจ') + 1).getValue(),
                                    'วันที่ตรวจ');
+      /* "ไม่ผ่าน" สองระดับใช้คำเดียวกัน สีจึงต้องระบายเอง หลังก๊อปรูปแบบแถวต้นแบบมาแล้ว */
+      paintGrade_(t, sh, head, rowIndex, rec);
 
       saved.push({ topic: en.topic, t: t, room: room, rec: rec, prev: prev,
                    defects: en.defects || null,
@@ -578,10 +595,15 @@ function findLatest_(sh, head, room) {
   return null;
 }
 
-/* ช่องไหนเปลี่ยนไปบ้างระหว่างบันทึกเก่ากับใหม่ */
+/* ช่องไหนเปลี่ยนไปบ้างระหว่างบันทึกเก่ากับใหม่
+   คำเก่า "เกือบผ่าน" นับเป็นคำเดียวกับ "ไม่ผ่าน" จะได้ไม่ฟ้องว่าเปลี่ยนทั้งที่ผลเท่าเดิม */
+function sameWord_(v) {
+  const s = String(v || '');
+  return s === OLD_WARN ? LEVEL_TEXT.warn : s;
+}
 function diff_(t, prev, cur) {
   return compareCols_(t).filter(function (h) {
-    return String(prev[h] || '') !== String(cur[h] || '');
+    return sameWord_(prev[h]) !== sameWord_(cur[h]);
   }).map(function (h) {
     return { field: h, from: prev[h] || '-', to: cur[h] || '-' };
   });
@@ -640,15 +662,17 @@ function fmtDate_(v) {
 function entryLines_(s) {
   const t = s.t, rec = s.rec;
   const grade = rec[t.grade] || '';
-  const icon = GRADE_ICON[grade] || '⬜';
+  /* ไอคอนแยกเหลืองกับแดงให้เห็นในไลน์ ทั้งที่คำเดียวกัน */
+  const icon = LEVEL_ICON[levelOf_(t, rec)] || '⬜';
   const head = t.icon + ' ' + t.name;
   const lines = [];
 
   if (s.changes) {                                   /* เคยตรวจแล้ว — บอกเฉพาะที่เปลี่ยน */
     lines.push(head + ' — 🔁 แก้ไขผลตรวจ');
     const g = s.changes.filter(function (c) { return c.field === t.grade; })[0];
-    lines.push(g ? '   ' + (GRADE_ICON[g.from] || '⬜') + ' ' + g.from + '  →  ' + icon + ' ' + g.to
-                 : '   ' + icon + ' เกรดยังเป็น ' + grade);
+    const wasIcon = s.prev ? (LEVEL_ICON[levelOf_(t, s.prev)] || '⬜') : '⬜';
+    lines.push(g ? '   ' + wasIcon + ' ' + g.from + '  →  ' + icon + ' ' + g.to
+                 : '   ' + icon + ' ผลตรวจยังเป็น ' + grade);
     s.changes.filter(function (c) { return c.field !== t.grade; })
       .forEach(function (c) { lines.push('   • ' + c.field + ': ' + c.from + ' → ' + c.to); });
     if (!s.changes.length) lines.push('   ' + icon + ' บันทึกทับด้วยค่าเดิม');
@@ -687,8 +711,8 @@ function notifySave_(saved, body) {
 
   const anyChange = saved.some(function (s) { return !s.changes || s.changes.length; });
   const anyDefect = saved.some(function (s) {
-    const g = s.rec[s.t.grade];
-    return g === 'ไม่ผ่าน' || g === 'เกือบผ่าน';
+    const lv = levelOf_(s.t, s.rec);
+    return lv === 'bad' || lv === 'warn';
   });
   if (NOTIFY_WHEN === 'change' && !anyChange) return;
   if (NOTIFY_WHEN === 'defect' && !anyDefect) return;
@@ -757,7 +781,7 @@ const LOOK = {
            'อุณหภูมิน้ำที่วัดได้ (°C)', 'อุณหภูมิที่ตั้งแอร์ (°C)', 'อุณหภูมิห้องที่วัดได้ (°C)']
 };
 
-/** ค่าที่ถือว่าเป็น "เกือบผ่าน" (เหลือง) ที่เหลือที่ไม่ใช่ค่าปกติ = แดง */
+/** ค่าที่ถือว่าเป็นไม่ผ่านระดับเหลือง ที่เหลือที่ไม่ใช่ค่าปกติ = แดง */
 function warnValues_(t) {
   return (t.warn || []).concat(ACCESS_CHOICES.slice(1));
 }
@@ -809,6 +833,42 @@ function styleSheet_(t, sh, head) {
   styleRules_(t, sh, head, rows);
 }
 
+/** ระบายช่องผลตรวจของแถวเดียว ตามระดับของแถวนั้น */
+function paintGrade_(t, sh, head, row, rec) {
+  const iG = head.indexOf(t.grade);
+  if (iG < 0) return;
+  const lv = levelOf_(t, rec);
+  const cell = sh.getRange(row, iG + 1);
+  if (lv === 'warn' || lv === 'bad') {
+    cell.setBackground(LEVEL_COLOR[lv].bg).setFontColor(LEVEL_COLOR[lv].fg);
+  } else {
+    cell.setBackground(null).setFontColor(null);   /* ที่เหลือปล่อยให้กฎตามคำจัดการ */
+  }
+}
+
+/** ระบายช่องผลตรวจใหม่ทั้งคอลัมน์ — เรียกหลังจากที่รูปแบบอาจถูกก๊อปทับ
+ *  (จัดรูปแบบทุกแถว / ตั้งค่าชีต / ตัดเกรดใหม่) */
+function repaintGrades_(t, sh, head) {
+  const last = sh.getLastRow();
+  const iG = head.indexOf(t.grade), iRoom = head.indexOf('ห้อง');
+  if (last < 2 || iG < 0) return 0;
+
+  const values = sh.getRange(2, 1, last - 1, head.length).getValues();
+  const bg = [], fg = [];
+  values.forEach(function (r) {
+    const row = {};
+    head.forEach(function (h, j) { row[h] = cellText_(r[j], h); });
+    const lv = (iRoom < 0 || String(r[iRoom]).trim() !== '') ? levelOf_(t, row) : '';
+    const paint = (lv === 'warn' || lv === 'bad');
+    bg.push([paint ? LEVEL_COLOR[lv].bg : null]);
+    fg.push([paint ? LEVEL_COLOR[lv].fg : null]);
+  });
+  const range = sh.getRange(2, iG + 1, last - 1, 1);
+  range.setBackgrounds(bg);
+  range.setFontColors(fg);
+  return last - 1;
+}
+
 /* ตั้งค่าชีตให้กรอกมือได้โดยไม่พิมพ์ผิด + จัดหน้าตาให้เหมือนกันทุกแท็บ
    รันซ้ำได้ไม่มีผลเสีย */
 function setupSheet() {
@@ -816,6 +876,7 @@ function setupSheet() {
     migrateLabels_(t, sh, head);
     styleSheet_(t, sh, head);
     restyleAll_(sh, head);   /* แถวที่บันทึกไปก่อนหน้านี้จะได้หน้าตาเหมือนกันทั้งตาราง */
+    repaintGrades_(t, sh, head);
   });
   buildSummary_();
   SpreadsheetApp.getActive().toast('ตั้งค่าชีตทุกหมวด + หน้าสรุปเรียบร้อย', 'เช็คห้อง', 5);
@@ -863,9 +924,13 @@ function styleRules_(t, sh, head, rows) {
       const col = head.indexOf(ACCESS) + 1;
       if (col > 0) add(col, v, LOOK.warn);
     });
-    GRADES.forEach(function (g) {
+    /* ช่องผลตรวจ — "ผ่าน" กับ "ไม่ได้ตรวจ" ระบายด้วยกฎตามคำได้เลย
+       ส่วน "ไม่ผ่าน" มีสองสีแต่คำเดียวกัน กฎตามคำจึงแยกไม่ออก ต้องระบายเอง
+       ทีละแถวใน repaintGrades_() (กฎ conditional format ทับสีที่ระบายเองเสมอ
+       จึงต้องไม่ตั้งกฎของคำว่า "ไม่ผ่าน" ไว้ตรงนี้) */
+    ['ok', 'skip'].forEach(function (lv) {
       const col = head.indexOf(t.grade) + 1;
-      if (col > 0) add(col, g, { bg: GRADE_COLOR[g].bg, fg: GRADE_COLOR[g].fg });
+      if (col > 0) add(col, LEVEL_TEXT[lv], LEVEL_COLOR[lv]);
     });
 
     /* คอลัมน์ตัวเลข ใช้เกณฑ์ ok/warn แทนการเทียบข้อความ */
@@ -959,13 +1024,13 @@ function clearRoom() {
    แถวเก่ายังถือเกรดเดิมอยู่ เมนูนี้คิดเกรดใหม่จากค่าที่เก็บไว้แล้วในแต่ละแถว
    จะได้ไม่ต้องเดินไล่กรอกใหม่ทุกห้อง                                        */
 
-/** เกรดที่ควรจะเป็นของแถวหนึ่ง คิดจากค่าที่เก็บไว้ ตามเกณฑ์ล่าสุดของหมวดนั้น
- *  ใช้เกณฑ์ชุดเดียวกับที่ระบายสีในชีต — ค่าที่ไม่ใช่ค่าปกติ ถ้าอยู่ใน warn = เกือบผ่าน
- *  ที่เหลือ = ไม่ผ่าน  ·  คืนค่าว่าง = ยังบอกไม่ได้ ให้ปล่อยเกรดเดิมไว้ */
-function gradeOfRow_(t, row) {
+/** ระดับที่ควรจะเป็นของแถวหนึ่ง คิดจากค่าที่เก็บไว้ ตามเกณฑ์ล่าสุดของหมวดนั้น
+ *  ใช้เกณฑ์ชุดเดียวกับที่ระบายสีในชีต — ค่าที่ไม่ใช่ค่าปกติ ถ้าอยู่ใน warn = เหลือง
+ *  ที่เหลือ = แดง  ·  คืนค่าว่าง = ยังบอกไม่ได้ ให้ปล่อยของเดิมไว้ */
+function levelOfRow_(t, row) {
   const acc = String(row[ACCESS] || '').trim();
   if (!acc) return '';                                  /* แถวเก่าก่อนมีคอลัมน์นี้ ไม่แตะ */
-  if (acc !== ACCESS_CHOICES[0]) return 'ไม่ได้ตรวจ';
+  if (acc !== ACCESS_CHOICES[0]) return 'skip';
   const warns = warnValues_(t);
   let warn = false;
   for (let i = 0; i < t.cols.length; i++) {
@@ -977,19 +1042,38 @@ function gradeOfRow_(t, row) {
       const n = Number(v), spec = t.num[c];
       if (isNaN(n)) continue;
       if (spec.ok !== undefined) {
-        if (n > spec.warn) return 'ไม่ผ่าน';
+        if (n > spec.warn) return 'bad';
         if (n > spec.ok) warn = true;
       } else {
-        if (n < spec.warnMin || n > spec.warnMax) return 'ไม่ผ่าน';
+        if (n < spec.warnMin || n > spec.warnMax) return 'bad';
         if (n < spec.min || n > spec.max) warn = true;
       }
       continue;
     }
     if (isGood_(t, c, v)) continue;
     if (warns.indexOf(v) !== -1) warn = true;
-    else return 'ไม่ผ่าน';
+    else return 'bad';
   }
-  return warn ? 'เกือบผ่าน' : 'ผ่าน';
+  return warn ? 'warn' : 'ok';
+}
+
+/** คำที่ควรอยู่ในช่องผลตรวจของแถวนี้ — ว่าง = ยังบอกไม่ได้ ให้ปล่อยคำเดิมไว้ */
+function gradeOfRow_(t, row) {
+  const lv = levelOfRow_(t, row);
+  return lv ? LEVEL_TEXT[lv] : '';
+}
+
+/** ระดับของแถวที่บันทึกไว้แล้ว ใช้เลือกสี — คำในช่องผลตรวจเป็นตัวตัดสินว่าผ่านหรือไม่
+ *  ถ้าไม่ผ่าน ค่อยคิดจากค่าที่กรอกไว้ว่าเหลืองหรือแดง (คิดไม่ได้ = แดงไว้ก่อน)
+ *  สีจึงไม่มีทางขัดกับคำ ต่อให้เกณฑ์เปลี่ยนหลังจากบันทึกไปแล้ว */
+function levelOf_(t, row) {
+  const g = String(row[t.grade] || '').trim();
+  if (!g) return '';
+  if (g === LEVEL_TEXT.ok)   return 'ok';
+  if (g === LEVEL_TEXT.skip) return 'skip';
+  if (g === OLD_WARN)        return 'warn';       /* แถวเก่าที่ยังไม่ได้แปลงคำ */
+  if (g !== LEVEL_TEXT.bad)  return '';
+  return levelOfRow_(t, row) === 'warn' ? 'warn' : 'bad';
 }
 
 /** เมนู: ตัดเกรดใหม่ทุกแถวทุกหมวด — บอกก่อนว่าจะเปลี่ยนกี่แถว แล้วค่อยยืนยัน */
@@ -1026,6 +1110,8 @@ function regrade() {
   plan.forEach(function (p) {
     p.rows.forEach(function (r) { p.sh.getRange(r.n, p.iG + 1).setValue(r.to); });
   });
+  /* คำอาจเหมือนเดิมแต่ความหนักเบาเปลี่ยน — ระบายสีใหม่ทั้งคอลัมน์ไว้ก่อน */
+  eachTopic_(function (t, sh, head) { return repaintGrades_(t, sh, head); });
   buildSummary_();
   SpreadsheetApp.getActive().toast(
     'ตัดเกรดใหม่แล้ว ' + total + ' แถว · อัปเดตหน้าสรุปให้แล้ว', 'เช็คห้อง', 8);
@@ -1084,8 +1170,11 @@ function migrateDates() {
 
 /* จัดรูปแบบทุกแถวให้เหมือนแถวข้อมูลแรก — ใช้เก็บกวาดแถวที่บันทึกไปก่อนหน้านี้ */
 function restyleAll() {
-  const n = eachTopic_(function (t, sh, head) { return restyleAll_(sh, head); })
-    .reduce(function (a, b) { return a + b; }, 0);
+  const n = eachTopic_(function (t, sh, head) {
+    const rows = restyleAll_(sh, head);
+    repaintGrades_(t, sh, head);   /* ก๊อปรูปแบบทับไปแล้ว ต้องระบายสีผลตรวจคืน */
+    return rows;
+  }).reduce(function (a, b) { return a + b; }, 0);
   SpreadsheetApp.getActive().toast(
     n ? 'จัดรูปแบบให้ ' + n + ' แถวแล้ว' : 'ยังไม่มีแถวที่ต้องจัด', 'เช็คห้อง', 5);
 }
@@ -1157,21 +1246,23 @@ function buildSummary_() {
   rows.push(['', '', '', '', '', '', '', '', '']);
 
   /* ---- ภาพรวมรายหมวด ---- */
+  /* สองคอลัมน์กลางเป็น "ไม่ผ่าน" ทั้งคู่ ต่างกันที่สี — ใส่วงเล็บกำกับไว้ที่หัวตาราง
+     เพราะหัวตารางเป็นพื้นเขียวเหมือนกันหมด ระบายสีแยกไม่ได้ */
   const headA = ['หมวด', 'ตรวจแล้ว', 'เหลือ', 'ความคืบหน้า',
-                 'ผ่าน', 'เกือบผ่าน', 'ไม่ผ่าน', 'ไม่ได้ตรวจ', 'ต้องกลับไปแก้'];
+                 'ผ่าน', 'ไม่ผ่าน (เหลือง)', 'ไม่ผ่าน (แดง)', 'ไม่ได้ตรวจ', 'ต้องกลับไปแก้'];
   rows.push(headA);
   const bandA = rows.length;                       /* แถวหัวของบล็อกแรก */
   const totals = { done: 0, fix: 0, want: 0 };
   ids.forEach(function (id) {
     const t = TOPICS[id], m = latest[id], rooms = Object.keys(m);
     const want = totalOf_(t);
-    const c = {}; GRADES.forEach(function (g) { c[g] = 0; });
-    rooms.forEach(function (rn) { const g = m[rn][t.grade]; if (c[g] !== undefined) c[g]++; });
-    const fix = c['ไม่ผ่าน'] + c['เกือบผ่าน'];
+    const c = {}; LEVELS.forEach(function (lv) { c[lv] = 0; });
+    rooms.forEach(function (rn) { const lv = levelOf_(t, m[rn]); if (c[lv] !== undefined) c[lv]++; });
+    const fix = c.bad + c.warn;
     totals.done += rooms.length; totals.fix += fix; totals.want += want;
     rows.push([t.icon + ' ' + t.name, rooms.length, want - rooms.length,
                rooms.length / want,
-               c['ผ่าน'], c['เกือบผ่าน'], c['ไม่ผ่าน'], c['ไม่ได้ตรวจ'], fix]);
+               c.ok, c.warn, c.bad, c.skip, fix]);
   });
   rows.push(['รวมทุกหมวด', totals.done, totals.want - totals.done,
              totals.done / totals.want, '', '', '', '', totals.fix]);
@@ -1207,14 +1298,17 @@ function buildSummary_() {
   ids.forEach(function (id) {
     const t = TOPICS[id], m = latest[id];
     Object.keys(m).forEach(function (rn) {
-      const g = m[rn][t.grade];
-      if (g !== 'ไม่ผ่าน' && g !== 'เกือบผ่าน') return;
-      fixes.push([rn, m[rn]['ชั้น'], t.icon + ' ' + t.name, g, whyOf_(t, m[rn]),
-                  fmtDate_(m[rn]['วันที่ตรวจ']), m[rn]['ผู้ตรวจ'] || '', '', '']);
+      const lv = levelOf_(t, m[rn]);
+      if (lv !== 'bad' && lv !== 'warn') return;
+      fixes.push({ lv: lv,
+        row: [rn, m[rn]['ชั้น'], t.icon + ' ' + t.name, LEVEL_TEXT[lv], whyOf_(t, m[rn]),
+              fmtDate_(m[rn]['วันที่ตรวจ']), m[rn]['ผู้ตรวจ'] || '', '', ''] });
     });
   });
-  fixes.sort(function (a, b) { return String(a[0]).localeCompare(String(b[0]), 'th', { numeric: true }); });
-  if (fixes.length) fixes.forEach(function (f) { rows.push(f); });
+  fixes.sort(function (a, b) {
+    return String(a.row[0]).localeCompare(String(b.row[0]), 'th', { numeric: true });
+  });
+  if (fixes.length) fixes.forEach(function (f) { rows.push(f.row); });
   else rows.push(['— ยังไม่มีห้องที่ต้องแก้ —', '', '', '', '', '', '', '', '']);
   const endC = rows.length;
 
@@ -1233,7 +1327,8 @@ function buildSummary_() {
   sh.getRange('A2').setFontSize(10).setFontColor('#6B7A8D');
   [bandA, bandB, bandC].forEach(function (r) {
     sh.getRange(r, 1, 1, 9).setBackground(LOOK.headBg).setFontColor(LOOK.headFg)
-      .setFontWeight('bold').setFontSize(10).setHorizontalAlignment('center');
+      .setFontWeight('bold').setFontSize(10).setHorizontalAlignment('center')
+      .setVerticalAlignment('middle').setWrap(true);   /* หัวยาวอย่าง "ไม่ผ่าน (เหลือง)" จะได้ไม่ล้น */
   });
   [bandB - 1, bandC - 1].forEach(function (r) {
     sh.getRange(r, 1, 1, 9).setFontWeight('bold').setFontSize(11).setFontColor(LOOK.headBg);
@@ -1253,17 +1348,29 @@ function buildSummary_() {
       .setBorder(true, true, true, true, true, true, LOOK.grid, SpreadsheetApp.BorderStyle.SOLID);
   });
 
-  /* สีของช่องผลตรวจ */
+  /* สีของช่องผลตรวจ — ช่องนับจำนวนสองช่องกลางระบายตามระดับของคอลัมน์นั้นไปเลย */
   const rules = [];
-  const gradeRanges = [sh.getRange(bandA + 1, 5, ids.length, 4), sh.getRange(bandC + 1, 4, endC - bandC, 1)];
-  GRADES.forEach(function (g) {
-    rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(g)
-      .setBackground(GRADE_COLOR[g].bg).setFontColor(GRADE_COLOR[g].fg)
-      .setRanges(gradeRanges).build());
-  });
+  if (ids.length) {
+    ['warn', 'bad'].forEach(function (lv, i) {
+      sh.getRange(bandA + 1, 6 + i, ids.length, 1)
+        .setBackground(LEVEL_COLOR[lv].bg).setFontColor(LEVEL_COLOR[lv].fg);
+    });
+    sh.getRange(bandA + 1, 5, ids.length, 1)
+      .setBackground(LEVEL_COLOR.ok.bg).setFontColor(LEVEL_COLOR.ok.fg);
+    sh.getRange(bandA + 1, 8, ids.length, 1)
+      .setBackground(LEVEL_COLOR.skip.bg).setFontColor(LEVEL_COLOR.skip.fg);
+  }
+  /* คอลัมน์ "ผล" ของรายการห้องที่ต้องแก้ — คำเดียวกันสองสี ระบายทีละแถวเอง */
+  if (fixes.length) {
+    const bg = fixes.map(function (f) { return [LEVEL_COLOR[f.lv].bg]; });
+    const fg = fixes.map(function (f) { return [LEVEL_COLOR[f.lv].fg]; });
+    const cell = sh.getRange(bandC + 1, 4, fixes.length, 1);
+    cell.setBackgrounds(bg);
+    cell.setFontColors(fg);
+  }
   rules.push(SpreadsheetApp.newConditionalFormatRule()
     .whenNumberGreaterThan(0).setBackground(LOOK.bad.bg).setFontColor(LOOK.bad.fg)
-    .setRanges([sh.getRange(bandA + 1, 7, ids.length, 1), sh.getRange(bandA + 1, 9, ids.length, 1)]).build());
+    .setRanges([sh.getRange(bandA + 1, 9, ids.length, 1)]).build());
   sh.setConditionalFormatRules(rules);
 
   return sh;
@@ -1287,19 +1394,19 @@ function dailySummary() {
     const rows = rowsOf_(id).filter(function (r) { return fmtDate_(r['วันที่ตรวจ']) === today; });
     if (!rows.length) return;
 
-    const cnt = {}; GRADES.forEach(function (g) { cnt[g] = 0; });
+    const cnt = {}; LEVELS.forEach(function (lv) { cnt[lv] = 0; });
     const failed = [];
     rows.forEach(function (r) {
-      const g = r[t.grade];
-      if (cnt[g] !== undefined) cnt[g]++;
-      if (g === 'ไม่ผ่าน') failed.push(r['ห้อง']);
+      const lv = levelOf_(t, r);
+      if (cnt[lv] !== undefined) cnt[lv]++;
+      if (lv === 'bad' || lv === 'warn') failed.push(r['ห้อง']);
     });
     total += rows.length;
 
     msg.push('');
     msg.push(t.icon + ' ' + t.name + ' — บันทึก ' + rows.length + ' รายการ');
-    msg.push('   ✅ ' + cnt['ผ่าน'] + ' · ⚠️ ' + cnt['เกือบผ่าน'] +
-             ' · ❌ ' + cnt['ไม่ผ่าน'] + ' · ⬜ ' + cnt['ไม่ได้ตรวจ']);
+    msg.push('   ✅ ' + cnt.ok + ' · ⚠️ ' + cnt.warn +
+             ' · ❌ ' + cnt.bad + ' · ⬜ ' + cnt.skip);
     if (failed.length) msg.push('   ห้องที่ต้องแก้: ' + failed.join(', '));
   });
 
@@ -1370,7 +1477,7 @@ function checkLine() {
   out.push('โหมดแจ้งเตือน: ' + NOTIFY_WHEN + ' — ' + ({
     all:    'แจ้งทุกครั้งที่กดบันทึก (กดหนึ่งครั้ง = หนึ่งข้อความ)',
     change: 'แจ้งเฉพาะรอบที่มีค่าเปลี่ยนจริง',
-    defect: 'แจ้งเฉพาะรอบที่มีหมวดไม่ผ่าน/เกือบผ่าน',
+    defect: 'แจ้งเฉพาะรอบที่มีหมวดไม่ผ่าน (ทั้งเหลืองและแดง)',
     off:    'ปิดแจ้งเตือน'
   }[NOTIFY_WHEN] || 'ค่าไม่ถูกต้อง จะไม่แจ้งเลย'));
 

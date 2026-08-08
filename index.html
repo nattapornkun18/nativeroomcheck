@@ -107,11 +107,11 @@
   .rbtn .no{font-family:var(--mono);font-size:14px;font-weight:600;line-height:1;color:inherit}
   .rbtn .st{font-size:9px;color:var(--mute);font-family:var(--sans);line-height:1.2;margin-top:2px}
   /* ห้องที่ตรวจแล้วระบายสีสถานะทึบทั้งช่อง — กวาดตาทีเดียวเห็นทั้งชั้นว่าเหลือห้องไหน */
-  .rbtn[data-g]{color:#fff;border-color:transparent}
-  .rbtn[data-g="ผ่าน"]{background:var(--ok)}
-  .rbtn[data-g="เกือบผ่าน"]{background:var(--warn)}
-  .rbtn[data-g="ไม่ผ่าน"]{background:var(--bad)}
-  .rbtn[data-g="ไม่ได้ตรวจ"]{background:var(--skip)}
+  .rbtn[data-lv]{color:#fff;border-color:transparent}
+  .rbtn[data-lv="ok"]{background:var(--ok)}
+  .rbtn[data-lv="warn"]{background:var(--warn)}
+  .rbtn[data-lv="bad"]{background:var(--bad)}
+  .rbtn[data-lv="skip"]{background:var(--skip)}
   .rbtn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
   .rbtn.off{background:#F1F4F8;color:#AEB8C4;border-style:dashed}
 
@@ -231,11 +231,11 @@
   .verdict{flex:1;min-width:0}
   .verdict .v{font-family:var(--mono);font-size:17px;font-weight:700;letter-spacing:.02em}
   .verdict .d{font-size:11.5px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .verdict[data-g="ผ่าน"] .v{color:var(--ok)}
-  .verdict[data-g="เกือบผ่าน"] .v{color:var(--warn)}
-  .verdict[data-g="ไม่ผ่าน"] .v{color:var(--bad)}
-  .verdict[data-g="ไม่ได้ตรวจ"] .v{color:var(--skip)}
-  .verdict[data-g="ยังไม่ได้กรอก"] .v{color:var(--mute);font-size:15px}
+  .verdict[data-lv="ok"] .v{color:var(--ok)}
+  .verdict[data-lv="warn"] .v{color:var(--warn)}
+  .verdict[data-lv="bad"] .v{color:var(--bad)}
+  .verdict[data-lv="skip"] .v{color:var(--skip)}
+  .verdict[data-lv="todo"] .v{color:var(--mute);font-size:15px}
   .save{border:0;border-radius:10px;padding:14px 18px;background:var(--ink);color:#fff;
     font-size:15px;font-weight:700;flex:none}
   .save:disabled{background:#AAB4C0}
@@ -246,8 +246,8 @@
   .sc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:9px 10px}
   .sc .n{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1.15}
   .sc .t{font-size:10.5px;color:var(--mute)}
-  .sc[data-g="ผ่าน"] .n{color:var(--ok)} .sc[data-g="เกือบผ่าน"] .n{color:var(--warn)}
-  .sc[data-g="ไม่ผ่าน"] .n{color:var(--bad)} .sc[data-g="ไม่ได้ตรวจ"] .n{color:var(--skip)}
+  .sc[data-lv="ok"] .n{color:var(--ok)} .sc[data-lv="warn"] .n{color:var(--warn)}
+  .sc[data-lv="bad"] .n{color:var(--bad)} .sc[data-lv="skip"] .n{color:var(--skip)}
   table{width:100%;border-collapse:collapse}
   th{text-align:left;font-size:10.5px;letter-spacing:.04em;color:var(--mute);font-weight:600;
     padding:8px 10px;background:#F4F7FA;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -258,16 +258,17 @@
   .minibar{height:5px;background:var(--paper);border-radius:3px;overflow:hidden;min-width:56px;display:flex}
   .minibar i{display:block;height:5px}
   .badge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
-  .badge[data-g="ผ่าน"]{background:var(--ok-soft);color:var(--ok)}
-  .badge[data-g="เกือบผ่าน"]{background:var(--warn-soft);color:var(--warn)}
-  .badge[data-g="ไม่ผ่าน"]{background:var(--bad-soft);color:var(--bad)}
-  .badge[data-g="ไม่ได้ตรวจ"]{background:var(--skip-soft);color:var(--skip)}
-  .badge[data-g="ยังไม่ตรวจ"],.badge[data-g="ยังไม่ได้กรอก"]{background:#F1F4F8;color:#A9B3C0}
+  .badge[data-lv="ok"]{background:var(--ok-soft);color:var(--ok)}
+  .badge[data-lv="warn"]{background:var(--warn-soft);color:var(--warn)}
+  .badge[data-lv="bad"]{background:var(--bad-soft);color:var(--bad)}
+  .badge[data-lv="skip"]{background:var(--skip-soft);color:var(--skip)}
+  .badge[data-lv="todo"],.badge[data-lv="none"]{background:#F1F4F8;color:#A9B3C0}
   tr.band td{font-weight:700;font-size:12px;background:#F4F7FA;color:var(--ink-2);letter-spacing:.04em}
   tr.band span{float:right;font-family:var(--mono);font-weight:500;font-size:11px;color:var(--mute)}
   .scroll{overflow-x:auto}
   .scroll table{min-width:620px}
   .na{color:#A9B3C0} .ok{color:var(--ok)} .no{color:var(--bad);font-weight:600}
+  .wn{color:var(--warn);font-weight:600}
   .empty{padding:24px 14px;text-align:center;color:var(--mute);font-size:12.5px}
   .hint{font-size:11.5px;color:var(--mute)}
 
@@ -407,7 +408,7 @@
         <div class="plannote hide" id="planNote">วางตามผังชั้น · มองจากด้านบน หัวอาคารอยู่บน</div>
         <div class="legend">
           <span><b style="background:var(--ok)"></b>ผ่าน</span>
-          <span><b style="background:var(--warn)"></b>เกือบผ่าน</span>
+          <span><b style="background:var(--warn)"></b>ไม่ผ่าน · แก้เฉพาะจุด</span>
           <span><b style="background:var(--bad)"></b>ไม่ผ่าน</span>
           <span><b style="background:var(--skip)"></b>ไม่ได้ตรวจ</span>
           <span><b style="background:var(--line)"></b>ยังไม่ตรวจ</span>
@@ -425,7 +426,9 @@
 
     <div class="sechead">แยกตามชั้น</div>
     <div class="card scroll"><table>
-      <thead><tr><th>ชั้น</th><th>บันทึก</th><th>ผ่าน</th><th>เกือบผ่าน</th><th>ไม่ผ่าน</th><th>ไม่ได้ตรวจ</th><th>สัดส่วน</th></tr></thead>
+      <thead><tr><th>ชั้น</th><th>บันทึก</th><th style="color:var(--ok)">ผ่าน</th>
+        <th style="color:var(--warn)">ไม่ผ่าน</th><th style="color:var(--bad)">ไม่ผ่าน</th>
+        <th>ไม่ได้ตรวจ</th><th>สัดส่วน</th></tr></thead>
       <tbody id="floorBody"></tbody>
     </table></div>
 
@@ -596,13 +599,22 @@ const AC_TARGET = 24;            /* °C ที่ตั้งแอร์เป�
 const AC_OK = 15, AC_WARN = 30;          /* นาที */
 
 const ACCESS = "การเข้าห้อง";
-const GRADES = ["ผ่าน","เกือบผ่าน","ไม่ผ่าน","ไม่ได้ตรวจ"];
-const GC = {"ผ่าน":"#1B7A4C","เกือบผ่าน":"#B26A0A","ไม่ผ่าน":"#B62D22","ไม่ได้ตรวจ":"#6B7A8D"};
+
+/* ผลตรวจมีแค่สองคำ: ผ่าน กับ ไม่ผ่าน (บวก ไม่ได้ตรวจ ตอนเข้าห้องไม่ได้)
+   ความหนักเบาของ "ไม่ผ่าน" บอกด้วยสีอย่างเดียว ไม่ใช้คำที่สาม
+     warn (เหลือง) = เสียเล็กน้อย แก้เฉพาะจุดได้     ← ของเดิมเรียกว่า "เกือบผ่าน"
+     bad  (แดง)    = เสียจริงจัง ต้องกลับไปแก้
+   ค่าที่ลงชีตคือคำ (LV_TEXT) ส่วนสีคิดจากระดับ (level) ตอนวาดหน้าจอ */
+const LEVELS  = ["ok","warn","bad","skip"];
+const LV_TEXT = {ok:"ผ่าน", warn:"ไม่ผ่าน", bad:"ไม่ผ่าน", skip:"ไม่ได้ตรวจ"};
+const GC      = {ok:"#1B7A4C", warn:"#B26A0A", bad:"#B62D22", skip:"#6B7A8D"};
+/* คำเก่าที่ยังค้างอยู่ในชีตก่อนรวมเหลือสองคำ — อ่านเจอเมื่อไหร่ถือเป็นเหลือง */
+const OLD_WARN = "เกือบผ่าน";
 
 /* ---------------------------------------------------------------------
    หมวดที่เปิดใช้ — เพิ่มหมวดใหม่ = เพิ่มก้อนหนึ่งตรงนี้
    แล้วเพิ่มก้อนที่ชื่อคอลัมน์ตรงกันเป๊ะใน Code.gs (ตัวแปร TOPICS)
-   ตัวเลือกตัวแรกของแต่ละหัวข้อ = ค่าปกติ  ·  bad = ไม่ผ่าน  ·  warn = เกือบผ่าน
+   ตัวเลือกตัวแรกของแต่ละหัวข้อ = ค่าปกติ  ·  bad = ไม่ผ่านสีแดง  ·  warn = ไม่ผ่านสีเหลือง
    --------------------------------------------------------------------- */
 const TOPICS = [
 {
@@ -684,7 +696,7 @@ const TOPICS = [
     {cap:"Hot water · น้ำร้อน", fields:[
       {col:"เวลาน้ำร้อน (วินาที)", type:"num", unit:"วินาที", step:5,
        label:"เปิดน้ำร้อนกี่วินาทีถึงร้อนพอ", en:"ครั้งแรกของวัน",
-       hint:"เป้าหมาย "+HOT_TARGET+" · ผ่าน ≤"+HOT_OK+" วิ · เกือบผ่าน "+(HOT_OK+1)+"–"+HOT_WARN+" วิ · เกิน "+HOT_WARN+" วิ = ไม่ผ่าน",
+       hint:"เป้าหมาย "+HOT_TARGET+" · ผ่าน ≤"+HOT_OK+" วิ · "+(HOT_OK+1)+"–"+HOT_WARN+" วิ = ไม่ผ่าน (เหลือง) · เกิน "+HOT_WARN+" วิ = ไม่ผ่าน (แดง)",
        good:n=> n<=HOT_OK, warn:n=> n<=HOT_WARN},
       {col:"อุณหภูมิน้ำที่วัดได้ (°C)", type:"num", unit:"°C", step:1, optional:true,
        label:"อุณหภูมิน้ำที่วัดได้", en:"ไม่มีเทอร์โมมิเตอร์เว้นว่างได้",
@@ -696,7 +708,7 @@ const TOPICS = [
        good:n=> n>=23 && n<=25, warn:n=> n>=22 && n<=26},
       {col:"เวลาแอร์เย็น (นาที)", type:"num", unit:"นาที", step:5,
        label:"กี่นาทีห้องถึงเย็นถึงอุณหภูมิที่ตั้ง",
-       hint:"ผ่าน ≤"+AC_OK+" นาที · เกือบผ่าน "+(AC_OK+1)+"–"+AC_WARN+" นาที · เกิน "+AC_WARN+" นาที = ไม่ผ่าน",
+       hint:"ผ่าน ≤"+AC_OK+" นาที · "+(AC_OK+1)+"–"+AC_WARN+" นาที = ไม่ผ่าน (เหลือง) · เกิน "+AC_WARN+" นาที = ไม่ผ่าน (แดง)",
        good:n=> n<=AC_OK, warn:n=> n<=AC_WARN},
       {col:"อุณหภูมิห้องที่วัดได้ (°C)", type:"num", unit:"°C", step:1, optional:true, plain:true,
        label:"อุณหภูมิห้องที่วัดได้", en:"บันทึกไว้เฉย ๆ ไม่ตัดเกรด"}
@@ -1214,14 +1226,16 @@ function fromRow(t, row, room){
   return d;
 }
 
+/** ผลตรวจของสิ่งที่กรอกอยู่ — grade คือคำที่จะลงชีต ส่วน lv คือระดับที่ใช้เลือกสี */
 function judge(t, room, d){
   const acc = d.vals[ACCESS];
-  if(!acc) return {grade:"ยังไม่ได้กรอก", todo:1, why:"ยังไม่ได้เลือกว่าเข้าห้องได้หรือไม่"};
-  if(acc !== "เข้าตรวจได้") return {grade:"ไม่ได้ตรวจ", why:acc};
+  if(!acc) return {grade:"ยังไม่ได้กรอก", lv:"todo", todo:1,
+    why:"ยังไม่ได้เลือกว่าเข้าห้องได้หรือไม่"};
+  if(acc !== "เข้าตรวจได้") return {grade:LV_TEXT.skip, lv:"skip", why:acc};
 
   const fs = visibleFields(t, d.vals, room).filter(f=> !f.access);
   const miss = fs.filter(f=> !f.optional && !hasValue(d.vals[f.col]));
-  if(miss.length) return {grade:"ยังไม่ได้กรอก", todo:miss.length,
+  if(miss.length) return {grade:"ยังไม่ได้กรอก", lv:"todo", todo:miss.length,
     why:"เหลืออีก "+miss.length+" หัวข้อ: "+miss.map(f=>val(f.label, room)).join(", ")};
 
   const bads = [], warns = [];
@@ -1230,13 +1244,46 @@ function judge(t, room, d){
     if(!s || s.k === "good") return;
     (s.k === "bad" ? bads : warns).push(s.text);
   });
-  if(bads.length)  return {grade:"ไม่ผ่าน",   why:bads.join(" · "), bads:bads, warns:warns};
-  if(warns.length) return {grade:"เกือบผ่าน", why:warns.join(" · ")+
+  /* ทั้งสองระดับใช้คำว่า "ไม่ผ่าน" เหมือนกัน ต่างกันที่สีกับข้อความอธิบาย */
+  if(bads.length)  return {grade:LV_TEXT.bad,  lv:"bad",
+    why:bads.join(" · "), bads:bads, warns:warns};
+  if(warns.length) return {grade:LV_TEXT.warn, lv:"warn", why:warns.join(" · ")+
     " — แก้เฉพาะจุดได้ ไม่ต้องรื้อทั้งชุด", bads:bads, warns:warns};
   /* หมวดเก็บข้อมูล: กรอกครบ = เก็บแล้ว ไม่ได้แปลว่าห้องนี้ทำถูก */
-  return {grade:"ผ่าน", bads:[], warns:[],
+  return {grade:LV_TEXT.ok, lv:"ok", bads:[], warns:[],
     why: t.survey ? "เก็บข้อมูลแล้ว — หมวดนี้ยังไม่ตัดเกรด รอสรุปว่าแบบไหนคือแบบที่ถูก"
                   : "ไม่พบข้อบกพร่อง"};
+}
+
+/** ระดับของแถวที่บันทึกไว้แล้ว — คำในช่องผลตรวจเป็นตัวตัดสินว่าผ่านหรือไม่ผ่าน
+ *  ถ้าไม่ผ่าน ค่อยคิดจากค่าที่กรอกไว้ว่าเป็นเหลืองหรือแดง (คิดไม่ได้ = แดงไว้ก่อน)
+ *  แถวเก่าที่ยังเขียนว่า "เกือบผ่าน" ถือเป็นเหลืองตรง ๆ ไม่ต้องรอแปลงในชีต */
+function levelOf(t, row){
+  if(!row) return "";
+  const g = String(row[t.grade]||"").trim();
+  if(!g) return "";
+  if(g === LV_TEXT.ok)   return "ok";
+  if(g === LV_TEXT.skip) return "skip";
+  if(g === OLD_WARN)     return "warn";
+  if(g !== LV_TEXT.bad)  return "";
+  const rn = String(row["ห้อง"]||"").trim();
+  const hasBad = scoreOf(t).some(f=>{
+    if(f.plain) return false;
+    const s = scoreField(f, rn, row[f.col]);
+    return s && s.k === "bad";
+  });
+  return hasBad ? "bad" : "warn";
+}
+/** คำที่เอาไปโชว์ของแถวที่บันทึกไว้แล้ว — แถวเก่าที่เขียนว่า "เกือบผ่าน" ก็โชว์ว่า ไม่ผ่าน */
+function gradeText(t, row){
+  const lv = levelOf(t, row);
+  return lv ? LV_TEXT[lv] : String((row && row[t.grade]) || "");
+}
+/** นับแถวแยกตามระดับ — { ok, warn, bad, skip } */
+function count(t, rows){
+  const c = {}; LEVELS.forEach(lv=> c[lv]=0);
+  rows.forEach(r=>{ const lv = levelOf(t, r); if(c[lv]!==undefined) c[lv]++; });
+  return c;
 }
 
 /** หมวดนี้ถูกแก้จากตอนเปิดห้องไหม */
@@ -1309,15 +1356,15 @@ function renderHome(){
   $("topicCards").innerHTML = TOPICS.map(t=>{
     const m = S.latest[t.id] || {};
     const rooms = Object.keys(m);
-    const c = {}; GRADES.forEach(g=> c[g]=0);
-    rooms.forEach(r=>{ const g = m[r][t.grade]; if(c[g]!==undefined) c[g]++; });
-    const seg = GRADES.map(g=> c[g] ? '<i style="flex:'+c[g]+';background:'+GC[g]+'"></i>' : "").join("")
+    const c = count(t, rooms.map(r=> m[r]));
+    const seg = LEVELS.map(lv=> c[lv] ? '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("")
       || '<i style="flex:1;background:#E3E9E7"></i>';
+    const fix = c.warn + c.bad;
     return '<button class="tcard" data-t="'+t.id+'">'+
       '<span class="ico">'+t.icon+'</span>'+
       '<span class="b"><span class="n">'+t.name+'<em>'+t.en+'</em></span>'+
       '<span class="s">ตรวจแล้ว '+rooms.length+'/'+totalOf(t)+' ห้อง'+
-      (c["ไม่ผ่าน"] ? ' · ต้องแก้ '+c["ไม่ผ่าน"]+' ห้อง' : '')+'</span>'+
+      (fix ? ' · ต้องแก้ '+fix+' ห้อง' : '')+'</span>'+
       '<span class="bar">'+seg+'</span></span><span class="go">›</span></button>';
   }).join("");
   document.querySelectorAll(".tcard").forEach(b=> b.onclick = ()=>{ S.topic = b.dataset.t; go("rooms"); });
@@ -1326,51 +1373,53 @@ function renderHome(){
   const rows = [];
   TOPICS.forEach(t=>{
     const today = (S.data[t.id]||[]).filter(r=> isoDate(r["วันที่ตรวจ"]) === S.date);
-    const c = {}; GRADES.forEach(g=> c[g]=0);
-    today.forEach(r=>{ const g = r[t.grade]; if(c[g]!==undefined) c[g]++; });
+    const c = count(t, today);
     rows.push('<tr><td>'+t.icon+' '+t.name+'</td><td class="n">'+today.length+'</td>'+
-      '<td class="n ok">'+c["ผ่าน"]+'</td><td class="n">'+c["เกือบผ่าน"]+'</td>'+
-      '<td class="n no">'+c["ไม่ผ่าน"]+'</td><td class="n na">'+c["ไม่ได้ตรวจ"]+'</td></tr>');
+      '<td class="n ok">'+c.ok+'</td><td class="n wn">'+c.warn+'</td>'+
+      '<td class="n no">'+c.bad+'</td><td class="n na">'+c.skip+'</td></tr>');
   });
-  $("todayBox").innerHTML = '<table><thead><tr><th>หมวด</th><th>บันทึก</th><th>ผ่าน</th>'+
-    '<th>เกือบ</th><th>ไม่ผ่าน</th><th>ไม่ได้ตรวจ</th></tr></thead><tbody>'+rows.join("")+'</tbody></table>';
+  /* สองคอลัมน์กลางใช้คำว่า "ไม่ผ่าน" เหมือนกัน แยกกันด้วยสีหัวตาราง */
+  $("todayBox").innerHTML = '<table><thead><tr><th>หมวด</th><th>บันทึก</th>'+
+    '<th style="color:var(--ok)">ผ่าน</th><th style="color:var(--warn)">ไม่ผ่าน</th>'+
+    '<th style="color:var(--bad)">ไม่ผ่าน</th><th>ไม่ได้ตรวจ</th></tr></thead><tbody>'+
+    rows.join("")+'</tbody></table>';
 }
 
 /* ---------- ภาพรวมทุกหมวด ---------- */
 function renderAll(){
-  const gradeOf = (t, rn) => { const r = (S.latest[t.id]||{})[rn]; return r ? r[t.grade] : ""; };
+  const rowOf   = (t, rn) => (S.latest[t.id]||{})[rn];
+  const levelAt = (t, rn) => levelOf(t, rowOf(t, rn));
 
   let full = 0, none = 0;
   const fixRooms = [];
   ALL_ROOMS.forEach(rn=>{
     const ts = topicsOf(rn);                 /* บางห้องมีหมวดที่ต้องตรวจน้อยกว่าห้องอื่น */
-    const g = ts.map(t=> gradeOf(t, rn));
-    const done = g.filter(x=>x).length;
+    const lv = ts.map(t=> levelAt(t, rn));
+    const done = lv.filter(x=>x).length;
     if(done === ts.length) full++;
     if(done === 0) none++;
-    const bad = ts.filter((t,i)=> g[i]==="ไม่ผ่าน" || g[i]==="เกือบผ่าน");
+    const bad = ts.filter((t,i)=> lv[i]==="bad" || lv[i]==="warn");
     if(bad.length) fixRooms.push({room:rn, topics:bad});
   });
 
   $("allScore").innerHTML =
-    '<div class="sc" data-g="ผ่าน"><div class="n">'+full+'</div><div class="t">ตรวจครบทุกหมวด</div></div>'+
+    '<div class="sc" data-lv="ok"><div class="n">'+full+'</div><div class="t">ตรวจครบทุกหมวด</div></div>'+
     '<div class="sc"><div class="n">'+(TOTAL_ROOMS-full-none)+'</div><div class="t">ตรวจบางหมวด</div></div>'+
-    '<div class="sc" data-g="ไม่ได้ตรวจ"><div class="n">'+none+'</div><div class="t">ยังไม่แตะเลย</div></div>'+
-    '<div class="sc" data-g="ไม่ผ่าน"><div class="n">'+fixRooms.length+'</div><div class="t">ต้องกลับไปแก้</div></div>';
+    '<div class="sc" data-lv="skip"><div class="n">'+none+'</div><div class="t">ยังไม่แตะเลย</div></div>'+
+    '<div class="sc" data-lv="bad"><div class="n">'+fixRooms.length+'</div><div class="t">ต้องกลับไปแก้</div></div>';
 
   $("allTopics").innerHTML = TOPICS.map(t=>{
     const m = S.latest[t.id] || {}, rooms = Object.keys(m), tot = totalOf(t);
-    const c = {}; GRADES.forEach(g=> c[g]=0);
-    rooms.forEach(rn=>{ const g = m[rn][t.grade]; if(c[g]!==undefined) c[g]++; });
-    const seg = GRADES.map(g=> c[g] ? '<i style="flex:'+c[g]+';background:'+GC[g]+'"></i>' : "").join("")
+    const c = count(t, rooms.map(rn=> m[rn]));
+    const seg = LEVELS.map(lv=> c[lv] ? '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("")
       + (rooms.length < tot
          ? '<i style="flex:'+(tot-rooms.length)+';background:#DCE3EB"></i>' : "");
     return '<button class="tcard" data-t="'+t.id+'"><span class="ico">'+t.icon+'</span>'+
       '<span class="b"><span class="n">'+t.name+
       '<em>'+Math.round(rooms.length/tot*100)+'%</em></span>'+
       '<span class="s">ตรวจแล้ว '+rooms.length+'/'+tot+' · เหลือ '+(tot-rooms.length)+
-      (c["ไม่ผ่าน"] ? ' · ไม่ผ่าน '+c["ไม่ผ่าน"] : '')+
-      (c["เกือบผ่าน"] ? ' · เกือบผ่าน '+c["เกือบผ่าน"] : '')+'</span>'+
+      (c.bad  ? ' · ไม่ผ่าน '+c.bad : '')+
+      (c.warn ? ' · ไม่ผ่าน (เหลือง) '+c.warn : '')+'</span>'+
       '<span class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</span></span>'+
       '<span class="go">›</span></button>';
   }).join("");
@@ -1380,10 +1429,9 @@ function renderAll(){
   $("allFixCount").textContent = fixRooms.length ? "("+fixRooms.length+" ห้อง)" : "";
   $("allFix").innerHTML = fixRooms.length ? fixRooms.map(x=>
     '<tr data-r="'+x.room+'"><td class="k">'+x.room+'</td><td>'+
-    x.topics.map(t=>{
-      const g = gradeOf(t, x.room);
-      return '<span class="badge" data-g="'+g+'">'+t.icon+' '+t.name+'</span>';
-    }).join(" ")+'</td></tr>').join("")
+    x.topics.map(t=>
+      '<span class="badge" data-lv="'+levelAt(t, x.room)+'">'+t.icon+' '+t.name+'</span>'
+    ).join(" ")+'</td></tr>').join("")
     : '<tr><td class="empty">ยังไม่มีห้องที่ต้องแก้</td></tr>';
   $("allFix").querySelectorAll("tr[data-r]").forEach(tr=>
     tr.onclick = ()=>{ S.topic = TOPICS[0].id; openRoom(tr.dataset.r); });
@@ -1445,9 +1493,9 @@ function renderRooms(){
       return '<button class="rbtn off" data-r="'+rn+'"'+at+' title="ห้อง '+rn+
         ' · ไม่มีหมวดนี้ตามแบบ"><div class="no">'+rn.slice(-2)+
         '</div><div class="st">ไม่มี</div></button>';
-    const r = m[rn], g = r ? r[t.grade] : "";
-    return '<button class="rbtn" data-r="'+rn+'"'+at+(g?' data-g="'+g+'"':'')+
-      ' title="ห้อง '+rn+(r ? " · "+g+" · "+showDate(r["วันที่ตรวจ"]) : " · ยังไม่ตรวจ")+'">'+
+    const r = m[rn], lv = levelOf(t, r);
+    return '<button class="rbtn" data-r="'+rn+'"'+at+(lv?' data-lv="'+lv+'"':'')+
+      ' title="ห้อง '+rn+(r ? " · "+gradeText(t, r)+" · "+showDate(r["วันที่ตรวจ"]) : " · ยังไม่ตรวจ")+'">'+
       '<div class="no">'+rn.slice(-2)+'</div></button>';
   });
   if(usePlan) cells.push('<div class="core">'+CORE_TEXT+'</div>');
@@ -1476,11 +1524,13 @@ function renderRoom(){
   $("topicTabs").innerHTML = topicsOf(room).map(x=>{
     const v = judge(x, room, S.draft[x.id]);
     const had = (S.latest[x.id]||{})[room];
-    const g = v.todo ? (had ? String(had[x.grade]||"ยังไม่ตรวจ") : "ยังไม่ตรวจ") : v.grade;
+    /* ยังกรอกไม่ครบ — โชว์ผลของรอบก่อนไว้ก่อน จะได้รู้ว่าห้องนี้เคยได้อะไร */
+    const g  = v.todo ? (had ? gradeText(x, had) || "ยังไม่ตรวจ" : "ยังไม่ตรวจ") : v.grade;
+    const lv = v.todo ? (had ? levelOf(x, had)   || "none"      : "none")      : v.lv;
     return '<button class="ttab" data-t="'+x.id+'" aria-selected="'+(x.id===S.topic)+'">'+
       (dirty(x) ? '<span class="dirty"></span>' : '')+
       '<span class="n">'+x.icon+' '+x.name+'</span>'+
-      '<span class="g"><span class="badge" data-g="'+g+'">'+g+'</span>'+
+      '<span class="g"><span class="badge" data-lv="'+lv+'">'+g+'</span>'+
       (dirty(x) ? ' <span style="color:var(--brass);font-weight:600">แก้ค้าง</span>' : '')+'</span></button>';
   }).join("");
   $("topicTabs").querySelectorAll(".ttab").forEach(b=>
@@ -1588,7 +1638,7 @@ function renderRoom(){
 function refreshVerdict(){
   const t = TOPIC[S.topic];
   const v = judge(t, S.room, S.draft[t.id]);
-  $("verdict").dataset.g = v.grade; $("vG").textContent = v.grade; $("vW").textContent = v.why;
+  $("verdict").dataset.lv = v.lv; $("vG").textContent = v.grade; $("vW").textContent = v.why;
   refreshSave();
 }
 $("btnAllOk").onclick = ()=>{ setAllOk(TOPIC[S.topic]); renderRoom(); };
@@ -1634,7 +1684,7 @@ $("btnSave").onclick = async ()=>{
   }
   const entries = list.map(t=>{
     const d = S.draft[t.id], v = judge(t, S.room, d);
-    const off = v.grade === "ไม่ได้ตรวจ";
+    const off = v.lv === "skip";
     const values = {};
     Object.assign(values, val(t.auto, S.room) || {});
     fieldsOf(t).forEach(f=>{
@@ -1685,13 +1735,15 @@ function afterSave(){
 function renderSum(){
   const t = TOPIC[S.topic], m = S.latest[t.id] || {};
   const rooms = Object.keys(m);
-  const c = {}; GRADES.forEach(g=> c[g]=0);
-  rooms.forEach(r=>{ const g = m[r][t.grade]; if(c[g]!==undefined) c[g]++; });
+  const c = count(t, rooms.map(rn=> m[rn]));
 
-  $("score").innerHTML = GRADES.map(g=>
-    '<div class="sc" data-g="'+g+'"><div class="n">'+c[g]+'</div><div class="t">'+g+'</div></div>').join("");
-  $("sumBar").innerHTML = GRADES.map(g=> c[g] ?
-    '<i style="flex:'+c[g]+';background:'+GC[g]+'"></i>' : "").join("") ||
+  /* สองช่องกลางเป็น "ไม่ผ่าน" ทั้งคู่ ต่างกันที่สีตัวเลขกับคำห้อย */
+  const SC_NOTE = {ok:"", warn:"แก้เฉพาะจุด", bad:"ต้องรื้อแก้", skip:""};
+  $("score").innerHTML = LEVELS.map(lv=>
+    '<div class="sc" data-lv="'+lv+'"><div class="n">'+c[lv]+'</div><div class="t">'+
+    LV_TEXT[lv]+(SC_NOTE[lv] ? '<br>'+SC_NOTE[lv] : '')+'</div></div>').join("");
+  $("sumBar").innerHTML = LEVELS.map(lv=> c[lv] ?
+    '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("") ||
     '<i style="flex:1;background:#E3E9E7"></i>';
   const tot = totalOf(t);
   $("progressTxt").textContent = "ตรวจแล้ว "+rooms.length+" จาก "+tot+" ห้อง ("+
@@ -1703,13 +1755,12 @@ function renderSum(){
     const app = roomsOfFloor(f).filter(rn=> topicOn(t, rn));
     const rs = app.filter(rn=> m[rn]);
     if(!rs.length) return "";
-    const cc = {}; GRADES.forEach(g=> cc[g]=0);
-    rs.forEach(rn=>{ const g = m[rn][t.grade]; if(cc[g]!==undefined) cc[g]++; });
-    const seg = GRADES.map(g=> cc[g] ?
-      '<i style="width:'+(cc[g]/rs.length*100)+'%;background:'+GC[g]+'"></i>' : "").join("");
+    const cc = count(t, rs.map(rn=> m[rn]));
+    const seg = LEVELS.map(lv=> cc[lv] ?
+      '<i style="width:'+(cc[lv]/rs.length*100)+'%;background:'+GC[lv]+'"></i>' : "").join("");
     return '<tr><td class="k">'+f+'</td><td class="n">'+rs.length+"/"+app.length+'</td>'+
-      '<td class="n ok">'+cc["ผ่าน"]+'</td><td class="n">'+cc["เกือบผ่าน"]+'</td>'+
-      '<td class="n no">'+cc["ไม่ผ่าน"]+'</td><td class="n na">'+cc["ไม่ได้ตรวจ"]+'</td>'+
+      '<td class="n ok">'+cc.ok+'</td><td class="n wn">'+cc.warn+'</td>'+
+      '<td class="n no">'+cc.bad+'</td><td class="n na">'+cc.skip+'</td>'+
       '<td><div class="minibar">'+seg+'</div></td></tr>';
   }).join("") || '<tr><td class="empty">ยังไม่มีข้อมูล</td></tr>';
 
@@ -1739,7 +1790,7 @@ function renderSum(){
       return [f.col, hit.length];
     }).filter(d=> d[1] > 0).sort((a,b)=> b[1]-a[1]);
   }
-  if(c["ไม่ได้ตรวจ"]) defects.push(["เข้าห้องไม่ได้", c["ไม่ได้ตรวจ"]]);
+  if(c.skip) defects.push(["เข้าห้องไม่ได้", c.skip]);
   $("defectHead").textContent = t.survey ? "แยกตามแบบที่เจอหน้างาน" : "แยกตามข้อบกพร่อง";
   const mx = defects.length ? Math.max.apply(null, defects.map(d=>d[1])) : 1;
   $("defectBody").innerHTML = defects.map(([l,n])=>
@@ -1747,13 +1798,14 @@ function renderSum(){
     (n/mx*100)+'%;background:#14605A"></i></div></td><td class="n">'+n+'</td></tr>').join("")
     || '<tr><td class="empty">'+(t.survey ? "ยังไม่มีข้อมูล" : "ยังไม่พบข้อบกพร่อง")+'</td></tr>';
 
-  const fix = rooms.filter(rn=> m[rn][t.grade]==="ไม่ผ่าน" || m[rn][t.grade]==="เกือบผ่าน").sort();
+  const fix = rooms.filter(rn=>{ const lv = levelOf(t, m[rn]); return lv==="bad" || lv==="warn"; }).sort();
   $("fixBody").innerHTML = fix.length ? fix.map(rn=>{
     const row = m[rn];
     const why = scoreOf(t).filter(f=> !f.plain && notGood(f, rn, row[f.col]))
       .map(f=> f.col+": "+row[f.col]);
     return '<tr data-r="'+rn+'"><td class="k">'+rn+'</td><td>'+(why.join(" · ")||"-")+'</td>'+
-      '<td style="text-align:right"><span class="badge" data-g="'+row[t.grade]+'">'+row[t.grade]+'</span></td></tr>';
+      '<td style="text-align:right"><span class="badge" data-lv="'+levelOf(t, row)+'">'+
+      gradeText(t, row)+'</span></td></tr>';
   }).join("") : '<tr><td class="empty">ยังไม่มีห้องที่ต้องแก้</td></tr>';
   $("fixBody").querySelectorAll("tr[data-r]").forEach(tr=>
     tr.onclick = ()=> openRoom(tr.dataset.r));
@@ -1784,7 +1836,7 @@ function renderLog(){
           const cls = v==="-" ? "na" : (f && f.plain) ? "" : (notGood(f, rn, v) ? "no" : "ok");
           return '<td class="'+cls+'">'+v+'</td>';
         }).join("") +
-        '<td><span class="badge" data-g="'+r[t.grade]+'">'+(r[t.grade]||"")+'</span></td>'+
+        '<td><span class="badge" data-lv="'+levelOf(t, r)+'">'+gradeText(t, r)+'</span></td>'+
         '<td>'+showDate(r["วันที่ตรวจ"])+'</td><td>'+(r["ผู้ตรวจ"]||"")+'</td></tr>';
     });
   });
