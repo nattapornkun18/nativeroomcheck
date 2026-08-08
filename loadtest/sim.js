@@ -229,12 +229,19 @@ function runScenario(name, cfg) {
   const holds = server.stats.lockHoldSamples;
   const avgHold = holds.length ? holds.reduce((a, b) => a + b, 0) / holds.length : 0;
 
+  /* คนหนึ่งคนตรวจห้องถัดไปไม่ได้จนกว่าบันทึกห้องนี้จะผ่าน (closed loop)
+     "ควรได้" จึงคิดจากรอบเวลาที่ไม่มีคิวเลย = เวลาตรวจ + เวลาที่เซิร์ฟเวอร์ใช้จริง */
+  const idealCycleMs = cfg.inspectMs +
+    CM.costPost(p, cfg.topicsPerSave, cfg.startRows, server.opts).total;
+  const idealPerMin = cfg.users / (idealCycleMs / 60000);
+
   return {
     name, cfg,
     users: cfg.users,
     minutes: cfg.durationMs / 60000,
     saved: server.stats.postOk,
     savesPerMin: server.stats.postOk / (cfg.durationMs / 60000),
+    idealPerMin,
     demandPerMin: cfg.users / (cfg.inspectMs / 60000),
     avgHoldSec: avgHold / 1000,
     capacityPerMin: avgHold ? 60000 / avgHold : 0,
