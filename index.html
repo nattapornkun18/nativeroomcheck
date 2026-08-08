@@ -262,6 +262,16 @@
     vertical-align:middle}
   th.g em{display:block;font-style:normal;font-weight:400;font-size:9.5px;
     letter-spacing:0;color:var(--mute);opacity:.85}
+
+  /* ---------- แถบเลือกช่วงวันของตารางภาพรวม ---------- */
+  .rng{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:9px 12px;
+    background:#F4F7FA;border-bottom:1px solid var(--line)}
+  .rng button{font-size:12px;font-weight:600;padding:6px 11px;border:1px solid var(--line);
+    background:var(--card);border-radius:7px;color:var(--ink-2)}
+  .rng button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .rng input{margin-left:auto;font-family:var(--sans);font-size:12.5px;padding:5px 8px;
+    border:1px solid var(--line);border-radius:7px;color:var(--ink);background:var(--card)}
+  .rng input.hide{display:none}
   .minibar{height:5px;background:var(--paper);border-radius:3px;overflow:hidden;min-width:56px;display:flex}
   .minibar i{display:block;height:5px}
   .badge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
@@ -380,7 +390,16 @@
     <button class="allbtn" id="btnAll">📊 ดูภาพรวมทั้งหมด — ทุกหมวด ทุกชั้น</button>
 
     <div class="sechead" id="todayHead">ภาพรวมวันนี้</div>
-    <div class="card"><div id="todayBox"></div></div>
+    <div class="card">
+      <div class="rng">
+        <button data-m="day">รายวัน</button>
+        <button data-m="month">รายเดือน</button>
+        <button data-m="all">ทั้งหมด</button>
+        <input id="rngDay" type="date" aria-label="เลือกวันที่">
+        <input id="rngMonth" type="month" aria-label="เลือกเดือน">
+      </div>
+      <div id="todayBox"></div>
+    </div>
   </div>
 
   <!-- ============ ภาพรวมทุกหมวด ============ -->
@@ -989,6 +1008,9 @@ const S = {
   view:"home", topic:TOPICS[0].id, tab:"rooms",
   floor:FLOOR_FROM, room:String(FLOOR_FROM*100+1),
   inspector:"", date:todayTH(),
+  /* ช่วงวันของตารางภาพรวมหน้าแรก — แยกจาก date ที่ใช้ตอนบันทึก
+     mode: day = วันเดียว · month = ทั้งเดือน · all = ทุกวัน (สถานะล่าสุดของทุกห้อง) */
+  rng:{mode:"day", day:todayTH(), month:todayTH().slice(0,7)},
   data:{},            /* topicId → [rows] */
   latest:{},          /* topicId → { room: row } */
   draft:{},           /* topicId → {vals, note} ของห้องที่เปิดอยู่ */
@@ -1390,22 +1412,56 @@ function renderHome(){
   }).join("");
   document.querySelectorAll(".tcard").forEach(b=> b.onclick = ()=>{ S.topic = b.dataset.t; go("rooms"); });
 
-  /* ภาพรวมของ "วันที่" ที่เลือกไว้ข้างบน ไม่ใช่ยอดสะสม — ยอดสะสมอยู่ในการ์ดหมวด
-     บอกวันที่ไว้ที่หัวข้อด้วย ไม่งั้นวันที่ยังไม่ได้ตรวจจะเห็นเลข 0 แล้วนึกว่าเสีย */
+  /* ---- ตารางภาพรวมตามช่วงวันที่เลือก ----
+     รายวัน/รายเดือน นับ "จำนวนครั้งที่บันทึก" ในช่วงนั้น (ตรวจซ้ำ = นับใหม่)
+     ทั้งหมด นับสถานะล่าสุดของแต่ละห้อง ตัวเลขจะได้ตรงกับการ์ดหมวดข้างบน */
+  const r = S.rng, all = r.mode === "all";
+  document.querySelectorAll(".rng button[data-m]").forEach(b=>{
+    b.setAttribute("aria-pressed", String(b.dataset.m === r.mode));
+    b.onclick = ()=>{ S.rng.mode = b.dataset.m; saveMe(); renderHome(); };
+  });
+  $("rngDay").classList.toggle("hide", r.mode !== "day");
+  $("rngMonth").classList.toggle("hide", r.mode !== "month");
+  $("rngDay").value = r.day; $("rngMonth").value = r.month;
+  $("rngDay").onchange = e=>{ S.rng.day = e.target.value || todayTH(); saveMe(); renderHome(); };
+  $("rngMonth").onchange = e=>{
+    S.rng.month = e.target.value || todayTH().slice(0,7); saveMe(); renderHome(); };
+
   const rows = [];
   let saved = 0;
   TOPICS.forEach(t=>{
-    const day = (S.data[t.id]||[]).filter(r=> isoDate(r["วันที่ตรวจ"]) === S.date);
-    saved += day.length;
+    const src = all ? Object.keys(S.latest[t.id]||{}).map(rn=> S.latest[t.id][rn])
+                    : (S.data[t.id]||[]).filter(x=> inRange(x["วันที่ตรวจ"]));
+    saved += src.length;
     rows.push('<tr><td>'+t.icon+' '+t.name+'</td>'+
-      '<td class="n'+(day.length ? '' : ' na')+'">'+day.length+'</td>'+ lvCells(count(t, day)) +'</tr>');
+      '<td class="n'+(src.length ? '' : ' na')+'">'+src.length+'</td>'+ lvCells(count(t, src)) +'</tr>');
   });
-  $("todayHead").textContent = (S.date === todayTH() ? "ภาพรวมวันนี้ · " : "ภาพรวมวันที่ ") +
-    thDate(S.date);
-  $("todayBox").innerHTML = '<table><thead><tr><th>หมวด</th><th>บันทึก</th>'+
-    lvHead()+'</tr></thead><tbody>'+rows.join("")+'</tbody></table>'+
-    (saved ? "" : '<div class="empty">ยังไม่มีใครบันทึกในวันที่นี้'+
-      '<br>ยอดที่ตรวจไปแล้วทั้งหมดดูได้ที่การ์ดหมวดด้านบน</div>');
+  $("todayHead").textContent = rngLabel();
+  $("todayBox").innerHTML = '<table><thead><tr><th>หมวด</th>'+
+    '<th>'+(all ? "ห้อง" : "บันทึก")+'</th>'+lvHead()+'</tr></thead><tbody>'+
+    rows.join("")+'</tbody></table>'+
+    (saved ? "" : '<div class="empty">'+(all
+      ? "ยังไม่มีข้อมูลสักหมวด"
+      : "ยังไม่มีใครบันทึกใน"+(r.mode === "month" ? "เดือนนี้" : "วันที่นี้")+
+        '<br>กด "ทั้งหมด" เพื่อดูยอดที่ตรวจไปแล้วทั้งหมด')+'</div>');
+}
+
+const TH_MONTH = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+                  "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+/** แถวนี้อยู่ในช่วงที่เลือกไหม — โหมด "ทั้งหมด" ไม่ได้ผ่านทางนี้ */
+function inRange(v){
+  const iso = isoDate(v);
+  if(!iso) return false;
+  return S.rng.mode === "month" ? iso.slice(0,7) === S.rng.month : iso === S.rng.day;
+}
+function rngLabel(){
+  const r = S.rng;
+  if(r.mode === "all") return "ภาพรวมทั้งหมด · สถานะล่าสุดของทุกห้อง";
+  if(r.mode === "month"){
+    const m = String(r.month).split("-");
+    return "ภาพรวมเดือน " + (TH_MONTH[+m[1]-1] || "") + " " + m[0];
+  }
+  return (r.day === todayTH() ? "ภาพรวมวันนี้ · " : "ภาพรวมวันที่ ") + thDate(r.day);
 }
 
 /* ---------- ภาพรวมทุกหมวด ---------- */
@@ -1481,7 +1537,10 @@ function bindWho(inputId, dateId, noteId){
     const other = inputId==="who" ? "who2" : "who"; if($(other)) $(other).value = S.inspector;
     if($("whoNote")) $("whoNote").innerHTML = S.inspector ? "" : '<span class="warn">ยังไม่ได้ใส่ชื่อผู้ตรวจ</span>'; };
   $(dateId).onchange = e=>{
-    S.date = e.target.value || todayTH(); saveMe();
+    S.date = e.target.value || todayTH();
+    /* เปลี่ยนวันที่ตรวจ = ย้ายไปทำงานของอีกวัน ตารางภาพรวมรายวัน/รายเดือนตามไปด้วย */
+    S.rng.day = S.date; S.rng.month = S.date.slice(0,7);
+    saveMe();
     $("dt").value = S.date; $("dt2").value = S.date;
     if($(noteId)) $(noteId).textContent = thDate(S.date) + " (เวลาไทย)";
     if($("dtNote")) $("dtNote").textContent = thDate(S.date) + " (เวลาไทย)";
@@ -1489,7 +1548,10 @@ function bindWho(inputId, dateId, noteId){
     render();
   };
 }
-function saveMe(){ LS.set(K_ME, JSON.stringify({inspector:S.inspector, date:S.date, remember:S.remember})); }
+function saveMe(){
+  LS.set(K_ME, JSON.stringify({inspector:S.inspector, date:S.date,
+                               remember:S.remember, rng:S.rng}));
+}
 
 /* ---------- หน้าเลือกห้อง ---------- */
 function renderRooms(){
@@ -1990,7 +2052,12 @@ async function gate(){
   try{
     const me = JSON.parse(LS.get(K_ME)||"null");
     if(me){ S.inspector = me.inspector||""; S.remember = me.remember||{};
-            if(me.date && me.date === todayTH()) S.date = me.date; }
+            if(me.date && me.date === todayTH()) S.date = me.date;
+            /* จำโหมดที่เลือกไว้ แต่วันกับเดือนเริ่มที่วันที่ตรวจปัจจุบันเสมอ
+               เปิดแอปวันใหม่จะได้ไม่ค้างอยู่ที่วันเก่าจนนึกว่าไม่มีข้อมูล */
+            const m = me.rng && me.rng.mode;
+            S.rng = {mode: (m==="month"||m==="all") ? m : "day",
+                     day:S.date, month:S.date.slice(0,7)}; }
   }catch(e){}
   try{ S.data = JSON.parse(LS.get(K_CACHE)||"{}") || {}; }catch(e){ S.data = {}; }
 
