@@ -173,6 +173,25 @@
   .opt[aria-pressed="true"][data-k="done"]{background:var(--done);border-color:var(--done)}
   .opt[aria-pressed="true"][data-k="plain"]{background:var(--ink);border-color:var(--ink)}
   .hint{font-size:11.5px;color:var(--mute);margin-top:7px}
+  /* คู่ "โปร่ง / ทึบ" ที่ตอบเหมือนกัน วางเคียงกันสองคอลัมน์ แทนที่จะซ้อนกันลงมา
+     ตัดความสูงของหมวดม่านลงเกือบครึ่ง · จอแคบมากค่อยกลับไปเรียงลงมาทีละข้อ */
+  .fld.half{display:inline-block;width:50%;vertical-align:top;box-sizing:border-box;padding:10px 9px 12px}
+  .fld.half + .fld.half{border-left:1px solid #EDF1F5}
+  /* ปุ่มในช่องครึ่งต้องอยู่แถวเดียวกัน ไม่งั้นซ้อนกันลงมาแล้วไม่ได้ลดความสูงเลย */
+  .fld.half .opts{gap:4px}
+  .fld.half .opt{flex:1 1 calc(50% - 2px);min-width:0;font-size:11px;padding:5px 3px;line-height:1.2}
+  .fld.half .lab{font-size:12.5px;margin-bottom:6px}
+  .fld.half .lab span{display:none}     /* คำอังกฤษกำกับตัดออก ช่องแคบแล้ว */
+  @media (max-width:340px){
+    .fld.half{display:block;width:100%}
+    .fld.half + .fld.half{border-left:0}
+  }
+  /* คำอธิบายเกณฑ์ยาว ๆ พับเก็บไว้ กดดูเมื่ออยากดู ไม่กินที่ตอนเดินตรวจ */
+  .hintbox{margin-top:7px}
+  .hintbox summary{display:inline-block;font-size:11px;color:var(--mute);cursor:pointer;
+    list-style:none;padding:2px 9px;border:1px solid var(--line);border-radius:999px}
+  .hintbox summary::-webkit-details-marker{display:none}
+  .hintbox[open] summary{margin-bottom:2px}
 
   /* ---------- ช่องตัวเลข ---------- */
   .numrow{display:flex;align-items:center;gap:6px}
@@ -251,6 +270,17 @@
   .fixlist .it b{width:7px;height:7px;border-radius:50%;flex:none;margin-top:5px}
   .fixlist .it[data-k="bad"] b{background:var(--bad)}
   .fixlist .it[data-k="warn"] b{background:var(--warn)}
+  /* หมวดม่านแยกจุดที่ไม่ผ่านเป็นสองกอง ตามทีมที่ต้องมาแก้ */
+  .fixlist .tgrp{margin-top:9px;padding-left:9px;border-left:2px solid var(--line)}
+  .fixlist .tgrp .th{font-size:12px;font-weight:700;color:var(--ink)}
+  /* ---------- งานค้างแยกตามทีม (หน้าสรุป) ---------- */
+  /* ชื่อทีม — ห้ามใช้ชื่อคลาส .who ซ้ำกับกล่องชื่อผู้ตรวจ ตัวนั้นโดนซ่อนตอนโหมดดูอย่างเดียว */
+  .teamrow .tm{font-weight:700;white-space:nowrap;margin-bottom:2px}
+  .teamrow .rms{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  .teamrow .rms b{font-family:var(--mono);font-size:12px;font-weight:600;padding:2px 7px;
+    border-radius:999px;background:var(--paper);border:1px solid var(--line);cursor:pointer}
+  .teamrow .rms b[data-k="done"]{background:#EAF2F7;border-color:#C6DCE9;color:var(--done)}
+  .teamrow .rms b[data-k="wait"]{background:#FBF1E0;border-color:#EAD6AE;color:var(--warn)}
 
   textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font-family:var(--sans);
     font-size:13.5px;resize:vertical;min-height:56px;color:var(--ink)}
@@ -500,6 +530,12 @@
     <div class="sechead" id="defectHead">แยกตามข้อบกพร่อง</div>
     <div class="card"><table><tbody id="defectBody"></tbody></table></div>
 
+    <!-- เฉพาะหมวดม่าน — ห้องไหนรอทีมไหนมาแก้ กดที่เลขห้องเพื่อเปิดห้องนั้น -->
+    <div class="sechead hide" id="teamHead">งานค้างแยกตามทีม</div>
+    <div class="card hide" id="teamCard"><table><tbody id="teamBody"></tbody></table></div>
+    <p class="hint hide" id="teamNote">เลขห้องสีเหลือง = ยังรอทีมนั้นมาแก้ ·
+      สีน้ำเงิน = แก้แล้ว · กดที่เลขห้องเพื่อเปิดห้องนั้น</p>
+
     <div class="sechead">ห้องที่ยังรอแก้ไข</div>
     <div class="card"><table><tbody id="fixBody"></tbody></table></div>
 
@@ -631,6 +667,10 @@ const GAP_OPTS  = [{v:"ไม่มีช่องรู"},{v:"มีช่อ�
 const CURTAIN_BRAND = "Smart curtain";
 const CLOSE_GAP = "ปิดเหลือระยะห่างกันมากกว่า 10cm";
 const CLOSE_OPTS = [{v:"ปิดสุด"},{v:CLOSE_GAP,bad:1}];
+/* ---- ชายม่านลอยพื้น: สเปกรับงานคือครึ่งนิ้ว ----
+   เกินครึ่งนิ้วแต่ไม่ถึง 1 นิ้ว = แสงลอดเฉพาะจุด ปรับตะขอทีละตัวก็จบ ทีมโรงแรมทำเองได้ (เหลือง)
+   1 นิ้วขึ้นไป = ความยาวผ้าผิด ต้องรื้อแก้ ทีมช่างม่านมาทำ (แดง) */
+const HEM_OK = "ครึ่งนิ้ว", HEM_MID = "เกินครึ่งนิ้ว ไม่ถึง 1 นิ้ว", HEM_BAD = "1 นิ้วขึ้นไป";
 
 const SG_TILE_OPTS  = [{v:"กระเบื้องสุดขอบ"},{v:"กระเบื้องไม่สุดขอบ",bad:1}];
 const SG_PAINT_OPTS = [{v:"ไม่ทาสี"},{v:"ทาสีน้ำตาล",bad:1},{v:"ทาสีขาว",bad:1}];
@@ -727,12 +767,73 @@ const FIX_OPTS = [{v:FIX_WAIT, k:"warn"}, {v:FIX_WAIVE, k:"done"}, {v:FIX_DONE, 
 /* สองสถานะนี้แปลว่าไม่ต้องกลับไปแก้แล้ว */
 const fixClosed = v => v === FIX_WAIVE || v === FIX_DONE;
 
+/* ---------------------------------------------------------------------
+   ใครเป็นคนมาแก้ — เฉพาะหมวดม่าน มีสองทีมเข้ามาทำคนละเรื่อง
+     🏨 ทีมโรงแรม   งานปรับเฉพาะจุดที่ช่างในโรงแรมทำเองได้ ไม่ต้องรอช่างม่าน
+                    · ชายม่านลอยพื้นเกินครึ่งนิ้วแต่ไม่ถึง 1 นิ้ว → ปรับตะขอทีละตัว
+                    · แสงลอดเฉพาะจุด (ไม่ใช่รอยต่อกลาง และไม่เกิน 2 จุด) → ปรับตะขอจุดนั้น
+                    · ดึงมือเปิด–ปิดตอนไฟดับ ต้อง manual 100% · หยอด WD40 ให้รางไม่ฝืด
+     🔧 ทีมช่างม่าน  งานที่ต้องรื้อ/เปลี่ยนของ หรือแตะระบบไฟฟ้า
+                    · ลอนม่าน ความยาวผ้า ตีนตุ๊กแก ตะขอ หัวสไลด์
+                    · มอเตอร์ สวิตช์ ระบบกระตุกกึ่งออโต้ เปิด–ปิดไม่สุด เสียงดัง
+                    · แสงลอดที่รอยต่อกลาง หรือลอดหลายจุดจนปรับตะขอไม่ไหว
+
+   จับทีมให้เองจากข้อที่ไม่ผ่าน ผู้ตรวจไม่ต้องเลือก แล้วค่อยกดว่าทีมนั้นแก้แล้วยัง
+   --------------------------------------------------------------------- */
+const TEAM_HOTEL = "ทีมโรงแรม", TEAM_CURTAIN = "ทีมช่างม่าน";
+const TEAMS = [TEAM_HOTEL, TEAM_CURTAIN];
+const TEAM_INFO = {
+  "ทีมโรงแรม":   {icon:"🏨", col:"งานทีมโรงแรม",   wait:"รอโรงแรมแก้", done:"โรงแรมแก้แล้ว"},
+  "ทีมช่างม่าน": {icon:"🔧", col:"งานทีมช่างม่าน", wait:"รอช่างม่าน",  done:"ช่างม่านแก้แล้ว",
+                  waive:"อนุโลม ไม่ต้องแก้"}
+};
+/* คอลัมน์ที่เป็นงานทีมโรงแรมล้วน ๆ ไม่ต้องดูค่าที่กรอกก็รู้ว่าใครทำ */
+const HOTEL_COLS = ["ดึงมือไฟดับม่านโปร่ง", "ดึงมือไฟดับม่านทึบ", "หยอด WD40"];
+/* แสงลอด: รอยต่อกลางรั่ว หรือลอดเกิน 2 จุด = เกินมือทีมโรงแรม ต้องเรียกช่างม่าน */
+const leakIsBig = vals => {
+  const ids = doorIds(vals["จุดที่มีแสงม่านทึบ"]);
+  return ids.some(isSeamId) || ids.length > 2;
+};
+/** ข้อบกพร่องหนึ่งจุดเป็นงานของทีมไหน — s คือผลจาก scoreField ที่ติด col มาด้วย */
+function teamOf(s, vals){
+  if(HOTEL_COLS.indexOf(s.col) !== -1) return TEAM_HOTEL;
+  if(s.col === "ชายม่านทึบถึงพื้น")
+    return unalias(s.val) === HEM_MID ? TEAM_HOTEL : TEAM_CURTAIN;
+  if(s.col === "แสงลอดม่านทึบ" || s.col === "จุดที่มีแสงม่านทึบ")
+    return leakIsBig(vals) ? TEAM_CURTAIN : TEAM_HOTEL;
+  return TEAM_CURTAIN;
+}
+/** แยกข้อที่ไม่ผ่านของห้องนี้เป็นสองกอง ตามทีมที่ต้องมาแก้
+ *  หมวดอื่นไม่ได้แบ่งทีม คืนกองว่างทั้งคู่ หัวข้อทีมจึงไม่โผล่ */
+function teamsOf(t, room, vals){
+  const g = {}; TEAMS.forEach(x=> g[x] = []);
+  if(t.id !== "curtain") return g;
+  defectsOf(t, room, vals).forEach(s=> g[teamOf(s, vals)].push(s));
+  return g;
+}
+/* ตัวเลือกของช่องสถานะทีม — ตัวแรกคือยังค้าง ที่เหลือคือปิดจบของทีมนั้น */
+const teamOpts = team => {
+  const I = TEAM_INFO[team];
+  return [{v:I.wait, k:"warn"}, {v:I.done, k:"done"}]
+    .concat(I.waive ? [{v:I.waive, k:"done"}] : []);
+};
+const teamClosed = (team, v) => {
+  const I = TEAM_INFO[team], s = String(v||"").trim();
+  return s === I.done || (!!I.waive && s === I.waive);
+};
+
 /* ค่าเก่าในชีตที่เปลี่ยนชื่อ/เปลี่ยนเกณฑ์ไปแล้ว — อ่านเจอเมื่อไหร่แปลงเป็นค่าใหม่ให้เลย
    จะได้ไม่ต้องเดินไล่กรอกห้องเก่าใหม่ทั้งตึก (ในชีตแปลงถาวรได้ที่เมนู "แปลงคำเก่าให้ตรงกับหน้าเว็บ")
    ม่าน: เกณฑ์ใหม่ถือว่าปิดแล้วเหลือระยะนิดหน่อยคือปิดสุด ไม่ผ่านเมื่อห่างเกิน 10 ซม. */
 const ALIAS = {
   "ปิดเหลือระยะนิดหน่อย": "ปิดสุด",
-  "ปิดไม่ได้ เหลือครึ่งทาง": "ปิดเหลือระยะห่างกันมากกว่า 10cm"
+  "ปิดไม่ได้ เหลือครึ่งทาง": "ปิดเหลือระยะห่างกันมากกว่า 10cm",
+  /* ชายม่าน: แยกให้ชัดว่าช่วงไหนทีมโรงแรมปรับตะขอเองได้ ช่วงไหนต้องเรียกช่างม่าน */
+  "1 นิ้ว": HEM_MID,
+  "มากกว่า 1 นิ้ว": HEM_BAD,
+  /* "มือดึง" เดิมหมายถึงกระตุกแล้วมอเตอร์วิ่งให้ ไม่ใช่ดึงมือล้วน ๆ — เปลี่ยนคำให้ตรง
+     ตอนนี้แยกเป็นคนละหัวข้อกับการดึงมือตอนไฟดับแล้ว */
+  "ดึงแล้วไม่ทำงาน": "กระตุกแล้วไม่วิ่ง"
 };
 const unalias = v => { const s = String(v||"").trim(); return ALIAS[s] || s; };
 
@@ -744,78 +845,98 @@ const unalias = v => { const s = String(v||"").trim(); return ALIAS[s] || s; };
 const TOPICS = [
 {
   id:"curtain", name:"ม่าน", en:"Curtain", icon:"🪟", grade:"ผลตรวจ",
+  /* ไม่มีปุ่ม "ปกติทั้งหมด" ในหมวดนี้ — ตั้งใจให้เดินกดทีละข้อ จะได้เช็กครบจริง */
+  noAllOk:1,
   /* ม่านเหลือแบรนด์เดียวทั้งตึกแล้ว — ไม่ต้องให้เลือก เติมลงชีตให้เองเลย
      ห้องเก่าที่เคยบันทึกว่า Dooya ไว้ ค่าเดิมในชีตยังอยู่ ไม่ถูกแตะ */
   auto: r => ({ "Room type": ROOM_TYPE[unitOf(r)] || "", "แบรนด์": CURTAIN_BRAND }),
   derive: d => ({ "จำนวนจุดที่มีแสงม่านทึบ":
     String(doorIds(d.vals["จุดที่มีแสงม่านทึบ"]).length) }),
+  /* หมวดนี้เคยเป็น 8 การ์ดเรียงลงมายาวมาก ทั้งที่ครึ่งหนึ่งเป็นคู่ "โปร่ง / ทึบ"
+     ที่ตอบเหมือนกัน — ยุบเหลือ 3 การ์ดตามจังหวะที่เดินตรวจจริง
+     และคู่โปร่ง/ทึบวางเคียงกันสองคอลัมน์ด้วย half:1 หัวข้อยังครบเท่าเดิมทุกข้อ */
   sections:[
-    /* เกณฑ์ใหม่: ปิดแล้วเหลือระยะนิดหน่อยถือว่าปิดสุด ผ่าน
-       ไม่ผ่านคือปิดแล้วสองบานยังห่างกันเกิน 10 ซม. — เหลือให้กดแค่สองตัวเลือก */
-    {cap:"Close · ปิดม่าน", fields:[
-      {col:"ปิดม่านโปร่ง", label:"ม่านโปร่ง", en:"sheer", opts:CLOSE_OPTS,
+    /* ---- การ์ดที่ 1: ยืนที่ม่าน ปิด–เปิด แล้วดูแสง จบในการ์ดเดียว ----
+       เกณฑ์ปิด: ปิดแล้วเหลือระยะนิดหน่อยถือว่าปิดสุด ผ่าน
+       ไม่ผ่านคือปิดแล้วสองบานยังห่างกันเกิน 10 ซม. */
+    {cap:"Close–Open & Light · ปิด–เปิด และแสงลอด", fields:[
+      {col:"ปิดม่านโปร่ง", label:"ปิดม่านโปร่ง", en:"close sheer", half:1, opts:CLOSE_OPTS,
        hint:"ปิดแล้วเหลือระยะนิดหน่อยถือว่าปิดสุด · ไม่ผ่านเมื่อห่างกันเกิน 10 ซม."},
-      {col:"ปิดม่านทึบ", label:"ม่านทึบ", en:"curtain", opts:CLOSE_OPTS}
-    ]},
-    /* แสงลอดม่าน — วิธีเดียวกับหมวดแสงรอบประตู แตะช่องบนรูปว่ารั่วตรงไหน
-       เช็คเฉพาะม่านทึบ ม่านโปร่งไม่ได้มีหน้าที่กันแสงอยู่แล้ว */
-    {cap:"Light leak · แสงลอดม่านทึบ", fields:[
+      {col:"ปิดม่านทึบ", label:"ปิดม่านทึบ", en:"close curtain", half:1, opts:CLOSE_OPTS},
+      {col:"เปิดม่านโปร่ง", label:"เปิดม่านโปร่ง", en:"open sheer", half:1,
+       opts:[{v:"เปิดสุด"},{v:"เปิดไม่สุด",bad:1}]},
+      {col:"เปิดม่านทึบ", label:"เปิดม่านทึบ", en:"open curtain", half:1,
+       opts:[{v:"เปิดสุด"},{v:"เปิดไม่สุด",bad:1}]},
+      /* แสงลอดม่าน — วิธีเดียวกับหมวดแสงรอบประตู แตะช่องบนรูปว่ารั่วตรงไหน
+         เช็คเฉพาะม่านทึบ ม่านโปร่งไม่ได้มีหน้าที่กันแสงอยู่แล้ว */
       {col:"แสงลอดม่านทึบ", label:"ปิดม่านทึบสุด ปิดไฟในห้อง แล้วดูรอบผืนม่าน", en:"blackout",
        opts:[{v:"ไม่มีแสงลอด"},{v:"มีแสงลอด",warn:1}]},
       {col:"จุดที่มีแสงม่านทึบ", type:"curtain", label:"แตะช่องที่เห็นแสงลอดออกมา",
        showIf: v => v["แสงลอดม่านทึบ"] === "มีแสงลอด",
        hint: r => "แตะซ้ำเพื่อเอาออก · เลือกได้หลายจุด · "+
          "รั่วที่"+CUR_SEAM+"จุดเดียวก็ไม่ผ่านสีแดง เพราะแสงยิงเข้าหน้าคนนอนตรง ๆ"+
-         (curtainOf(r).runs.length > 1 ? " · ห้องนี้มีสองราง ดูให้ครบทั้งคู่" : ""),
+         (curtainOf(r).runs.length > 1 ? " · ห้องนี้มีสองราง ดูให้ครบทั้งคู่" : "")+
+         " · ลอดไม่เกิน 2 จุดและไม่ใช่"+CUR_SEAM+" ทีมโรงแรมปรับตะขอเองได้",
        warn: n => n <= 2}
     ]},
-    {cap:"Open · เปิดม่าน", fields:[
-      {col:"เปิดม่านโปร่ง", label:"ม่านโปร่ง", en:"sheer",
-       opts:[{v:"เปิดสุด"},{v:"เปิดไม่สุด",bad:1}]},
-      {col:"เปิดม่านทึบ", label:"ม่านทึบ", en:"curtain",
-       opts:[{v:"เปิดสุด"},{v:"เปิดไม่สุด",bad:1}]}
-    ]},
-    {cap:"Switch · สวิตช์", fields:[
-      {col:"สวิตช์ม่านโปร่ง", label:"สวิตช์ม่านโปร่ง", en:"switch sheer",
+    /* ---- การ์ดที่ 2: ทุกวิธีที่ทำให้ม่านวิ่ง ----
+       สามวิธี แยกกันคนละเรื่อง คนละทีมที่ต้องมาแก้
+         สวิตช์      กดที่ผนัง                        → ช่างม่าน
+         กระตุก      กึ่งออโต้ กระตุกผ้าแล้วมอเตอร์วิ่งต่อ → ช่างม่าน
+         ดึงมือไฟดับ ไฟดับแล้วต้องลากมือได้ 100%        → ทีมโรงแรม */
+    {cap:"Drive · ระบบขับเคลื่อน", fields:[
+      {col:"สวิตช์ม่านโปร่ง", label:"สวิตช์ม่านโปร่ง", en:"switch sheer", half:1,
        opts:[{v:"ปกติ"},{v:"กดแล้วไม่ทำงาน",bad:1}]},
-      {col:"สวิตช์ม่านทึบ", label:"สวิตช์ม่านทึบ", en:"switch curtain",
-       opts:[{v:"ปกติ"},{v:"กดแล้วไม่ทำงาน",bad:1}]}
-    ]},
-    {cap:"Manual · มือดึง", fields:[
-      {col:"มือดึงม่านโปร่ง", label:"มือดึงม่านโปร่ง", en:"manual sheer",
-       opts:[{v:"ปกติ"},{v:"ดึงแล้วไม่ทำงาน",bad:1}]},
-      {col:"มือดึงม่านทึบ", label:"มือดึงม่านทึบ", en:"manual curtain",
-       opts:[{v:"ปกติ"},{v:"ดึงแล้วไม่ทำงาน",bad:1}]}
-    ]},
-    {cap:"Sound & Smooth · เสียงและการเดินราง", fields:[
-      {col:"เสียงม่านโปร่ง", label:"เสียงม่านโปร่ง", en:"sound sheer",
+      {col:"สวิตช์ม่านทึบ", label:"สวิตช์ม่านทึบ", en:"switch curtain", half:1,
+       opts:[{v:"ปกติ"},{v:"กดแล้วไม่ทำงาน",bad:1}]},
+      {col:"มือดึงม่านโปร่ง", label:"กระตุกม่านโปร่ง", en:"tug sheer", half:1,
+       opts:[{v:"ปกติ"},{v:"กระตุกแล้วไม่วิ่ง",bad:1}],
+       hint:"ระบบกึ่งออโต้ — กระตุกผ้าเบา ๆ แล้วมอเตอร์ต้องวิ่งเปิด/ปิดต่อให้เอง "+
+            "เสียตรงนี้เป็นงานทีมช่างม่าน"},
+      {col:"มือดึงม่านทึบ", label:"กระตุกม่านทึบ", en:"tug curtain", half:1,
+       opts:[{v:"ปกติ"},{v:"กระตุกแล้วไม่วิ่ง",bad:1}]},
+      /* ---- ใหม่: ทดสอบกรณีไฟดับ ต้องลากมือได้เต็มระยะโดยไม่พึ่งมอเตอร์ ----
+         สับเบรกเกอร์ม่าน (หรือปิดไฟห้อง) แล้วลากผ้าด้วยมือทั้งเปิดและปิด */
+      {col:"ดึงมือไฟดับม่านโปร่ง", label:"ดึงมือตอนไฟดับ · ม่านโปร่ง", en:"manual sheer", half:1,
+       opts:[{v:"ดึงมือได้สุด 100%"},{v:"ดึงมือได้ไม่สุด",warn:1},{v:"ดึงมือไม่ได้เลย",bad:1}],
+       hint:"ตัดไฟม่านแล้วลากด้วยมือทั้งเปิดและปิด ต้องได้เต็มระยะและไม่ต้องออกแรงมาก "+
+            "เป็นงานทีมโรงแรม ถ้าฝืดให้หยอด WD40 ที่รางแล้วลองใหม่"},
+      {col:"ดึงมือไฟดับม่านทึบ", label:"ดึงมือตอนไฟดับ · ม่านทึบ", en:"manual curtain", half:1,
+       opts:[{v:"ดึงมือได้สุด 100%"},{v:"ดึงมือได้ไม่สุด",warn:1},{v:"ดึงมือไม่ได้เลย",bad:1}]},
+      /* หยอด WD40 ตอบครั้งเดียวต่อห้อง ห้องสองรางก็นับว่าจบเมื่อหยอดครบทั้งคู่ */
+      {col:"หยอด WD40", label:"หยอด WD40 ที่รางแล้วหรือยัง", en:"WD40",
+       opts:[{v:"หยอดแล้ว"},{v:"รางลื่นอยู่แล้ว ไม่ต้องหยอด"},{v:"ยังไม่หยอด",warn:1}],
+       hint:"งานทีมโรงแรม · ห้องที่มีสองรางต้องหยอดครบทั้งคู่ถึงจะนับว่าหยอดแล้ว"},
+      {col:"เสียงม่านโปร่ง", label:"เสียงม่านโปร่ง", en:"sound sheer", half:1,
        opts:[{v:"ปกติ"},{v:"ดัง",warn:1}]},
-      {col:"เสียงม่านทึบ", label:"เสียงม่านทึบ", en:"sound curtain",
+      {col:"เสียงม่านทึบ", label:"เสียงม่านทึบ", en:"sound curtain", half:1,
        opts:[{v:"ปกติ"},{v:"ดัง",warn:1}]},
       {col:"เดินลื่นทั้งระบบ", label:"เดินลื่นทั้งระบบ", en:"smooth all",
        opts:[{v:"ลื่น ไม่สะดุด"},{v:"สะดุด/ฝืด",bad:1}]}
     ]},
-    /* งานติดตั้งม่านทึบตามสเปก — ตัวเลือกแรกของทุกข้อคือค่าที่รับงานได้
+    /* ---- การ์ดที่ 3: งานติดตั้งตามสเปก + ความเรียบร้อยของผืนม่าน ----
+       ตัวเลือกแรกของทุกข้อคือค่าที่รับงานได้
        ห้อง 06/07 มีสองราง แต่หัวข้อพวกนี้ตอบครั้งเดียวต่อห้อง
        เจอเสียรางไหนก็ถือว่าห้องนี้ไม่ผ่าน */
-    {cap:"Install · งานติดตั้งม่านทึบ", fields:[
-      {col:"ตีนตุ๊กแกม่านทึบ", label:"ติดตีนตุ๊กแกยึดม่านกับผนังแล้วหรือยัง", en:"velcro",
+    {cap:"Install & Finish · งานติดตั้งและความเรียบร้อย", fields:[
+      {col:"ตีนตุ๊กแกม่านทึบ", label:"ติดตีนตุ๊กแกยึดม่านกับผนังแล้วหรือยัง", en:"velcro", half:1,
        opts:[{v:"ติดแล้ว"},{v:"ยังไม่ติด",bad:1}],
        hint:"สเปกคือต้องติดทุกห้อง — ตีนตุ๊กแกเป็นตัวปิดแสงที่ริมผ้าชนผนัง"},
-      {col:"ตะขอม่านทึบ", label:"ตะขอม่านที่ใช้", en:"hook",
+      {col:"ตะขอม่านทึบ", label:"ตะขอม่านที่ใช้", en:"hook", half:1,
        opts:[{v:"ตะขอตะปู"},{v:"ตะขอธรรมดา",bad:1}],
        hint:"สเปกคือตะขอตะปู"},
-      {col:"หัวสไลด์ม่านทึบ", label:"สีหัวสไลด์ม่าน", en:"slider",
+      {col:"หัวสไลด์ม่านทึบ", label:"สีหัวสไลด์ม่าน", en:"slider", half:1,
        opts:[{v:"สีขาว"},{v:"สีเงิน",bad:1}],
-       hint:"สเปกคือสีขาว"}
-    ]},
-    {cap:"Finish · ความเรียบร้อยม่านทึบ", fields:[
-      {col:"ชายม่านทึบถึงพื้น", label:"ชายม่านห่างจากพื้นเท่าไหร่", en:"hem",
-       opts:[{v:"ครึ่งนิ้ว"},{v:"1 นิ้ว",warn:1},{v:"มากกว่า 1 นิ้ว",bad:1}],
-       hint:"สเปกคือครึ่งนิ้ว · 1 นิ้วยังปรับตะขอเอาได้ เลยเป็นเหลือง · เกิน 1 นิ้วต้องแก้ความยาว"},
-      {col:"ลอนม่านทึบ", label:"ลอนม่าน", en:"pleat",
+       hint:"สเปกคือสีขาว"},
+      {col:"ลอนม่านทึบ", label:"ลอนม่าน", en:"pleat", half:1,
        opts:[{v:"ลอนสวยปกติ"},{v:"ลอนสวยแต่ยับ",warn:1},{v:"ไม่เป็นลอนหรือลอนไม่เท่ากัน",bad:1}],
-       hint:"ยับรีดหรือแขวนทิ้งไว้ก็หาย เลยเป็นเหลือง · ลอนไม่เท่ากันต้องรื้อจับลอนใหม่"}
+       hint:"ยับรีดหรือแขวนทิ้งไว้ก็หาย เลยเป็นเหลือง · ลอนไม่เท่ากันต้องรื้อจับลอนใหม่ "+
+            "เป็นงานทีมช่างม่าน"},
+      /* ชายม่าน — จุดเดียวในหมวดนี้ที่ค่าที่กรอกเป็นตัวตัดสินว่าทีมไหนมาแก้ */
+      {col:"ชายม่านทึบถึงพื้น", label:"ชายม่านห่างจากพื้นเท่าไหร่", en:"hem",
+       opts:[{v:HEM_OK},{v:HEM_MID,warn:1},{v:HEM_BAD,bad:1}],
+       hint:"สเปกคือ"+HEM_OK+" · "+HEM_MID+" = แสงลอดเฉพาะจุด ทีมโรงแรมปรับตะขอเองได้ · "+
+            HEM_BAD+" = ความยาวผ้าผิด ต้องให้ทีมช่างม่านมาแก้"}
     ]}
   ]
 },
@@ -958,8 +1079,19 @@ const fixFieldOf = t => ({col:FIX, label:"ตกลงยังไงกับ�
   showIf:(vals, room)=> defectsOf(t, room, vals).length > 0,
   hint:"ไม่เลือก = รอแก้ไข · อนุโลม กับ แก้ไขแล้ว ทำให้ห้องนี้ปิดจบ "+
        "แต่ยังเก็บไว้ในชีตว่าเดิมเสียตรงไหน"});
+/* หัวข้อ "ทีมนี้แก้แล้วยัง" — เฉพาะหมวดม่านที่มีสองทีมเข้ามาทำคนละเรื่อง
+   โผล่เฉพาะทีมที่มีงานค้างจริงในห้องนี้ ทีมที่ไม่มีงานก็ไม่ต้องมีปุ่มให้กด
+   ไม่ตัดเกรด (plain) — เป็นการติดตามงาน ส่วนผลตรวจของห้องยังตัดที่ FIX เหมือนหมวดอื่น */
+const teamFieldOf = (t, team) => {
+  const I = TEAM_INFO[team];
+  return {col:I.col, label:I.icon+" "+team+" แก้แล้วหรือยัง", en:"follow-up",
+    plain:true, optional:true, opts:teamOpts(team),
+    showIf:(vals, room)=> teamsOf(t, room, vals)[team].length > 0,
+    hint:"ไม่เลือก = ยังค้าง · รายการข้างบนบอกว่าห้องนี้ค้างอะไรของทีมนี้บ้าง"};
+};
 TOPICS.forEach(t=> t.sections = t.sections.concat([
-  {cap:"Follow-up · รอบตามแก้", art:(r,v)=> fixArt(t, r, v), fields:[fixFieldOf(t)]},
+  {cap:"Follow-up · รอบตามแก้", art:(r,v)=> fixArt(t, r, v),
+   fields:(t.id === "curtain" ? TEAMS.map(x=> teamFieldOf(t, x)) : []).concat([fixFieldOf(t)])},
   {cap:"Access · การเข้าห้อง", fields:[ACCESS_FIELD]}
 ]));
 const TOPIC = {}; TOPICS.forEach(t=> TOPIC[t.id] = t);
@@ -1271,16 +1403,28 @@ function notGood(f, room, v){
 function defectsOf(t, room, vals){
   return fieldsOf(t)
     .filter(f=> !f.access && !f.plain && f.col !== FIX && shown(f, vals, room))
-    .map(f=> scoreField(f, room, vals[f.col]))
+    .map(f=>{
+      const s = scoreField(f, room, vals[f.col]);
+      /* ติดคอลัมน์กับค่าที่กรอกไปด้วย ตัวแยกทีมต้องใช้ตัดสินว่าใครมาแก้ */
+      if(s){ s.col = f.col; s.val = vals[f.col]; }
+      return s;
+    })
     .filter(s=> s && s.k !== "good");
 }
-/** รายการจุดที่ไม่ผ่าน วางไว้หัวการ์ดรอบตามแก้ จะได้ตัดสินใจโดยไม่ต้องเลื่อนขึ้นไปดู */
+/** รายการจุดที่ไม่ผ่าน วางไว้หัวการ์ดรอบตามแก้ จะได้ตัดสินใจโดยไม่ต้องเลื่อนขึ้นไปดู
+ *  หมวดม่านแยกเป็นสองกองตามทีมที่ต้องมาแก้ จะได้เห็นทันทีว่าต้องตามใคร */
 function fixArt(t, room, vals){
   const ds = defectsOf(t, room, vals);
   if(!ds.length) return "";
-  return '<div class="fixlist"><div class="h">รอบนี้ไม่ผ่าน '+ds.length+' จุด</div>'+
-    ds.map(s=> '<div class="it" data-k="'+s.k+'"><b></b><span>'+(s.text||"")+'</span></div>').join("")+
-    '</div>';
+  const item = s => '<div class="it" data-k="'+s.k+'"><b></b><span>'+(s.text||"")+'</span></div>';
+  if(t.id !== "curtain")
+    return '<div class="fixlist"><div class="h">รอบนี้ไม่ผ่าน '+ds.length+' จุด</div>'+
+      ds.map(item).join("")+'</div>';
+  const g = teamsOf(t, room, vals);
+  return '<div class="fixlist"><div class="h">รอบนี้ไม่ผ่าน '+ds.length+' จุด — แยกตามทีมที่ต้องมาแก้</div>'+
+    TEAMS.filter(x=> g[x].length).map(x=>
+      '<div class="tgrp"><div class="th">'+TEAM_INFO[x].icon+' '+x+' · '+g[x].length+' จุด</div>'+
+      g[x].map(item).join("")+'</div>').join("")+'</div>';
 }
 /** สถานะรอบตามแก้ที่ใช้ได้จริง — ค่าอื่นที่หลงมาจากชีตถือว่ายังไม่ได้เลือก */
 const fixOf = v => FIX_OPTS.some(o=> o.v === String(v||"").trim()) ? String(v).trim() : "";
@@ -1948,8 +2092,10 @@ function renderRoom(){
 
   /* ฟอร์มของหมวดที่เลือก */
   const off = d.vals[ACCESS] && d.vals[ACCESS] !== "เข้าตรวจได้";
-  /* หมวดเก็บข้อมูลไม่มี "ค่าปกติ" ให้เติมล่วงหน้า ต้องดูของจริงทุกห้อง — ซ่อนปุ่มลัดไว้ */
-  $("btnAllOk").classList.toggle("hide", !!off || !hasChoices(t) || t.survey || VIEW_ONLY);
+  /* หมวดเก็บข้อมูลไม่มี "ค่าปกติ" ให้เติมล่วงหน้า ต้องดูของจริงทุกห้อง — ซ่อนปุ่มลัดไว้
+     หมวดม่านก็ซ่อน (noAllOk) — ตั้งใจให้กดทีละข้อ จะได้เช็กครบจริงทุกหัวข้อ */
+  $("btnAllOk").classList.toggle("hide",
+    !!off || !hasChoices(t) || t.survey || t.noAllOk || VIEW_ONLY);
   $("formBox").innerHTML = t.sections.map(sec=>{
     const isAccess = sec.fields.length===1 && sec.fields[0].access;
     if(off && !isAccess) return "";
@@ -2002,7 +2148,10 @@ function renderRoom(){
             (o.v===cur)+'">'+o.v+'</button>').join("")+'</div>';
       }
       const hint = val(f.hint, room);
-      return '<div class="fld">'+head+body+(hint ? '<div class="hint">'+hint+'</div>' : '')+'</div>';
+      /* เกณฑ์พับเก็บไว้หลังปุ่มเล็ก ๆ — ยังอ่านได้ครบ แต่ไม่ดันฟอร์มให้ยาว */
+      return '<div class="fld'+(f.half ? ' half' : '')+'">'+head+body+
+        (hint ? '<details class="hintbox"><summary>ⓘ เกณฑ์</summary>'+
+                '<div class="hint">'+hint+'</div></details>' : '')+'</div>';
     }).join("");
     const art = sec.art ? sec.art(room, d.vals) : "";
     /* ทุกหัวข้อในบล็อกถูกซ่อน — บอกเหตุผลไว้ ไม่งั้นดูเหมือนฟอร์มหาย */
@@ -2140,6 +2289,11 @@ $("btnSave").onclick = async ()=>{
     if(t.derive && !off) Object.assign(values, t.derive(d));
     /* มีจุดไม่ผ่านแต่ยังไม่ได้แตะช่องรอบตามแก้ = ลงชีตว่ารอแก้ไข จะได้ไม่มีช่องว่างให้เดา */
     if(v.fix) values[FIX] = v.fix;
+    /* ทีมไหนมีงานค้างแต่ยังไม่ได้กดสถานะ ก็ลงว่ายังรอทีมนั้นเหมือนกัน */
+    if(t.id === "curtain" && !off) TEAMS.forEach(x=>{
+      const I = TEAM_INFO[x];
+      if(!values[I.col] && teamsOf(t, S.room, d.vals)[x].length) values[I.col] = I.wait;
+    });
     values[t.grade] = v.grade;
     return {topic:t.id, room:S.room, floor:floorOf(S.room), values:values, note:d.note,
             defects: off ? [] : (v.bads||[]).concat(v.warns||[])};
@@ -2244,6 +2398,8 @@ function renderSum(){
     (n/mx*100)+'%;background:#14605A"></i></div></td><td class="n">'+n+'</td></tr>').join("")
     || '<tr><td class="empty">'+(t.survey ? "ยังไม่มีข้อมูล" : "ยังไม่พบข้อบกพร่อง")+'</td></tr>';
 
+  renderTeams(t, rooms, m);
+
   /* ห้องที่ยังค้าง กับ ห้องที่ปิดจบไปแล้ว แยกกันคนละตาราง
      รอบตามแก้จะได้เหลือแต่รายชื่อที่ต้องเดินไปจริง ๆ ส่วนที่อนุโลม/แก้แล้วเก็บไว้ให้ตามย้อนได้ */
   const roomRows = list => list.map(rn=>{
@@ -2269,6 +2425,34 @@ function renderSum(){
   $("doneBody").innerHTML = closed.length ? roomRows(closed)
     : '<tr><td class="empty">ยังไม่มีห้องที่ปิดจบด้วยการอนุโลมหรือแก้ไขแล้ว</td></tr>';
   bind("doneBody");
+}
+
+/* ---------- งานค้างแยกตามทีม — โผล่เฉพาะหมวดม่าน ----------
+   ห้องหนึ่งค้างได้ทั้งสองทีมพร้อมกัน จึงนับแยกกันคนละแถว ไม่ได้แบ่งห้องออกเป็นกอง ๆ
+   ทีมนั้นถือว่าจบเมื่อ กดสถานะของทีมว่าแก้แล้ว/อนุโลม หรือรอบตามแก้รวมของห้องปิดจบไปแล้ว
+   เลขห้องสีเหลือง = ยังรอทีมนั้น · สีน้ำเงิน = จบแล้ว · กดที่เลขห้องเพื่อเปิดห้องนั้นได้เลย */
+function renderTeams(t, rooms, m){
+  const on = t.id === "curtain";
+  ["teamHead","teamCard","teamNote"].forEach(id=> $(id).classList.toggle("hide", !on));
+  if(!on) return;
+
+  $("teamBody").innerHTML = TEAMS.map(team=>{
+    const I = TEAM_INFO[team];
+    const hit  = rooms.filter(rn=> teamsOf(t, rn, m[rn])[team].length);
+    const done = hit.filter(rn=> teamClosed(team, m[rn][I.col]) || fixClosed(fixOf(m[rn][FIX])));
+    const wait = hit.filter(rn=> done.indexOf(rn) === -1).sort();
+    const chip = k => rn => '<b data-r="'+rn+'" data-k="'+k+'">'+rn+'</b>';
+    return '<tr class="teamrow"><td><div class="tm">'+I.icon+' '+team+'</div><div class="rms">'+
+      (hit.length ? wait.map(chip("wait")).join("") + done.sort().map(chip("done")).join("")
+                  : '<span class="dnone">ยังไม่มีห้องที่ต้องให้ทีมนี้แก้</span>')+
+      '</div></td><td style="text-align:right;white-space:nowrap">'+
+      (hit.length ? '<span class="badge" data-lv="'+(wait.length ? "warn" : "done")+'">'+
+        (wait.length ? "รอแก้ "+wait.length+" ห้อง" : "แก้ครบ "+done.length+" ห้อง")+'</span>'
+                  : '<span class="badge" data-lv="ok">ไม่มีงานค้าง</span>')+
+      '</td></tr>';
+  }).join("");
+  $("teamBody").querySelectorAll("b[data-r]").forEach(b=>
+    b.onclick = ()=> openRoom(b.dataset.r));
 }
 
 /* ---------- บันทึกแล้ว ---------- */
