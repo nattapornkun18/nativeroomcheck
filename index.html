@@ -201,6 +201,26 @@
   .dnone{font-size:12px;color:var(--mute)}
   .dclear{margin-top:9px;padding:7px 12px;border:1px solid var(--line);background:#fff;
     border-radius:8px;font-size:12px;color:var(--ink-2)}
+  .dtag[data-seam="1"]{background:var(--bad-soft);color:var(--bad)}
+
+  /* ---------- ผังม่าน — ห้อง 06/07 มีสองรางเลยวางซ้อนกันเป็นแถว ---------- */
+  .curbox{display:flex;flex-direction:column;gap:10px}
+  .crlab{font-size:11.5px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+  .curtain{width:100%;display:block;background:#F4F7FA;border:1px solid var(--line);
+    border-radius:6px;touch-action:manipulation}
+  .curtain .cbody{fill:#3E4A57}
+  .curtain .cfold{fill:none;stroke:#5A6775;stroke-width:1.1}
+  .curtain .crail{fill:#8A6A3B}
+  /* รอยต่อกลางหน้าตาเหมือนช่องอื่นทุกประการ — บอกตำแหน่งด้วยเส้นประกับป้ายบนผ้าแทน */
+  .curtain .ccell{fill:#fff;stroke:#9AA7B6;stroke-width:.8;cursor:pointer}
+  .curtain .ccell[data-on="1"]{fill:#F3D46B;stroke:#B26A0A;stroke-width:1.5}
+  .curtain .carw{fill:none;stroke:#C8D2DD;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .curtain .clab{font-size:7px;font-weight:700;fill:#B9C4CF;pointer-events:none}
+  /* มุมเข้าโค้ง — สัญลักษณ์ ไม่ใช่ช่อง ผ้าวิ่งต่อเนื่องผ่านมุม ไม่มีรอยต่อตรงนั้น */
+  .curtain .cbendline{fill:none;stroke:var(--brass);stroke-width:1.3;stroke-dasharray:5 4}
+  .curtain .cbendbg{fill:#3E4A57}
+  .curtain .cbend{fill:none;stroke:var(--brass);stroke-width:2;stroke-linecap:round}
+  .curtain .cbendlab{font-size:7px;font-weight:700;fill:var(--brass);pointer-events:none}
 
   /* ---------- ผังบัวใต้ซิงค์ ---------- */
   .art{padding:10px 12px 0;background:#F7F9FC;border-bottom:1px solid #EDF1F5}
@@ -354,7 +374,7 @@
 
   /* ---------- โหมดดูอย่างเดียว (?view) ---------- */
   body.ro .foot,body.ro .allok,body.ro .who,body.ro .ttab .dirty{display:none !important}
-  body.ro .opt,body.ro .numbtn,body.ro .numin,body.ro .door,body.ro .dclear,
+  body.ro .opt,body.ro .numbtn,body.ro .numin,body.ro .door,body.ro .curtain,body.ro .dclear,
   body.ro textarea,body.ro #syncChip{pointer-events:none}
   body.ro textarea,body.ro .numin{background:#F4F7FA;color:var(--ink-2)}
   body.ro .opt[aria-pressed="false"]{opacity:.5}
@@ -647,6 +667,29 @@ const DOOR = {top:4, bottom:5, left:8, right:8};
 const DOOR_LEFT = ["01","02","03","05","06","09"];
 const doorSide = r => DOOR_LEFT.indexOf(String(r).slice(-2)) !== -1 ? "left" : "right";
 
+/* ---- ม่านทึบ: รางของแต่ละห้องไม่เหมือนกัน มีสามแบบ ----
+     mid   ปิดเข้ากลาง        สองบานรูดเข้าหากันไปจบตรงกลาง — ห้องส่วนใหญ่
+     bend  รางเดียวยาวเข้าโค้ง ห้องมุม 01/12 รางวิ่งจากผนังข้างอ่าง เลี้ยวมุม
+                              ไปต่อผนังหน้าเตียง ผ้าวิ่งต่อเนื่องผ่านมุม
+                              ไม่ได้แยกราง รอยต่อจึงมีจุดเดียวที่ฝั่งหน้าเตียง
+                              มุมโค้งเป็นสัญลักษณ์บอกตำแหน่ง ไม่ใช่ช่องให้แตะ
+     one   ปิดทางเดียว        รางข้างอ่างของ 06/07 ไม่มีสองบานเข้าหากัน
+                              จึงไม่มีรอยต่อกลาง เรียกริมสองข้างว่าด้านกอง–ด้านปิด
+
+   ห้อง 12 กับ 07 เป็นห้องกลับข้างของ 01 กับ 06 — flip พลิกรูปให้เอง
+   แต่ชื่อช่องคงเดิม จะได้เทียบข้ามห้องในชีตได้
+   ห้องไหนไม่อยู่ในตารางนี้ใช้ค่าตั้งต้น คือรางเดียวปิดเข้ากลาง */
+const CURTAIN_ROOMS = {
+  "01":{flip:0, runs:[{key:"", lay:"bend"}]},
+  "12":{flip:1, runs:[{key:"", lay:"bend"}]},
+  "06":{flip:0, runs:[{key:"หน้าเตียง", lay:"mid"}, {key:"ข้างอ่าง", lay:"one"}]},
+  "07":{flip:1, runs:[{key:"หน้าเตียง", lay:"mid"}, {key:"ข้างอ่าง", lay:"one"}]}
+};
+const CURTAIN_ONE_RUN = {flip:0, runs:[{key:"", lay:"mid"}]};
+const curtainOf = r => CURTAIN_ROOMS[String(r).slice(-2)] || CURTAIN_ONE_RUN;
+/* ชื่อช่องรอยต่อ — รั่วตรงนี้คือแสงยิงเข้าหน้าคนนอนตรง ๆ จุดเดียวก็ไม่ผ่านสีแดง */
+const CUR_SEAM = "รอยต่อกลาง";
+
 /* ---- เกณฑ์เวลา แก้ตัวเลขตรงนี้ได้เลย ---- */
 const HOT_TARGET = "40–42 °C";   /* อุณหภูมิน้ำที่ถือว่าร้อนพอ */
 const HOT_OK = 30, HOT_WARN = 60;        /* วินาที */
@@ -704,6 +747,8 @@ const TOPICS = [
   /* ม่านเหลือแบรนด์เดียวทั้งตึกแล้ว — ไม่ต้องให้เลือก เติมลงชีตให้เองเลย
      ห้องเก่าที่เคยบันทึกว่า Dooya ไว้ ค่าเดิมในชีตยังอยู่ ไม่ถูกแตะ */
   auto: r => ({ "Room type": ROOM_TYPE[unitOf(r)] || "", "แบรนด์": CURTAIN_BRAND }),
+  derive: d => ({ "จำนวนจุดที่มีแสงม่านทึบ":
+    String(doorIds(d.vals["จุดที่มีแสงม่านทึบ"]).length) }),
   sections:[
     /* เกณฑ์ใหม่: ปิดแล้วเหลือระยะนิดหน่อยถือว่าปิดสุด ผ่าน
        ไม่ผ่านคือปิดแล้วสองบานยังห่างกันเกิน 10 ซม. — เหลือให้กดแค่สองตัวเลือก */
@@ -711,6 +756,18 @@ const TOPICS = [
       {col:"ปิดม่านโปร่ง", label:"ม่านโปร่ง", en:"sheer", opts:CLOSE_OPTS,
        hint:"ปิดแล้วเหลือระยะนิดหน่อยถือว่าปิดสุด · ไม่ผ่านเมื่อห่างกันเกิน 10 ซม."},
       {col:"ปิดม่านทึบ", label:"ม่านทึบ", en:"curtain", opts:CLOSE_OPTS}
+    ]},
+    /* แสงลอดม่าน — วิธีเดียวกับหมวดแสงรอบประตู แตะช่องบนรูปว่ารั่วตรงไหน
+       เช็คเฉพาะม่านทึบ ม่านโปร่งไม่ได้มีหน้าที่กันแสงอยู่แล้ว */
+    {cap:"Light leak · แสงลอดม่านทึบ", fields:[
+      {col:"แสงลอดม่านทึบ", label:"ปิดม่านทึบสุด ปิดไฟในห้อง แล้วดูรอบผืนม่าน", en:"blackout",
+       opts:[{v:"ไม่มีแสงลอด"},{v:"มีแสงลอด",warn:1}]},
+      {col:"จุดที่มีแสงม่านทึบ", type:"curtain", label:"แตะช่องที่เห็นแสงลอดออกมา",
+       showIf: v => v["แสงลอดม่านทึบ"] === "มีแสงลอด",
+       hint: r => "แตะซ้ำเพื่อเอาออก · เลือกได้หลายจุด · "+
+         "รั่วที่"+CUR_SEAM+"จุดเดียวก็ไม่ผ่านสีแดง เพราะแสงยิงเข้าหน้าคนนอนตรง ๆ"+
+         (curtainOf(r).runs.length > 1 ? " · ห้องนี้มีสองราง ดูให้ครบทั้งคู่" : ""),
+       warn: n => n <= 2}
     ]},
     {cap:"Open · เปิดม่าน", fields:[
       {col:"เปิดม่านโปร่ง", label:"ม่านโปร่ง", en:"sheer",
@@ -737,6 +794,28 @@ const TOPICS = [
        opts:[{v:"ปกติ"},{v:"ดัง",warn:1}]},
       {col:"เดินลื่นทั้งระบบ", label:"เดินลื่นทั้งระบบ", en:"smooth all",
        opts:[{v:"ลื่น ไม่สะดุด"},{v:"สะดุด/ฝืด",bad:1}]}
+    ]},
+    /* งานติดตั้งม่านทึบตามสเปก — ตัวเลือกแรกของทุกข้อคือค่าที่รับงานได้
+       ห้อง 06/07 มีสองราง แต่หัวข้อพวกนี้ตอบครั้งเดียวต่อห้อง
+       เจอเสียรางไหนก็ถือว่าห้องนี้ไม่ผ่าน */
+    {cap:"Install · งานติดตั้งม่านทึบ", fields:[
+      {col:"ตีนตุ๊กแกม่านทึบ", label:"ติดตีนตุ๊กแกยึดม่านกับผนังแล้วหรือยัง", en:"velcro",
+       opts:[{v:"ติดแล้ว"},{v:"ยังไม่ติด",bad:1}],
+       hint:"สเปกคือต้องติดทุกห้อง — ตีนตุ๊กแกเป็นตัวปิดแสงที่ริมผ้าชนผนัง"},
+      {col:"ตะขอม่านทึบ", label:"ตะขอม่านที่ใช้", en:"hook",
+       opts:[{v:"ตะขอตะปู"},{v:"ตะขอธรรมดา",bad:1}],
+       hint:"สเปกคือตะขอตะปู"},
+      {col:"หัวสไลด์ม่านทึบ", label:"สีหัวสไลด์ม่าน", en:"slider",
+       opts:[{v:"สีขาว"},{v:"สีเงิน",bad:1}],
+       hint:"สเปกคือสีขาว"}
+    ]},
+    {cap:"Finish · ความเรียบร้อยม่านทึบ", fields:[
+      {col:"ชายม่านทึบถึงพื้น", label:"ชายม่านห่างจากพื้นเท่าไหร่", en:"hem",
+       opts:[{v:"ครึ่งนิ้ว"},{v:"1 นิ้ว",warn:1},{v:"มากกว่า 1 นิ้ว",bad:1}],
+       hint:"สเปกคือครึ่งนิ้ว · 1 นิ้วยังปรับตะขอเอาได้ เลยเป็นเหลือง · เกิน 1 นิ้วต้องแก้ความยาว"},
+      {col:"ลอนม่านทึบ", label:"ลอนม่าน", en:"pleat",
+       opts:[{v:"ลอนสวยปกติ"},{v:"ลอนสวยแต่ยับ",warn:1},{v:"ไม่เป็นลอนหรือลอนไม่เท่ากัน",bad:1}],
+       hint:"ยับรีดหรือแขวนทิ้งไว้ก็หาย เลยเป็นเหลือง · ลอนไม่เท่ากันต้องรื้อจับลอนใหม่"}
     ]}
   ]
 },
@@ -916,8 +995,10 @@ const topicsOf  = room => TOPICS.filter(t=> topicOn(t, room));
 const roomsOfTopic = t => ALL_ROOMS.filter(r=> topicOn(t, r));
 const totalOf   = t => roomsOfTopic(t).length;
 
-/* ---------- ประตู: ช่องรอบบานกับการแปลงเป็นข้อความ ---------- */
-const DOOR_BOX = {w:210, h:320, m:8, t:24, gap:2};
+/* ---------- ประตู: ช่องรอบบานกับการแปลงเป็นข้อความ ----------
+   t = ความหนาของแถบช่องรอบบาน ผอมลงครึ่งหนึ่งจากของเดิม (24 → 12)
+   ช่องจะได้ดูเป็นร่องรอบวงกบจริง ๆ ไม่บวมกินพื้นที่บานประตู */
+const DOOR_BOX = {w:210, h:320, m:8, t:12, gap:2};
 function doorCells(){
   const B = DOOR_BOX, c = [];
   const iw = B.w - 2*B.m - 2*B.t, ih = B.h - 2*B.m - 2*B.t;
@@ -950,6 +1031,131 @@ function doorSvg(ids, side){
     '" height="'+(B.h-2*B.m-2*B.t)+'"/>'+
     '<rect class="dhandle" x="'+hx+'" y="'+(B.h/2-4)+'" width="46" height="8" rx="3"/>'+
     cells+'</svg>';
+}
+
+/* ---------- ม่านทึบ: ช่องแสงลอด มองหน้าม่านตอนปิดสุดจากในห้อง ----------
+   แถบช่องเดินรอบผืนผ้าเหมือนหมวดประตู บวกช่องรอยต่อกลางที่คร่อมกลางผืน
+   t = ความหนาแถบ ผอมพอ ๆ กับหมวดประตู จะได้ดูเป็นร่องแสงจริง ไม่บวมทับผืนผ้า  */
+const CUR_BOX = {w:300, h:200, m:10, t:10, gap:2, seam:11, bend:16};
+CUR_BOX.ix = CUR_BOX.m + CUR_BOX.t;
+CUR_BOX.iy = CUR_BOX.m + CUR_BOX.t;
+CUR_BOX.iw = CUR_BOX.w - 2*CUR_BOX.m - 2*CUR_BOX.t;
+CUR_BOX.ih = CUR_BOX.h - 2*CUR_BOX.m - 2*CUR_BOX.t;
+
+/* แถบบนหรือแถบล่างหนึ่งเส้น หั่นเป็นช่องเท่า ๆ กันตามจำนวนชื่อที่ส่งมา */
+function curStrip(x0, x1, y, names){
+  const B = CUR_BOX, s = (x1 - x0 - (names.length-1)*B.gap) / names.length;
+  return names.map((id,i)=> ({id:id, x:x0 + i*(s+B.gap), y:y, w:s, h:B.t}));
+}
+const curEdges = (a,b) => [
+  {id:a, x:CUR_BOX.m,                  y:CUR_BOX.iy, w:CUR_BOX.t, h:CUR_BOX.ih},
+  {id:b, x:CUR_BOX.w-CUR_BOX.m-CUR_BOX.t, y:CUR_BOX.iy, w:CUR_BOX.t, h:CUR_BOX.ih}];
+const curSeamCell = cx =>
+  ({id:CUR_SEAM, x:cx-CUR_BOX.seam/2, y:CUR_BOX.iy, w:CUR_BOX.seam, h:CUR_BOX.ih});
+
+const CUR_LAY = (()=>{
+  const B = CUR_BOX, top = B.m, bot = B.h-B.m-B.t, x1 = B.ix+B.iw;
+
+  /* ปิดเข้ากลาง — 9 ช่อง */
+  const mid = {seamX:B.w/2, bendX:null, oneWay:0, zones:
+    curStrip(B.ix, x1, top, ["บนซ้าย","บนกลาง","บนขวา"])
+      .concat(curStrip(B.ix, x1, bot, ["ล่างซ้าย","ล่างกลาง","ล่างขวา"]))
+      .concat(curEdges("ริมซ้าย","ริมขวา"))
+      .concat([curSeamCell(B.w/2)])};
+
+  /* ปิดทางเดียว — 8 ช่อง ไม่มีรอยต่อกลาง เพราะไม่มีสองบานเข้าหากัน */
+  const one = {seamX:null, bendX:null, oneWay:1, zones:
+    curStrip(B.ix, x1, top, ["บนด้านกอง","บนกลาง","บนด้านปิด"])
+      .concat(curStrip(B.ix, x1, bot, ["ล่างด้านกอง","ล่างกลาง","ล่างด้านปิด"]))
+      .concat(curEdges("ริมด้านกอง","ริมด้านปิด"))};
+
+  /* ยาวเข้าโค้ง — 11 ช่อง · มุมโค้งเป็นสัญลักษณ์ ไม่นับเป็นช่อง
+     ผ้าวิ่งต่อเนื่องผ่านมุม ตรงนั้นจึงไม่มีรอยต่อให้แสงลอด */
+  const bx = B.ix + B.iw*0.30, b0 = bx - B.bend/2, b1 = bx + B.bend/2;
+  const sx = (b1 + x1) / 2;
+  const bend = {seamX:sx, bendX:bx, oneWay:0, zones:
+    [{id:"ข้างอ่าง-บน",   x:B.ix, y:top, w:b0-B.ix-B.gap, h:B.t},
+     {id:"ข้างอ่าง-ล่าง", x:B.ix, y:bot, w:b0-B.ix-B.gap, h:B.t}]
+      .concat(curStrip(b1+B.gap, x1, top, ["หน้าเตียง-บนซ้าย","หน้าเตียง-บนกลาง","หน้าเตียง-บนขวา"]))
+      .concat(curStrip(b1+B.gap, x1, bot, ["หน้าเตียง-ล่างซ้าย","หน้าเตียง-ล่างกลาง","หน้าเตียง-ล่างขวา"]))
+      .concat(curEdges("ข้างอ่าง-ริมสุด","หน้าเตียง-ริมสุด"))
+      .concat([curSeamCell(sx)])};
+
+  return {mid:mid, one:one, bend:bend};
+})();
+
+/* ห้อง 06/07 มีสองราง ชื่อช่องซ้ำกันได้ (เช่น "บนกลาง") จึงเติมชื่อรางไว้ข้างหน้า
+   ห้องรางเดียวไม่ต้องเติม ข้อความในชีตจะได้ไม่ยาวเกินจำเป็น */
+const curTag = (runKey, id) => runKey ? runKey+" "+id : id;
+/* ทุกช่องของห้องนี้เรียงตามลำดับที่จะลงชีต */
+const curTokens = room => curtainOf(room).runs.reduce(
+  (a,r)=> a.concat(CUR_LAY[r.lay].zones.map(z=> curTag(r.key, z.id))), []);
+/* เก็บลงชีตเป็นข้อความล้วนเหมือนหมวดประตู — "หน้าเตียง รอยต่อกลาง มีแสง · ข้างอ่าง ริมด้านปิด มีแสง" */
+const curText = (room, ids) =>
+  curTokens(room).filter(i=> ids.indexOf(i) !== -1).map(i=> i+" มีแสง").join(" · ");
+const isSeamId = id => String(id).slice(-CUR_SEAM.length) === CUR_SEAM;
+
+/* ลอนผ้า — เส้นโค้งบาง ๆ บนผืนม่าน เว้นช่วงที่มีรอยต่อหรือมุมโค้งคร่อมอยู่ */
+function curFolds(skip){
+  const B = CUR_BOX;
+  let s = "";
+  for(let x = B.ix+9; x < B.ix+B.iw-4; x += 13){
+    if(skip.some(p=> x > p[0]-6 && x < p[1]+6)) continue;
+    s += '<path class="cfold" d="M'+x.toFixed(1)+' '+(B.iy+2)+' C'+(x-3.5).toFixed(1)+' '+(B.iy+40)+
+         ', '+(x+3.5).toFixed(1)+' '+(B.iy+100)+', '+x.toFixed(1)+' '+(B.iy+B.ih-2)+'"/>';
+  }
+  return s;
+}
+/* สัญลักษณ์มุมเข้าโค้ง — เส้นประผ่าตลอด บวกไอคอนรางเลี้ยว 90° วางบนผืนผ้า
+   ไม่ใช่ช่องให้แตะ แค่บอกว่าผนังเลี้ยวตรงนี้ จะได้อ่านรูปออกว่าซ้ายคือฝั่งไหน */
+function curBendMark(x){
+  const B = CUR_BOX, cy = B.iy + 34, ly = B.iy + B.ih/2 + 16;
+  return '<path class="cbendline" d="M'+x+' 4 L'+x+' '+(B.h-4)+'"/>'+
+    '<circle class="cbendbg" cx="'+x+'" cy="'+cy+'" r="13"/>'+
+    '<path class="cbend" d="M'+(x-6)+' '+(cy-7)+' L'+(x-6)+' '+(cy+1)+' Q'+(x-6)+' '+(cy+7)+
+      ' '+x+' '+(cy+7)+' L'+(x+7)+' '+(cy+7)+'"/>'+
+    '<text class="cbendlab" x="'+x+'" y="'+ly+'" text-anchor="middle" transform="rotate(-90 '+
+      x+' '+ly+')">มุมเข้าโค้ง</text>';
+}
+
+function curtainSvg(runKey, layKey, ids, flip){
+  const B = CUR_BOX, L = CUR_LAY[layKey];
+  const fx = z => flip ? B.w - z.x - z.w : z.x;
+  const cells = L.zones.map(c=>
+    '<rect class="ccell" data-id="'+curTag(runKey, c.id)+'" x="'+fx(c).toFixed(1)+
+    '" y="'+c.y.toFixed(1)+'" width="'+c.w.toFixed(1)+'" height="'+c.h.toFixed(1)+'" rx="1.5"'+
+    (ids.indexOf(curTag(runKey, c.id)) !== -1 ? ' data-on="1"' : '')+
+    '><title>'+c.id+'</title></rect>').join("");
+
+  const skip = [];
+  if(L.bendX !== null) skip.push([L.bendX-B.bend/2, L.bendX+B.bend/2]);
+  /* เว้นลอนให้กว้างกว่าตัวช่องนิดหน่อย เผื่อที่ให้ป้ายชื่อที่วางข้าง ๆ ด้วย */
+  if(L.seamX !== null) skip.push([L.seamX-B.seam/2, L.seamX+B.seam/2+18]);
+
+  let mark = "";
+  if(L.seamX !== null){
+    /* รอยต่อไม่ระบายสีพิเศษ ให้หน้าตาเหมือนช่องอื่นทุกประการตามที่ตกลงกันไว้
+       บอกตำแหน่งด้วยป้ายบนผืนผ้าข้างช่องแทน — วางบนผ้า ไม่ใช่บนช่อง
+       ไม่งั้นตัวช่องจะทับป้ายจนอ่านไม่ออก และพอช่องเป็นสีเหลืองก็ยิ่งอ่านไม่ออก */
+    const sx = (flip ? B.w-L.seamX : L.seamX) + B.seam/2 + 8, ly = B.iy + B.ih/2;
+    mark += '<text class="clab" x="'+sx+'" y="'+ly+'" text-anchor="middle" transform="rotate(-90 '+
+      sx+' '+ly+')">'+CUR_SEAM+'</text>';
+  }
+  if(L.oneWay){
+    /* ปิดทางเดียว — ลูกศรบอกว่าผ้ารูดไปทางไหน จะได้รู้ว่าริมไหนคือด้านปิด */
+    const a0 = flip ? B.ix+B.iw-22 : B.ix+22, a1 = flip ? B.ix+22 : B.ix+B.iw-22;
+    const ay = B.iy + B.ih/2, d = flip ? 1 : -1;
+    mark += '<path class="carw" d="M'+a0+' '+ay+' L'+a1+' '+ay+' M'+(a1+d*9)+' '+(ay-6)+
+      ' L'+a1+' '+ay+' L'+(a1+d*9)+' '+(ay+6)+'"/>'+
+      '<text class="clab" x="'+((a0+a1)/2)+'" y="'+(ay-11)+'" text-anchor="middle">รูดปิดทางนี้</text>';
+  }
+  const bend = L.bendX === null ? "" : curBendMark(flip ? B.w-L.bendX : L.bendX);
+
+  return '<svg class="curtain" viewBox="0 0 '+B.w+' '+B.h+'" role="group" aria-label="ช่องแสงลอดม่าน">'+
+    '<rect class="cbody" x="'+B.ix+'" y="'+B.iy+'" width="'+B.iw+'" height="'+B.ih+'" rx="2"/>'+
+    curFolds(flip ? skip.map(p=> [B.w-p[1], B.w-p[0]]) : skip)+
+    '<rect class="crail" x="'+(B.ix-2)+'" y="'+(B.iy-3)+'" width="'+(B.iw+4)+'" height="4" rx="2"/>'+
+    mark + bend + cells + '</svg>';
 }
 
 /* ---------- ผังบัวใต้ซิงค์ — วางตามสเก็ตช์หน้างาน ----------
@@ -1034,6 +1240,15 @@ function scoreField(f, room, v){
     if(!n) return {k:"good"};
     const txt = f.col+": "+n+" จุด ("+doorIds(v).join(", ")+")";
     if(f.good && f.good(n)) return {k:"good"};
+    if(f.warn && f.warn(n)) return {k:"warn", text:txt};
+    return {k:"bad", text:txt};
+  }
+  if(f.type === "curtain"){
+    const ids = doorIds(v), n = ids.length;
+    if(!n) return {k:"good"};
+    const txt = f.col+": "+n+" จุด ("+ids.join(", ")+")";
+    /* รอยต่อกลางรั่ว = แสงยิงเข้าหน้าคนนอนตรง ๆ จุดเดียวก็แดง ไม่ต้องรอครบสามจุด */
+    if(ids.some(isSeamId)) return {k:"bad", text:txt};
     if(f.warn && f.warn(n)) return {k:"warn", text:txt};
     return {k:"bad", text:txt};
   }
@@ -1449,7 +1664,7 @@ function setAllOk(t){
   const d = S.draft[t.id];
   fieldsOf(t).forEach(f=>{
     if(f.type === "num"){ if(f.dflt !== undefined && !hasValue(d.vals[f.col])) d.vals[f.col] = String(f.dflt); }
-    else if(f.type === "door") d.vals[f.col] = "";
+    else if(f.type === "door" || f.type === "curtain") d.vals[f.col] = "";
     else if(shown(f, d.vals, S.room)) d.vals[f.col] = goodOf(f, S.room);
   });
   Object.keys(S.remember).forEach(c=>{ if(d.vals[c] !== undefined && S.remember[c]) d.vals[c] = S.remember[c]; });
@@ -1761,6 +1976,24 @@ function renderRoom(){
             : '<span class="dnone">ยังไม่ได้เลือกจุด</span>')+'</div>'+
           (ids.length ? '<button class="dclear">ล้างที่เลือก</button>' : '')+
           '</div></div>';
+      } else if(f.type === "curtain"){
+        const ids = doorIds(cur), cfg = curtainOf(room);
+        body = '<div class="curbox" data-c="'+f.col+'">'+
+          cfg.runs.map(r=>{
+            const L = CUR_LAY[r.lay];
+            const note = r.key
+              ? r.key+" · "+(L.oneWay ? "ปิดทางเดียว ไม่มี"+CUR_SEAM : "ปิดเข้ากลาง")
+              : (L.bendX !== null ? "รางเดียวยาวเข้าโค้ง มี"+CUR_SEAM+"จุดเดียว" : "");
+            return '<div class="crun">'+(note ? '<div class="crlab">'+note+'</div>' : '')+
+              curtainSvg(r.key, r.lay, ids, cfg.flip)+'</div>';
+          }).join("")+
+          '<div class="dnote">มองจากในห้อง'+
+            (cfg.flip ? " · ห้องนี้เป็นห้องกลับข้าง รูปพลิกให้แล้ว" : "")+'</div>'+
+          '<div class="dlist">'+(ids.length
+            ? ids.map(i=>'<span class="dtag"'+(isSeamId(i) ? ' data-seam="1"' : '')+'>'+i+'</span>').join("")
+            : '<span class="dnone">ยังไม่ได้เลือกจุด</span>')+'</div>'+
+          (ids.length ? '<button class="dclear">ล้างที่เลือก</button>' : '')+
+          '</div>';
       } else {
         body = '<div class="opts" data-c="'+f.col+'">'+
           optsOf(f, room).map(o=>'<button class="opt" data-v="'+o.v+'" data-k="'+
@@ -1826,6 +2059,22 @@ function renderRoom(){
     };
     const clr = g.querySelector(".dclear");
     if(clr) clr.onclick = ()=>{ d.vals[col] = ""; renderRoom(); };
+  });
+
+  /* ---- ผังม่าน — ห้อง 06/07 มีสองรูปในช่องเดียว จับคลิกที่กล่องรวมทีเดียว ---- */
+  $("formBox").querySelectorAll(".curbox").forEach(g=>{
+    const col = g.dataset.c;
+    g.onclick = e=>{
+      const cell = e.target.closest(".ccell");
+      if(cell){
+        const ids = doorIds(d.vals[col]), id = cell.dataset.id, i = ids.indexOf(id);
+        if(i >= 0) ids.splice(i,1); else ids.push(id);
+        d.vals[col] = curText(room, ids);
+        renderRoom();
+        return;
+      }
+      if(e.target.closest(".dclear")){ d.vals[col] = ""; renderRoom(); }
+    };
   });
 
   refreshVerdict();
