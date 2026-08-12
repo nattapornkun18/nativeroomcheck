@@ -205,7 +205,8 @@
   .sink .m-idle{stroke:#E4EAF0}
   .sink .m-ok{stroke:var(--ok)}
   .sink .m-bad{stroke:var(--bad)}
-  .sink .m-none{stroke:#BFC9D5;stroke-width:3;stroke-dasharray:7 6}
+  .sink .m-none{stroke:#BFC9D5;stroke-width:3;stroke-dasharray:7 6}  /* ห้องที่ตามแบบไม่มีบัว */
+  .sink .m-off{stroke:var(--bad);stroke-width:3;stroke-dasharray:7 6} /* ควรมีบัวแต่ยังไม่ได้ติด */
   .sink .miss{stroke:var(--bad);stroke-width:2;stroke-dasharray:3 3;opacity:.75}
   .sink .gap{fill:none;stroke:#D3DAE3;stroke-width:2;stroke-linecap:round}  /* แนวผนังชนพื้น */
   .sink .gap-on{stroke:var(--warn);stroke-width:5}
@@ -577,18 +578,18 @@ const shotYet  = v => v["ขอบเขตงาน"] !== NOT_SHOT && v["สี
 /* ---- คิ้วบัวใต้ซิงค์: ห้องมุมไม่มีบัวเลย ห้องทวินมีแต่เรื่องช่องรู ---- */
 const MOLD_NONE = ["01","12"];    /* ไม่ต้องมีเรคคอร์ดหมวดบัวเลย */
 const MOLD_GAP  = ["02","11"];    /* ไม่มีบัวตามแบบ ตรวจแค่ช่องรูผนัง–พื้น */
-/* "ไม่ได้ติดบัว" ไม่ถือเป็นข้อบกพร่อง เพราะแต่ละห้องติดไม่เหมือนกันตามหน้างาน
-   ถ้าวันหลังอยากให้ห้องที่ไม่ได้ติดขึ้นเป็นของที่ต้องแก้ ใส่ bad:1 แทน plain:1 */
-const MOLD_OPTS = [{v:"ติดเรียบร้อย"},{v:"ขอบบัวไม่สุดขาไม้",bad:1},{v:"ไม่ได้ติดบัว",plain:1}];
+/* เกณฑ์รับงาน: ต้องติดบัวครบทุกช่วง ขอบเดินไปสุดขาไม้ และไม่มีช่องรูผนัง–พื้น
+   "ไม่ได้ติดบัว" จึงเป็นข้อบกพร่องเหมือนกัน ยกเว้นห้อง 02/11 ที่ตามแบบไม่มีบัว
+   (สองห้องนั้นหน้าเว็บซ่อนหัวข้อบัวให้อยู่แล้ว ไม่ได้ถูกตัดเกรดตรงนี้) */
+const MOLD_OPTS = [{v:"ติดเรียบร้อย"},{v:"ขอบบัวไม่สุดขาไม้",bad:1},{v:"ไม่ได้ติดบัว",bad:1}];
 const GAP_OPTS  = [{v:"ไม่มีช่องรู"},{v:"มีช่องรู",warn:1}];
-/* ---- หลืบห้องน้ำ: หมวดเก็บข้อมูล ยังไม่ตัดเกรด ----
-   หน้างานทำมาไม่เหมือนกันทุกห้อง และยังไม่สรุปว่าแบบไหนคือแบบที่ถูก
-   จึงให้ทุกตัวเลือกเป็น plain (สีกลาง ไม่นับเป็นข้อบกพร่อง) เก็บไว้ก่อนว่าห้องไหนเป็นแบบไหน
-   วันไหนสรุปได้ว่าแบบไหนถูก ให้เอา plain:1 ออกจากตัวเลือกที่ถูก แล้วใส่ bad:1 ให้ตัวที่เหลือ
-   ตรงนี้ที่เดียว แล้วลบ survey:true ของหมวดออก หน้าเว็บจะเริ่มตัดเกรดให้เอง */
-const SG_TILE_OPTS  = [{v:"กระเบื้องสุดขอบ",plain:1},{v:"กระเบื้องไม่สุดขอบ",plain:1}];
-const SG_PAINT_OPTS = [{v:"ไม่ทาสี",plain:1},{v:"ทาสีน้ำตาล",plain:1},{v:"ทาสีขาว",plain:1}];
-const EX_PAINT_OPTS = [{v:"ทาสีลงมาผนัง",plain:1},{v:"ทาสีไม่ลงมาผนัง",plain:1}];
+/* ---- หลืบห้องน้ำ: สรุปแบบที่ถูกแล้ว ตัดเกรดตามเกณฑ์รับงาน ----
+   ผ่าน = กระเบื้องเดินสุดขอบร่อง · ในร่อง shadow gap ไม่ทาสี
+          · หลืบ exhaust air ทาสีจบในหลืบ ไม่ทาลงมาบนกระเบื้องผนัง
+   ตัวเลือกตัวแรกของแต่ละแถวคือค่าที่ผ่าน ที่เหลือเป็นข้อบกพร่องทั้งหมด */
+const SG_TILE_OPTS  = [{v:"กระเบื้องสุดขอบ"},{v:"กระเบื้องไม่สุดขอบ",bad:1}];
+const SG_PAINT_OPTS = [{v:"ไม่ทาสี"},{v:"ทาสีน้ำตาล",bad:1},{v:"ทาสีขาว",bad:1}];
+const EX_PAINT_OPTS = [{v:"ทาสีไม่ลงมาผนัง"},{v:"ทาสีลงมาผนัง",bad:1}];
 
 const ROOM_TYPE = {1:"grand corner",2:"deluxe twin",3:"deluxe king",4:"deluxe king",
   5:"deluxe king",6:"grand deluxe",7:"grand deluxe",8:"deluxe king",9:"deluxe king",
@@ -775,7 +776,7 @@ const TOPICS = [
     {cap:"Molding · คิ้วบัวใต้ซิงค์อ่างล้างหน้า", art:(r,v)=> sinkArt(r,v), fields:[
       {col:"บัวซ้าย", label:"บัวฝั่งซ้าย", en:"left", opts:MOLD_OPTS,
        showIf:(v,r)=> !gapOnlyRoom(r),
-       hint:"ห้องนี้ติดกี่ช่วงก็ได้ตามหน้างาน — ที่ต้องแก้คือช่วงที่ติดแล้วขอบไม่ไปสุดขาไม้"},
+       hint:"ผ่านต้องติดบัวครบทั้งสามช่วง และขอบเดินไปสุดขาไม้ — ช่วงที่ยังไม่ได้ติดถือว่าไม่ผ่าน"},
       {col:"บัวกลาง", label:"บัวช่วงกลาง", en:"middle", opts:MOLD_OPTS,
        showIf:(v,r)=> !gapOnlyRoom(r)},
       {col:"บัวขวา", label:"บัวฝั่งขวา", en:"right", opts:MOLD_OPTS,
@@ -794,26 +795,22 @@ const TOPICS = [
 },
 {
   id:"bathgap", name:"หลืบห้องน้ำ", en:"Bathroom shadow gap", icon:"🚿", grade:"ผลตรวจ",
-  /* หมวดเก็บข้อมูล ยังไม่ตัดเกรด — ทุกแบบยังถือว่าใช้ได้จนกว่าจะสรุปว่าแบบไหนคือแบบที่ถูก
-     survey:true ทำสามอย่าง: ซ่อนปุ่ม "ทั้งหมดปกติ" · หน้าสรุปนับเป็นรูปแบบแทนข้อบกพร่อง
-     · ตารางบันทึกแล้วโชว์ทุกคอลัมน์ให้เห็นว่าห้องไหนเป็นแบบไหน */
-  survey: true,
   /* สองช่องแรกรวมกันเป็นแบบเดียว เก็บลงชีตอีกคอลัมน์ไว้นับว่าแบบไหนเจอกี่ห้อง */
   derive: d => ({ "แบบ shadow gap":
     (d.vals["กระเบื้อง shadow gap"] && d.vals["สี shadow gap"])
       ? d.vals["กระเบื้อง shadow gap"] + " + " + d.vals["สี shadow gap"] : "" }),
   sections:[
     {cap:"Shadow gap · ร่องหลืบขอบผนังห้องน้ำ", fields:[
-      {col:"กระเบื้อง shadow gap", label:"แนวกระเบื้องเดินถึงขอบร่องไหม", en:"tile", plain:true,
+      {col:"กระเบื้อง shadow gap", label:"แนวกระเบื้องเดินถึงขอบร่องไหม", en:"tile",
        opts:SG_TILE_OPTS,
-       hint:"ยังไม่สรุปว่าแบบไหนคือแบบที่ถูก — ตอบตามที่เห็นจริงในห้องนี้ ยังไม่ตัดเกรด"},
-      {col:"สี shadow gap", label:"ในร่องทาสีไหม สีอะไร", en:"paint", plain:true,
+       hint:"ผ่านต้องปูกระเบื้องไปสุดขอบร่อง และในร่องต้องไม่ทาสี"},
+      {col:"สี shadow gap", label:"ในร่องทาสีไหม สีอะไร", en:"paint",
        opts:SG_PAINT_OPTS}
     ]},
     {cap:"Exhaust air · ช่องหลืบพัดลมดูดอากาศ", fields:[
-      {col:"สีหลืบ exhaust air", label:"สีในหลืบทาลงมาถึงผนังไหม", en:"paint", plain:true,
+      {col:"สีหลืบ exhaust air", label:"สีในหลืบทาลงมาถึงผนังไหม", en:"paint",
        opts:EX_PAINT_OPTS,
-       hint:"ดูรอยต่อหลืบกับผนังกระเบื้อง ว่าสีจบที่ในหลืบ หรือทาลงมาบนผนังด้วย"}
+       hint:"ผ่านคือสีจบที่ในหลืบ ไม่ทาลงมาบนกระเบื้องผนัง — ดูที่รอยต่อหลืบกับผนัง"}
     ]}
   ]
 }
@@ -919,9 +916,11 @@ function sinkArt(room, vals){
   let art = "";
 
   MOLD_SIDES.forEach(s=>{
-    const v = none ? "ไม่ได้ติดบัว" : String(vals[s.col]||"");
+    const v = none ? "ไม่มีบัวตามแบบ" : String(vals[s.col]||"");
     const short = v === "ขอบบัวไม่สุดขาไม้";
-    const cls = short ? "m-bad" : v === "ไม่ได้ติดบัว" ? "m-none" : v ? "m-ok" : "m-idle";
+    /* ห้อง 02/11 ไม่มีบัวตามแบบ = เส้นประเทา · ห้องอื่นที่ยังไม่ได้ติด = เส้นประแดง ไม่ผ่าน */
+    const cls = none ? "m-none" : short ? "m-bad"
+              : v === "ไม่ได้ติดบัว" ? "m-off" : v ? "m-ok" : "m-idle";
     const cutA = short && s.legs[0] ? MOLD_CUT : 0;
     const cutB = short && s.legs[1] ? MOLD_CUT : 0;
     /* ช่วงที่บัวเดินไปไม่ถึงขาไม้ — เส้นประบอกว่าตรงนี้ควรมีบัวแต่ยังไม่มี */
@@ -950,7 +949,9 @@ function sinkArt(room, vals){
       (none ? '<span>ห้องนี้ตามแบบไม่มีบัว — ตรวจแค่ช่องรู</span>'
             : '<span><b style="background:var(--ok)"></b>บัวติดเรียบร้อย</span>'+
               '<span><b style="background:var(--bad)"></b>ขอบไม่สุดขาไม้</span>'+
-              '<span><b style="background:#BFC9D5"></b>ไม่ได้ติดบัว</span>')+
+              /* ยังไม่ได้ติด = ไม่ผ่านเหมือนกัน แต่วาดเป็นเส้นประ จะได้แยกจากขอบไม่สุดขาไม้ */
+              '<span><b style="background:repeating-linear-gradient(90deg,'+
+                'var(--bad) 0 4px,transparent 4px 7px)"></b>ยังไม่ได้ติดบัว</span>')+
       '<span><b style="background:var(--warn)"></b>ช่องรูผนัง–พื้น</span>'+
       '<span><b style="background:#9A7B4F"></b>ขาไม้</span></div>';
 }
