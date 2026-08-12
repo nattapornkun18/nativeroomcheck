@@ -13,6 +13,9 @@
     --paper:#E9EDF2; --card:#FFFFFF; --line:#D6DDE6;
     --brass:#B8862B; --brass-soft:#F3E7CC;
     --ok:#1B7A4C; --ok-soft:#DCF0E5;
+    /* ปิดจบ = เคยไม่ผ่าน แต่รอบตามแก้จบแล้ว (อนุโลม หรือ แก้ไขแล้ว)
+       ใช้สีน้ำเงินเขียว จะได้ไม่ปนกับเขียวของห้องที่ทำถูกมาตั้งแต่แรก */
+    --done:#2A6484; --done-soft:#DDEAF3;
     --warn:#B26A0A; --warn-soft:#FBEBD2;
     --bad:#B62D22; --bad-soft:#FADEDB;
     --skip:#6B7A8D; --skip-soft:#E4E9EF;
@@ -109,6 +112,7 @@
   /* ห้องที่ตรวจแล้วระบายสีสถานะทึบทั้งช่อง — กวาดตาทีเดียวเห็นทั้งชั้นว่าเหลือห้องไหน */
   .rbtn[data-lv]{color:#fff;border-color:transparent}
   .rbtn[data-lv="ok"]{background:var(--ok)}
+  .rbtn[data-lv="done"]{background:var(--done)}
   .rbtn[data-lv="warn"]{background:var(--warn)}
   .rbtn[data-lv="bad"]{background:var(--bad)}
   .rbtn[data-lv="skip"]{background:var(--skip)}
@@ -166,6 +170,7 @@
   .opt[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
   .opt[aria-pressed="true"][data-k="warn"]{background:var(--warn);border-color:var(--warn)}
   .opt[aria-pressed="true"][data-k="bad"]{background:var(--bad);border-color:var(--bad)}
+  .opt[aria-pressed="true"][data-k="done"]{background:var(--done);border-color:var(--done)}
   .opt[aria-pressed="true"][data-k="plain"]{background:var(--ink);border-color:var(--ink)}
   .hint{font-size:11.5px;color:var(--mute);margin-top:7px}
 
@@ -218,6 +223,15 @@
   .artleg b{width:14px;height:4px;border-radius:2px;display:block}
   .artleg b.dot{width:9px;height:9px;border-radius:50%}
 
+  /* ---------- รายการจุดที่ไม่ผ่าน ในการ์ดรอบตามแก้ ---------- */
+  .fixlist{padding:9px 12px;font-size:12.5px;color:var(--ink-2)}
+  .fixlist .h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--mute);margin-bottom:6px}
+  .fixlist .it{display:flex;gap:7px;align-items:flex-start;margin-top:3px;line-height:1.4}
+  .fixlist .it b{width:7px;height:7px;border-radius:50%;flex:none;margin-top:5px}
+  .fixlist .it[data-k="bad"] b{background:var(--bad)}
+  .fixlist .it[data-k="warn"] b{background:var(--warn)}
+
   textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font-family:var(--sans);
     font-size:13.5px;resize:vertical;min-height:56px;color:var(--ink)}
   textarea:focus{outline:2px solid var(--brass);outline-offset:-1px;border-color:var(--brass)}
@@ -233,6 +247,7 @@
   .verdict .v{font-family:var(--mono);font-size:17px;font-weight:700;letter-spacing:.02em}
   .verdict .d{font-size:11.5px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .verdict[data-lv="ok"] .v{color:var(--ok)}
+  .verdict[data-lv="done"] .v{color:var(--done)}
   .verdict[data-lv="warn"] .v{color:var(--warn)}
   .verdict[data-lv="bad"] .v{color:var(--bad)}
   .verdict[data-lv="skip"] .v{color:var(--skip)}
@@ -243,12 +258,15 @@
   .msg.ok{color:var(--ok)} .msg.err{color:var(--bad);font-weight:600}
 
   /* ---------- ตาราง / สรุป ---------- */
-  .score{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+  /* จำนวนช่องไม่เท่ากันทุกหน้า (4 ช่องบ้าง 5 ช่องบ้างตอนมีห้องที่ปิดจบ)
+     ให้มันไหลเองตามความกว้างจอ ดีกว่าล็อกไว้สี่ช่องแล้วบีบจนอ่านเลขไม่ออก */
+  .score{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;margin-bottom:10px}
   .sc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:9px 10px}
   .sc .n{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1.15}
   .sc .t{font-size:10.5px;color:var(--mute)}
   .sc[data-lv="ok"] .n{color:var(--ok)} .sc[data-lv="warn"] .n{color:var(--warn)}
   .sc[data-lv="bad"] .n{color:var(--bad)} .sc[data-lv="skip"] .n{color:var(--skip)}
+  .sc[data-lv="done"] .n{color:var(--done)}
   table{width:100%;border-collapse:collapse}
   th{text-align:left;font-size:10.5px;letter-spacing:.04em;color:var(--mute);font-weight:600;
     padding:8px 10px;background:#F4F7FA;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -277,6 +295,7 @@
   .minibar i{display:block;height:5px}
   .badge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
   .badge[data-lv="ok"]{background:var(--ok-soft);color:var(--ok)}
+  .badge[data-lv="done"]{background:var(--done-soft);color:var(--done)}
   .badge[data-lv="warn"]{background:var(--warn-soft);color:var(--warn)}
   .badge[data-lv="bad"]{background:var(--bad-soft);color:var(--bad)}
   .badge[data-lv="skip"]{background:var(--skip-soft);color:var(--skip)}
@@ -286,7 +305,7 @@
   .scroll{overflow-x:auto}
   .scroll table{min-width:620px}
   .na{color:#A9B3C0} .ok{color:var(--ok)} .no{color:var(--bad);font-weight:600}
-  .wn{color:var(--warn);font-weight:600}
+  .wn{color:var(--warn);font-weight:600} .dn{color:var(--done);font-weight:600}
   .empty{padding:24px 14px;text-align:center;color:var(--mute);font-size:12.5px}
   .hint{font-size:11.5px;color:var(--mute)}
 
@@ -399,7 +418,7 @@
         <input id="rngDay" type="date" aria-label="เลือกวันที่">
         <input id="rngMonth" type="month" aria-label="เลือกเดือน">
       </div>
-      <div id="todayBox"></div>
+      <div id="todayBox" class="scroll"></div>
     </div>
   </div>
 
@@ -408,7 +427,7 @@
     <div class="score" id="allScore"></div>
     <div class="sechead">ความคืบหน้าแต่ละหมวด</div>
     <div id="allTopics"></div>
-    <div class="sechead">ห้องที่ต้องกลับไปแก้ <span id="allFixCount"></span></div>
+    <div class="sechead">ห้องที่ยังรอแก้ไข <span id="allFixCount"></span></div>
     <div class="card"><table><tbody id="allFix"></tbody></table></div>
     <div class="sechead">ความคืบหน้ารายชั้น</div>
     <div class="card scroll"><table>
@@ -435,6 +454,7 @@
         <div class="plannote hide" id="planNote">วางตามผังชั้น · มองจากด้านบน หัวอาคารอยู่บน</div>
         <div class="legend">
           <span><b style="background:var(--ok)"></b>ผ่าน</span>
+          <span><b style="background:var(--done)"></b>ปิดจบ · อนุโลม/แก้ไขแล้ว</span>
           <span><b style="background:var(--warn)"></b>ไม่ผ่าน · แก้เฉพาะจุด</span>
           <span><b style="background:var(--bad)"></b>ไม่ผ่าน</span>
           <span><b style="background:var(--skip)"></b>ไม่ได้ตรวจ</span>
@@ -453,20 +473,18 @@
 
     <div class="sechead">แยกตามชั้น</div>
     <div class="card scroll"><table>
-      <thead><tr><th>ชั้น</th><th>บันทึก</th>
-        <th class="g" style="color:var(--ok)"><i style="background:var(--ok)"></i>ผ่าน<em>&nbsp;</em></th>
-        <th class="g" style="color:var(--warn)"><i style="background:var(--warn)"></i>ไม่ผ่าน<em>แก้เฉพาะจุด</em></th>
-        <th class="g" style="color:var(--bad)"><i style="background:var(--bad)"></i>ไม่ผ่าน<em>ต้องรื้อแก้</em></th>
-        <th class="g"><i style="background:var(--skip)"></i>ไม่ได้ตรวจ<em>&nbsp;</em></th>
-        <th>สัดส่วน</th></tr></thead>
+      <thead><tr id="floorHead"></tr></thead>
       <tbody id="floorBody"></tbody>
     </table></div>
 
     <div class="sechead" id="defectHead">แยกตามข้อบกพร่อง</div>
     <div class="card"><table><tbody id="defectBody"></tbody></table></div>
 
-    <div class="sechead">ห้องที่ต้องกลับไปแก้</div>
+    <div class="sechead">ห้องที่ยังรอแก้ไข</div>
     <div class="card"><table><tbody id="fixBody"></tbody></table></div>
+
+    <div class="sechead">ปิดจบแล้ว — อนุโลม / แก้ไขแล้ว <span id="doneCount"></span></div>
+    <div class="card"><table><tbody id="doneBody"></tbody></table></div>
   </div>
 
   <!-- ============ บันทึกแล้ว ============ -->
@@ -587,6 +605,13 @@ const GAP_OPTS  = [{v:"ไม่มีช่องรู"},{v:"มีช่อ�
    ผ่าน = กระเบื้องเดินสุดขอบร่อง · ในร่อง shadow gap ไม่ทาสี
           · หลืบ exhaust air ทาสีจบในหลืบ ไม่ทาลงมาบนกระเบื้องผนัง
    ตัวเลือกตัวแรกของแต่ละแถวคือค่าที่ผ่าน ที่เหลือเป็นข้อบกพร่องทั้งหมด */
+/* ---- ม่าน: เหลือแบรนด์เดียวทั้งตึก ไม่ต้องให้เลือกแล้ว เติมลงชีตให้เอง ----
+   เกณฑ์ปิดม่าน: ปิดแล้วเหลือระยะนิดหน่อยยังถือว่าปิดสุด (ผ่าน)
+   ไม่ผ่านคือปิดแล้วสองบานยังห่างกันเกิน 10 ซม. — ตัวเลือกจึงเหลือสองอัน */
+const CURTAIN_BRAND = "Smart curtain";
+const CLOSE_GAP = "ปิดเหลือระยะห่างกันมากกว่า 10cm";
+const CLOSE_OPTS = [{v:"ปิดสุด"},{v:CLOSE_GAP,bad:1}];
+
 const SG_TILE_OPTS  = [{v:"กระเบื้องสุดขอบ"},{v:"กระเบื้องไม่สุดขอบ",bad:1}];
 const SG_PAINT_OPTS = [{v:"ไม่ทาสี"},{v:"ทาสีน้ำตาล",bad:1},{v:"ทาสีขาว",bad:1}];
 const EX_PAINT_OPTS = [{v:"ทาสีไม่ลงมาผนัง"},{v:"ทาสีลงมาผนัง",bad:1}];
@@ -630,16 +655,43 @@ const AC_OK = 15, AC_WARN = 30;          /* นาที */
 
 const ACCESS = "การเข้าห้อง";
 
-/* ผลตรวจมีแค่สองคำ: ผ่าน กับ ไม่ผ่าน (บวก ไม่ได้ตรวจ ตอนเข้าห้องไม่ได้)
-   ความหนักเบาของ "ไม่ผ่าน" บอกด้วยสีอย่างเดียว ไม่ใช้คำที่สาม
-     warn (เหลือง) = เสียเล็กน้อย แก้เฉพาะจุดได้     ← ของเดิมเรียกว่า "เกือบผ่าน"
-     bad  (แดง)    = เสียจริงจัง ต้องกลับไปแก้
-   ค่าที่ลงชีตคือคำ (LV_TEXT) ส่วนสีคิดจากระดับ (level) ตอนวาดหน้าจอ */
-const LEVELS  = ["ok","warn","bad","skip"];
-const LV_TEXT = {ok:"ผ่าน", warn:"ไม่ผ่าน", bad:"ไม่ผ่าน", skip:"ไม่ได้ตรวจ"};
-const GC      = {ok:"#1B7A4C", warn:"#B26A0A", bad:"#B62D22", skip:"#6B7A8D"};
+/* ผลตรวจที่ลงชีตมีแค่สามคำ: ผ่าน · ไม่ผ่าน · ไม่ได้ตรวจ
+   ส่วนบนหน้าจอแยกเป็นห้าระดับ ความหนักเบาบอกด้วยสี ไม่เพิ่มคำในชีต
+     ok   (เขียว)     = ไม่พบข้อบกพร่องเลย
+     done (น้ำเงิน)   = เคยเจอข้อบกพร่อง แต่รอบตามแก้จบแล้ว (อนุโลม หรือ แก้ไขแล้ว)
+     warn (เหลือง)    = ไม่ผ่าน เสียเล็กน้อย แก้เฉพาะจุดได้   ← ของเดิมเรียกว่า "เกือบผ่าน"
+     bad  (แดง)       = ไม่ผ่าน เสียจริงจัง ต้องกลับไปแก้
+     skip (เทา)       = เข้าห้องไม่ได้
+   ค่าที่ลงชีตคือคำใน GRADE_TEXT ส่วน LV_TEXT เป็นคำที่โชว์บนหน้าจอ */
+const LEVELS  = ["ok","done","warn","bad","skip"];
+const LV_TEXT = {ok:"ผ่าน", done:"ปิดจบ", warn:"ไม่ผ่าน", bad:"ไม่ผ่าน", skip:"ไม่ได้ตรวจ"};
+const GRADE_TEXT = {ok:"ผ่าน", done:"ผ่าน", warn:"ไม่ผ่าน", bad:"ไม่ผ่าน", skip:"ไม่ได้ตรวจ"};
+const GC      = {ok:"#1B7A4C", done:"#2A6484", warn:"#B26A0A", bad:"#B62D22", skip:"#6B7A8D"};
 /* คำเก่าที่ยังค้างอยู่ในชีตก่อนรวมเหลือสองคำ — อ่านเจอเมื่อไหร่ถือเป็นเหลือง */
 const OLD_WARN = "เกือบผ่าน";
+
+/* ---------------------------------------------------------------------
+   รอบตามแก้ — ตรวจไปแล้วรอบหนึ่ง เจอข้อบกพร่อง แล้วยังไงต่อ
+   ทุกหมวดมีคอลัมน์เดียวกันนี้ โผล่ให้กดเฉพาะตอนที่รอบนี้มีจุดไม่ผ่านจริง ๆ
+     รอแก้ไข   = ยังค้าง ห้องยังนับเป็นไม่ผ่าน (สีเหลือง/แดงตามความหนักเบา)
+     อนุโลม    = ดูของจริง/ดูรูปแล้วผู้ตรวจยอมให้ผ่าน  → ห้องนี้ปิดจบ
+     แก้ไขแล้ว = ช่างกลับไปแก้ แล้วตรวจซ้ำว่าเรียบร้อย → ห้องนี้ปิดจบ
+   ค่าที่กรอกไว้ยังอยู่ครบ ไม่ถูกลบทิ้ง จะได้ตามย้อนได้ว่าเดิมเสียตรงไหน
+   --------------------------------------------------------------------- */
+const FIX = "สถานะแก้ไข";
+const FIX_WAIT = "รอแก้ไข", FIX_WAIVE = "อนุโลม", FIX_DONE = "แก้ไขแล้ว";
+const FIX_OPTS = [{v:FIX_WAIT, k:"warn"}, {v:FIX_WAIVE, k:"done"}, {v:FIX_DONE, k:"done"}];
+/* สองสถานะนี้แปลว่าไม่ต้องกลับไปแก้แล้ว */
+const fixClosed = v => v === FIX_WAIVE || v === FIX_DONE;
+
+/* ค่าเก่าในชีตที่เปลี่ยนชื่อ/เปลี่ยนเกณฑ์ไปแล้ว — อ่านเจอเมื่อไหร่แปลงเป็นค่าใหม่ให้เลย
+   จะได้ไม่ต้องเดินไล่กรอกห้องเก่าใหม่ทั้งตึก (ในชีตแปลงถาวรได้ที่เมนู "แปลงคำเก่าให้ตรงกับหน้าเว็บ")
+   ม่าน: เกณฑ์ใหม่ถือว่าปิดแล้วเหลือระยะนิดหน่อยคือปิดสุด ไม่ผ่านเมื่อห่างเกิน 10 ซม. */
+const ALIAS = {
+  "ปิดเหลือระยะนิดหน่อย": "ปิดสุด",
+  "ปิดไม่ได้ เหลือครึ่งทาง": "ปิดเหลือระยะห่างกันมากกว่า 10cm"
+};
+const unalias = v => { const s = String(v||"").trim(); return ALIAS[s] || s; };
 
 /* ---------------------------------------------------------------------
    หมวดที่เปิดใช้ — เพิ่มหมวดใหม่ = เพิ่มก้อนหนึ่งตรงนี้
@@ -649,17 +701,16 @@ const OLD_WARN = "เกือบผ่าน";
 const TOPICS = [
 {
   id:"curtain", name:"ม่าน", en:"Curtain", icon:"🪟", grade:"ผลตรวจ",
-  auto: r => ({ "Room type": ROOM_TYPE[unitOf(r)] || "" }),
+  /* ม่านเหลือแบรนด์เดียวทั้งตึกแล้ว — ไม่ต้องให้เลือก เติมลงชีตให้เองเลย
+     ห้องเก่าที่เคยบันทึกว่า Dooya ไว้ ค่าเดิมในชีตยังอยู่ ไม่ถูกแตะ */
+  auto: r => ({ "Room type": ROOM_TYPE[unitOf(r)] || "", "แบรนด์": CURTAIN_BRAND }),
   sections:[
-    {cap:"Setup · ข้อมูลม่าน", fields:[
-      {col:"แบรนด์", label:"แบรนด์", remember:true, plain:true,
-       opts:[{v:"Dooya"},{v:"Smart curtain"}]}
-    ]},
+    /* เกณฑ์ใหม่: ปิดแล้วเหลือระยะนิดหน่อยถือว่าปิดสุด ผ่าน
+       ไม่ผ่านคือปิดแล้วสองบานยังห่างกันเกิน 10 ซม. — เหลือให้กดแค่สองตัวเลือก */
     {cap:"Close · ปิดม่าน", fields:[
-      {col:"ปิดม่านโปร่ง", label:"ม่านโปร่ง", en:"sheer",
-       opts:[{v:"ปิดสุด"},{v:"ปิดเหลือระยะนิดหน่อย",warn:1},{v:"ปิดไม่ได้ เหลือครึ่งทาง",bad:1}]},
-      {col:"ปิดม่านทึบ", label:"ม่านทึบ", en:"curtain",
-       opts:[{v:"ปิดสุด"},{v:"ปิดเหลือระยะนิดหน่อย",warn:1},{v:"ปิดไม่ได้ เหลือครึ่งทาง",bad:1}]}
+      {col:"ปิดม่านโปร่ง", label:"ม่านโปร่ง", en:"sheer", opts:CLOSE_OPTS,
+       hint:"ปิดแล้วเหลือระยะนิดหน่อยถือว่าปิดสุด · ไม่ผ่านเมื่อห่างกันเกิน 10 ซม."},
+      {col:"ปิดม่านทึบ", label:"ม่านทึบ", en:"curtain", opts:CLOSE_OPTS}
     ]},
     {cap:"Open · เปิดม่าน", fields:[
       {col:"เปิดม่านโปร่ง", label:"ม่านโปร่ง", en:"sheer",
@@ -820,7 +871,18 @@ const TOPICS = [
 const ACCESS_FIELD = {col:ACCESS, label:"เข้าตรวจได้หรือไม่", access:true,
   hint:"ถ้าเข้าไม่ได้ ระบบจะบันทึกเป็น “ไม่ได้ตรวจ” และข้ามการตัดเกรด",
   opts:[{v:"เข้าตรวจได้"},{v:"ไม่มีกุญแจ",warn:1},{v:"มีแขกพัก",warn:1},{v:"ห้องปิดปรับปรุง",warn:1}]};
-TOPICS.forEach(t=> t.sections = t.sections.concat([{cap:"Access · การเข้าห้อง", fields:[ACCESS_FIELD]}]));
+
+/* หัวข้อ "รอบตามแก้" ก็มีเหมือนกันทุกหมวด แต่โผล่เฉพาะตอนที่รอบนี้มีจุดไม่ผ่าน
+   ไม่บังคับกรอก — ไม่แตะเลยถือว่ารอแก้ไข ซึ่งเป็นค่าตั้งต้นของทุกข้อบกพร่องอยู่แล้ว */
+const fixFieldOf = t => ({col:FIX, label:"ตกลงยังไงกับจุดที่ไม่ผ่าน", en:"follow-up",
+  plain:true, optional:true, opts:FIX_OPTS,
+  showIf:(vals, room)=> defectsOf(t, room, vals).length > 0,
+  hint:"ไม่เลือก = รอแก้ไข · อนุโลม กับ แก้ไขแล้ว ทำให้ห้องนี้ปิดจบ "+
+       "แต่ยังเก็บไว้ในชีตว่าเดิมเสียตรงไหน"});
+TOPICS.forEach(t=> t.sections = t.sections.concat([
+  {cap:"Follow-up · รอบตามแก้", art:(r,v)=> fixArt(t, r, v), fields:[fixFieldOf(t)]},
+  {cap:"Access · การเข้าห้อง", fields:[ACCESS_FIELD]}
+]));
 const TOPIC = {}; TOPICS.forEach(t=> TOPIC[t.id] = t);
 
 /* =====================================================================
@@ -975,7 +1037,7 @@ function scoreField(f, room, v){
     if(f.warn && f.warn(n)) return {k:"warn", text:txt};
     return {k:"bad", text:txt};
   }
-  const s = String(v||"").trim();
+  const s = unalias(v);                    /* ค่าเก่าในชีตที่เปลี่ยนชื่อไปแล้ว อ่านให้เป็นค่าใหม่ */
   if(!s || s === "-") return null;
   const o = optsOf(f, room).filter(x=> x.v === s)[0];
   if(!o) return {k:"bad", text:f.col+": "+s};
@@ -987,6 +1049,26 @@ function notGood(f, room, v){
   const s = scoreField(f, room, v);
   return !!s && s.k !== "good";
 }
+
+/** จุดที่ไม่ผ่านของหมวดนี้ ตามค่าที่กรอกอยู่ (หรือค่าที่อ่านมาจากชีตทั้งแถว)
+ *  ไล่จาก fieldsOf ตรง ๆ ไม่ผ่าน visibleFields เพราะหัวข้อรอบตามแก้เองก็เรียกตัวนี้
+ *  ตัดสินว่าจะโผล่ไหม — เรียกกลับหากันจะวนไม่จบ */
+function defectsOf(t, room, vals){
+  return fieldsOf(t)
+    .filter(f=> !f.access && !f.plain && f.col !== FIX && shown(f, vals, room))
+    .map(f=> scoreField(f, room, vals[f.col]))
+    .filter(s=> s && s.k !== "good");
+}
+/** รายการจุดที่ไม่ผ่าน วางไว้หัวการ์ดรอบตามแก้ จะได้ตัดสินใจโดยไม่ต้องเลื่อนขึ้นไปดู */
+function fixArt(t, room, vals){
+  const ds = defectsOf(t, room, vals);
+  if(!ds.length) return "";
+  return '<div class="fixlist"><div class="h">รอบนี้ไม่ผ่าน '+ds.length+' จุด</div>'+
+    ds.map(s=> '<div class="it" data-k="'+s.k+'"><b></b><span>'+(s.text||"")+'</span></div>').join("")+
+    '</div>';
+}
+/** สถานะรอบตามแก้ที่ใช้ได้จริง — ค่าอื่นที่หลงมาจากชีตถือว่ายังไม่ได้เลือก */
+const fixOf = v => FIX_OPTS.some(o=> o.v === String(v||"").trim()) ? String(v).trim() : "";
 
 /* วันที่: เก็บเป็น yyyy-mm-dd แต่โชว์เป็น วัน/เดือน/ปี ตามเวลาไทยเสมอ */
 function todayTH(){
@@ -1247,7 +1329,7 @@ function fromRow(t, row, room){
   }
   d.note = row["หมายเหตุ"] || "";
   fieldsOf(t).forEach(f=>{
-    const v = String(row[f.col]||"").trim();
+    const v = unalias(row[f.col]);      /* ค่าเก่าที่เปลี่ยนชื่อไปแล้ว เปิดขึ้นมาเป็นค่าใหม่ให้เลย */
     const usable = v && v !== "-" &&
       (f.type === "num" ? !isNaN(Number(v)) : f.type === "door" ? true : optsOf(f, room).some(o=> o.v === v));
     if(usable) d.vals[f.col] = v;
@@ -1272,7 +1354,7 @@ function judge(t, room, d){
   const acc = d.vals[ACCESS];
   if(!acc) return {grade:"ยังไม่ได้กรอก", lv:"todo", todo:1,
     why:"ยังไม่ได้เลือกว่าเข้าห้องได้หรือไม่"};
-  if(acc !== "เข้าตรวจได้") return {grade:LV_TEXT.skip, lv:"skip", why:acc};
+  if(acc !== "เข้าตรวจได้") return {grade:GRADE_TEXT.skip, lv:"skip", why:acc};
 
   const fs = visibleFields(t, d.vals, room).filter(f=> !f.access);
   const miss = fs.filter(f=> !f.optional && !hasValue(d.vals[f.col]));
@@ -1285,16 +1367,27 @@ function judge(t, room, d){
     if(!s || s.k === "good") return;
     (s.k === "bad" ? bads : warns).push(s.text);
   });
-  /* ทั้งสองระดับใช้คำว่า "ไม่ผ่าน" เหมือนกัน ต่างกันที่สีกับข้อความอธิบาย */
-  if(bads.length)  return {grade:LV_TEXT.bad,  lv:"bad",
-    why:bads.join(" · "), bads:bads, warns:warns};
-  if(warns.length) return {grade:LV_TEXT.warn, lv:"warn", why:warns.join(" · ")+
-    " — แก้เฉพาะจุดได้ ไม่ต้องรื้อทั้งชุด", bads:bads, warns:warns};
+  /* มีจุดที่ไม่ผ่าน — รอบตามแก้เป็นตัวชี้ขาดว่าห้องนี้ยังค้างอยู่ หรือปิดจบไปแล้ว */
+  if(bads.length || warns.length){
+    const all = bads.concat(warns);
+    const fx  = fixOf(d.vals[FIX]);
+    if(fixClosed(fx)) return {grade:GRADE_TEXT.done, lv:"done", fix:fx,
+      why:(fx === FIX_WAIVE ? "ผู้ตรวจอนุโลมให้ผ่าน" : "ช่างแก้แล้ว ตรวจซ้ำเรียบร้อย")+
+          " — เดิมไม่ผ่าน "+all.length+" จุด: "+all.join(" · "),
+      bads:bads, warns:warns};
+    /* ทั้งเหลืองและแดงใช้คำว่า "ไม่ผ่าน" เหมือนกัน ต่างกันที่สีกับข้อความอธิบาย */
+    if(bads.length) return {grade:GRADE_TEXT.bad, lv:"bad", fix:FIX_WAIT,
+      why:bads.join(" · "), bads:bads, warns:warns};
+    return {grade:GRADE_TEXT.warn, lv:"warn", fix:FIX_WAIT,
+      why:warns.join(" · ")+" — แก้เฉพาะจุดได้ ไม่ต้องรื้อทั้งชุด", bads:bads, warns:warns};
+  }
   /* หมวดเก็บข้อมูล: กรอกครบ = เก็บแล้ว ไม่ได้แปลว่าห้องนี้ทำถูก */
-  return {grade:LV_TEXT.ok, lv:"ok", bads:[], warns:[],
+  return {grade:GRADE_TEXT.ok, lv:"ok", bads:[], warns:[], fix:"",
     why: t.survey ? "เก็บข้อมูลแล้ว — หมวดนี้ยังไม่ตัดเกรด รอสรุปว่าแบบไหนคือแบบที่ถูก"
                   : "ไม่พบข้อบกพร่อง"};
 }
+/** คำที่โชว์บนหน้าจอของผลที่กำลังกรอกอยู่ — "ปิดจบ" เป็นคำของหน้าจอ ในชีตยังลงว่า "ผ่าน" */
+const judgeText = v => LV_TEXT[v.lv] || v.grade;
 
 /** ระดับของแถวที่บันทึกไว้แล้ว — คำในช่องผลตรวจเป็นตัวตัดสินว่าผ่านหรือไม่ผ่าน
  *  ถ้าไม่ผ่าน ค่อยคิดจากค่าที่กรอกไว้ว่าเป็นเหลืองหรือแดง (คิดไม่ได้ = แดงไว้ก่อน)
@@ -1303,10 +1396,15 @@ function levelOf(t, row){
   if(!row) return "";
   const g = String(row[t.grade]||"").trim();
   if(!g) return "";
-  if(g === LV_TEXT.ok)   return "ok";
-  if(g === LV_TEXT.skip) return "skip";
-  if(g === OLD_WARN)     return "warn";
-  if(g !== LV_TEXT.bad)  return "";
+  const fx = fixOf(row[FIX]);
+  if(g === GRADE_TEXT.skip) return "skip";
+  /* ปิดจบ = เคยมีจุดไม่ผ่าน แต่ช่องรอบตามแก้บอกว่าอนุโลมหรือแก้ไขแล้ว
+     เช็คก่อนดูคำในช่องผลตรวจ จะได้รองรับการกดอนุโลมในชีตเองด้วย
+     (ช่องผลตรวจยังค้างคำว่าไม่ผ่านอยู่ก็ยังนับว่าปิดจบ) */
+  if(fixClosed(fx)) return "done";
+  if(g === GRADE_TEXT.ok) return "ok";
+  if(g === OLD_WARN)      return "warn";
+  if(g !== GRADE_TEXT.bad) return "";
   const rn = String(row["ห้อง"]||"").trim();
   const hasBad = scoreOf(t).some(f=>{
     if(f.plain) return false;
@@ -1329,8 +1427,8 @@ function count(t, rows){
 /* ---- ตารางนับจำนวนแยกตามระดับ ----
    สองช่องกลางเป็นคำว่า "ไม่ผ่าน" เหมือนกัน จุดสีกับคำห้อยใต้หัวตารางเป็นตัวแยก
    เลข 0 ปล่อยเป็นสีเทา จะได้เหลือแต่ตัวที่มีของจริงที่ถูกเน้นสี */
-const LV_NOTE = {ok:"", warn:"แก้เฉพาะจุด", bad:"ต้องรื้อแก้", skip:""};
-const LV_CLS  = {ok:"ok", warn:"wn", bad:"no", skip:"na"};
+const LV_NOTE = {ok:"", done:"อนุโลม/แก้ไขแล้ว", warn:"แก้เฉพาะจุด", bad:"ต้องรื้อแก้", skip:""};
+const LV_CLS  = {ok:"ok", done:"dn", warn:"wn", bad:"no", skip:"na"};
 const lvHead = () => LEVELS.map(lv=>
   '<th class="g"'+(lv==="skip" ? '' : ' style="color:'+GC[lv]+'"')+'>'+
   '<i style="background:'+GC[lv]+'"></i>'+LV_TEXT[lv]+
@@ -1478,14 +1576,15 @@ function renderAll(){
   const rowOf   = (t, rn) => (S.latest[t.id]||{})[rn];
   const levelAt = (t, rn) => levelOf(t, rowOf(t, rn));
 
-  let full = 0, none = 0;
+  let full = 0, none = 0, closed = 0;
   const fixRooms = [];
   ALL_ROOMS.forEach(rn=>{
     const ts = topicsOf(rn);                 /* บางห้องมีหมวดที่ต้องตรวจน้อยกว่าห้องอื่น */
     const lv = ts.map(t=> levelAt(t, rn));
-    const done = lv.filter(x=>x).length;
-    if(done === ts.length) full++;
-    if(done === 0) none++;
+    const rec = lv.filter(x=>x).length;
+    if(rec === ts.length) full++;
+    if(rec === 0) none++;
+    if(lv.indexOf("done") !== -1) closed++;
     const bad = ts.filter((t,i)=> lv[i]==="bad" || lv[i]==="warn");
     if(bad.length) fixRooms.push({room:rn, topics:bad});
   });
@@ -1494,7 +1593,8 @@ function renderAll(){
     '<div class="sc" data-lv="ok"><div class="n">'+full+'</div><div class="t">ตรวจครบทุกหมวด</div></div>'+
     '<div class="sc"><div class="n">'+(TOTAL_ROOMS-full-none)+'</div><div class="t">ตรวจบางหมวด</div></div>'+
     '<div class="sc" data-lv="skip"><div class="n">'+none+'</div><div class="t">ยังไม่แตะเลย</div></div>'+
-    '<div class="sc" data-lv="bad"><div class="n">'+fixRooms.length+'</div><div class="t">ต้องกลับไปแก้</div></div>';
+    '<div class="sc" data-lv="bad"><div class="n">'+fixRooms.length+'</div><div class="t">ยังรอแก้ไข</div></div>'+
+    '<div class="sc" data-lv="done"><div class="n">'+closed+'</div><div class="t">ปิดจบ<br>อนุโลม/แก้ไขแล้ว</div></div>';
 
   $("allTopics").innerHTML = TOPICS.map(t=>{
     const m = S.latest[t.id] || {}, rooms = Object.keys(m), tot = totalOf(t);
@@ -1507,7 +1607,8 @@ function renderAll(){
       '<em>'+Math.round(rooms.length/tot*100)+'%</em></span>'+
       '<span class="s">ตรวจแล้ว '+rooms.length+'/'+tot+' · เหลือ '+(tot-rooms.length)+
       (c.bad  ? ' · ไม่ผ่าน '+c.bad : '')+
-      (c.warn ? ' · ไม่ผ่าน (เหลือง) '+c.warn : '')+'</span>'+
+      (c.warn ? ' · ไม่ผ่าน (เหลือง) '+c.warn : '')+
+      (c.done ? ' · ปิดจบ '+c.done : '')+'</span>'+
       '<span class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</span></span>'+
       '<span class="go">›</span></button>';
   }).join("");
@@ -1520,7 +1621,7 @@ function renderAll(){
     x.topics.map(t=>
       '<span class="badge" data-lv="'+levelAt(t, x.room)+'">'+t.icon+' '+t.name+'</span>'
     ).join(" ")+'</td></tr>').join("")
-    : '<tr><td class="empty">ยังไม่มีห้องที่ต้องแก้</td></tr>';
+    : '<tr><td class="empty">ยังไม่มีห้องที่รอแก้ไข</td></tr>';
   $("allFix").querySelectorAll("tr[data-r]").forEach(tr=>
     tr.onclick = ()=>{ S.topic = TOPICS[0].id; openRoom(tr.dataset.r); });
 
@@ -1619,7 +1720,7 @@ function renderRoom(){
     const v = judge(x, room, S.draft[x.id]);
     const had = (S.latest[x.id]||{})[room];
     /* ยังกรอกไม่ครบ — โชว์ผลของรอบก่อนไว้ก่อน จะได้รู้ว่าห้องนี้เคยได้อะไร */
-    const g  = v.todo ? (had ? gradeText(x, had) || "ยังไม่ตรวจ" : "ยังไม่ตรวจ") : v.grade;
+    const g  = v.todo ? (had ? gradeText(x, had) || "ยังไม่ตรวจ" : "ยังไม่ตรวจ") : judgeText(v);
     const lv = v.todo ? (had ? levelOf(x, had)   || "none"      : "none")      : v.lv;
     return '<button class="ttab" data-t="'+x.id+'" aria-selected="'+(x.id===S.topic)+'">'+
       (dirty(x) ? '<span class="dirty"></span>' : '')+
@@ -1663,7 +1764,8 @@ function renderRoom(){
       } else {
         body = '<div class="opts" data-c="'+f.col+'">'+
           optsOf(f, room).map(o=>'<button class="opt" data-v="'+o.v+'" data-k="'+
-            (f.plain||o.plain?"plain":o.bad?"bad":o.warn?"warn":"good")+'" aria-pressed="'+
+            (o.k || (f.plain||o.plain ? "plain" : o.bad ? "bad" : o.warn ? "warn" : "good"))+
+            '" aria-pressed="'+
             (o.v===cur)+'">'+o.v+'</button>').join("")+'</div>';
       }
       const hint = val(f.hint, room);
@@ -1732,7 +1834,7 @@ function renderRoom(){
 function refreshVerdict(){
   const t = TOPIC[S.topic];
   const v = judge(t, S.room, S.draft[t.id]);
-  $("verdict").dataset.lv = v.lv; $("vG").textContent = v.grade; $("vW").textContent = v.why;
+  $("verdict").dataset.lv = v.lv; $("vG").textContent = judgeText(v); $("vW").textContent = v.why;
   refreshSave();
 }
 $("btnAllOk").onclick = ()=>{ setAllOk(TOPIC[S.topic]); renderRoom(); };
@@ -1787,6 +1889,8 @@ $("btnSave").onclick = async ()=>{
       else values[f.col] = d.vals[f.col] || "";
     });
     if(t.derive && !off) Object.assign(values, t.derive(d));
+    /* มีจุดไม่ผ่านแต่ยังไม่ได้แตะช่องรอบตามแก้ = ลงชีตว่ารอแก้ไข จะได้ไม่มีช่องว่างให้เดา */
+    if(v.fix) values[FIX] = v.fix;
     values[t.grade] = v.grade;
     return {topic:t.id, room:S.room, floor:floorOf(S.room), values:values, note:d.note,
             defects: off ? [] : (v.bads||[]).concat(v.warns||[])};
@@ -1832,7 +1936,7 @@ function renderSum(){
   const c = count(t, rooms.map(rn=> m[rn]));
 
   /* สองช่องกลางเป็น "ไม่ผ่าน" ทั้งคู่ ต่างกันที่สีตัวเลขกับคำห้อย */
-  const SC_NOTE = {ok:"", warn:"แก้เฉพาะจุด", bad:"ต้องรื้อแก้", skip:""};
+  const SC_NOTE = {ok:"", done:"อนุโลม/แก้ไขแล้ว", warn:"แก้เฉพาะจุด", bad:"ต้องรื้อแก้", skip:""};
   $("score").innerHTML = LEVELS.map(lv=>
     '<div class="sc" data-lv="'+lv+'"><div class="n">'+c[lv]+'</div><div class="t">'+
     LV_TEXT[lv]+(SC_NOTE[lv] ? '<br>'+SC_NOTE[lv] : '')+'</div></div>').join("");
@@ -1845,6 +1949,7 @@ function renderSum(){
     (t.naNote ? " · "+t.naNote : "")+
     (t.survey ? " · หมวดนี้ยังไม่ตัดเกรด เก็บไว้ดูก่อนว่าแบบไหนเจอกี่ห้อง" : "");
 
+  $("floorHead").innerHTML = '<th>ชั้น</th><th>บันทึก</th>' + lvHead() + '<th>สัดส่วน</th>';
   $("floorBody").innerHTML = FLOORS.map(f=>{
     const app = roomsOfFloor(f).filter(rn=> topicOn(t, rn));
     const rs = app.filter(rn=> m[rn]);
@@ -1870,7 +1975,7 @@ function renderSum(){
       Object.keys(seen).sort((a,b)=> seen[b]-seen[a])
         .forEach(v=> defects.push([col+" · "+v, seen[v]]));
     });
-    scoreOf(t).filter(f=> !f.type).forEach(f=>{
+    scoreOf(t).filter(f=> !f.type && f.col !== FIX).forEach(f=>{
       optsOf(f, rooms[0] || ALL_ROOMS[0]).forEach(o=>{
         const n = rooms.filter(rn=> String(m[rn][f.col]||"").trim() === o.v).length;
         if(n) defects.push([f.col+" · "+o.v, n]);
@@ -1890,49 +1995,67 @@ function renderSum(){
     (n/mx*100)+'%;background:#14605A"></i></div></td><td class="n">'+n+'</td></tr>').join("")
     || '<tr><td class="empty">'+(t.survey ? "ยังไม่มีข้อมูล" : "ยังไม่พบข้อบกพร่อง")+'</td></tr>';
 
-  const fix = rooms.filter(rn=>{ const lv = levelOf(t, m[rn]); return lv==="bad" || lv==="warn"; }).sort();
-  $("fixBody").innerHTML = fix.length ? fix.map(rn=>{
-    const row = m[rn];
+  /* ห้องที่ยังค้าง กับ ห้องที่ปิดจบไปแล้ว แยกกันคนละตาราง
+     รอบตามแก้จะได้เหลือแต่รายชื่อที่ต้องเดินไปจริง ๆ ส่วนที่อนุโลม/แก้แล้วเก็บไว้ให้ตามย้อนได้ */
+  const roomRows = list => list.map(rn=>{
+    const row = m[rn], lv = levelOf(t, row);
     const why = scoreOf(t).filter(f=> !f.plain && notGood(f, rn, row[f.col]))
-      .map(f=> f.col+": "+row[f.col]);
+      .map(f=> f.col+": "+unalias(row[f.col]));
     return '<tr data-r="'+rn+'"><td class="k">'+rn+'</td><td>'+(why.join(" · ")||"-")+'</td>'+
-      '<td style="text-align:right"><span class="badge" data-lv="'+levelOf(t, row)+'">'+
-      gradeText(t, row)+'</span></td></tr>';
-  }).join("") : '<tr><td class="empty">ยังไม่มีห้องที่ต้องแก้</td></tr>';
-  $("fixBody").querySelectorAll("tr[data-r]").forEach(tr=>
+      '<td style="text-align:right"><span class="badge" data-lv="'+lv+'">'+
+      (lv === "done" ? fixOf(row[FIX]) || LV_TEXT.done : gradeText(t, row))+'</span></td></tr>';
+  }).join("");
+  const bind = id => $(id).querySelectorAll("tr[data-r]").forEach(tr=>
     tr.onclick = ()=> openRoom(tr.dataset.r));
+
+  const fix = rooms.filter(rn=>{ const lv = levelOf(t, m[rn]); return lv==="bad" || lv==="warn"; }).sort();
+  $("fixBody").innerHTML = fix.length ? roomRows(fix)
+    : '<tr><td class="empty">ยังไม่มีห้องที่รอแก้ไข</td></tr>';
+  bind("fixBody");
+
+  const closed = rooms.filter(rn=> levelOf(t, m[rn]) === "done").sort();
+  const waive = closed.filter(rn=> fixOf(m[rn][FIX]) === FIX_WAIVE).length;
+  $("doneCount").textContent = closed.length
+    ? "(อนุโลม "+waive+" · แก้ไขแล้ว "+(closed.length-waive)+")" : "";
+  $("doneBody").innerHTML = closed.length ? roomRows(closed)
+    : '<tr><td class="empty">ยังไม่มีห้องที่ปิดจบด้วยการอนุโลมหรือแก้ไขแล้ว</td></tr>';
+  bind("doneBody");
 }
 
 /* ---------- บันทึกแล้ว ---------- */
 function renderLog(){
   const t = TOPIC[S.topic], m = S.latest[t.id] || {};
   /* หมวดเก็บข้อมูลต้องเห็นทุกช่อง เพราะทั้งหมวดเป็นช่องที่ยังไม่ตัดเกรด */
-  const cols = scoreOf(t).filter(f=> t.survey || !f.plain).map(f=>f.col);
+  /* ช่องรอบตามแก้ไม่ปนไปกับหัวข้อที่ตรวจ — แยกไปอยู่ข้างช่องผลตรวจท้ายตาราง */
+  const cols = scoreOf(t).filter(f=> f.col !== FIX && (t.survey || !f.plain)).map(f=>f.col);
   $("logHead").innerHTML = '<th>ห้อง</th>' + cols.map(c=>'<th>'+c+'</th>').join("") +
-    '<th>'+t.grade+'</th><th>วันที่</th><th>ผู้ตรวจ</th>';
+    '<th>'+t.grade+'</th><th>รอบตามแก้</th><th>วันที่</th><th>ผู้ตรวจ</th>';
 
   let html = "";
   FLOORS.forEach(f=>{
     const app = roomsOfFloor(f).filter(rn=> topicOn(t, rn));
     const rs = app.filter(rn=> m[rn]);
     if(!rs.length) return;
-    html += '<tr class="band"><td colspan="'+(cols.length+4)+'">ชั้น '+f+
+    html += '<tr class="band"><td colspan="'+(cols.length+5)+'">ชั้น '+f+
       '<span>'+rs.length+"/"+app.length+' ห้อง</span></td></tr>';
     rs.forEach(rn=>{
       const r = m[rn];
       html += '<tr data-r="'+rn+'"><td class="k">'+rn+'</td>'+
         cols.map(col=>{
           const f = scoreOf(t).filter(x=> x.col === col)[0];
-          const v = String(r[col]||"").trim() || "-";
+          const v = unalias(r[col]) || "-";
           /* ช่องที่ไม่ตัดเกรดปล่อยสีกลาง — เขียวจะอ่านเหมือนว่าห้องนี้ทำถูก ทั้งที่ยังไม่ได้ตัดสิน */
           const cls = v==="-" ? "na" : (f && f.plain) ? "" : (notGood(f, rn, v) ? "no" : "ok");
           return '<td class="'+cls+'">'+v+'</td>';
         }).join("") +
         '<td><span class="badge" data-lv="'+levelOf(t, r)+'">'+gradeText(t, r)+'</span></td>'+
+        '<td class="'+(fixOf(r[FIX]) === FIX_WAIT ? "wn" : fixOf(r[FIX]) ? "dn" : "na")+'">'+
+        (fixOf(r[FIX]) || "-")+'</td>'+
         '<td>'+showDate(r["วันที่ตรวจ"])+'</td><td>'+(r["ผู้ตรวจ"]||"")+'</td></tr>';
     });
   });
-  $("logBody").innerHTML = html || '<tr><td colspan="9" class="empty">ยังไม่มีข้อมูล</td></tr>';
+  $("logBody").innerHTML = html ||
+    '<tr><td colspan="'+(cols.length+5)+'" class="empty">ยังไม่มีข้อมูล</td></tr>';
   $("logBody").querySelectorAll("tr[data-r]").forEach(tr=>
     tr.onclick = ()=> openRoom(tr.dataset.r));
 }
