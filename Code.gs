@@ -30,6 +30,23 @@ const HEAD_RIGHT = ['หมายเหตุ', 'ผู้ตรวจ', 'บั
 const ACCESS = 'การเข้าห้อง';
 const ACCESS_CHOICES = ['เข้าตรวจได้', 'ไม่มีกุญแจ', 'มีแขกพัก', 'ห้องปิดปรับปรุง'];
 
+/* ==================== รอบตามแก้ ====================
+ *  ตรวจไปแล้วรอบหนึ่ง เจอข้อบกพร่อง แล้วยังไงต่อ — ทุกหมวดมีคอลัมน์นี้เหมือนกัน
+ *    รอแก้ไข   = ยังค้าง ห้องยังนับเป็นไม่ผ่าน
+ *    อนุโลม    = ดูของจริง/ดูรูปแล้วผู้ตรวจยอมให้ผ่าน   → ห้องนี้ปิดจบ
+ *    แก้ไขแล้ว = ช่างกลับไปแก้ แล้วตรวจซ้ำว่าเรียบร้อย  → ห้องนี้ปิดจบ
+ *  ค่าที่กรอกไว้ตอนเจอข้อบกพร่องยังอยู่ครบ ไม่ถูกลบ จะได้ตามย้อนได้ว่าเดิมเสียตรงไหน
+ *  กรอกในชีตเองก็ได้ — ใส่ อนุโลม แล้วห้องนั้นถือว่าปิดจบทันที
+ *  (สั่งเมนู "ตัดเกรดใหม่จากข้อมูลเดิม" ให้ช่องผลตรวจตามมาเป็น "ผ่าน" ด้วย)          */
+const FIX = 'สถานะแก้ไข';
+const FIX_WAIT = 'รอแก้ไข', FIX_WAIVE = 'อนุโลม', FIX_DONE = 'แก้ไขแล้ว';
+const FIX_CHOICES = [FIX_WAIT, FIX_WAIVE, FIX_DONE];
+/** สองสถานะนี้แปลว่าไม่ต้องกลับไปแก้แล้ว */
+function fixClosed_(v) {
+  const s = String(v || '').trim();
+  return s === FIX_WAIVE || s === FIX_DONE;
+}
+
 /* จำนวนห้องทั้งหมด ใช้คิด % ในหน้าสรุป — ต้องตรงกับที่ตั้งไว้ใน index.html */
 const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
 /** แท็บสรุป — ชื่อแท็บทั้งชีตใช้อังกฤษให้อ่านง่ายเวลาสลับแท็บ
@@ -38,17 +55,21 @@ const SUMMARY_SHEET = 'Summary';
 const SUMMARY_WAS   = ['สรุปรวม'];
 
 /* ==================== ผลตรวจ ====================
- *  คำที่ใช้มีแค่สองคำ: ผ่าน กับ ไม่ผ่าน (บวก ไม่ได้ตรวจ ตอนเข้าห้องไม่ได้)
- *  ความหนักเบาของ "ไม่ผ่าน" บอกด้วยสีอย่างเดียว ไม่มีคำที่สาม
- *    warn = เหลือง — เสียเล็กน้อย แก้เฉพาะจุดได้   (ของเดิมเรียกว่า "เกือบผ่าน")
- *    bad  = แดง    — เสียจริงจัง ต้องกลับไปแก้
- *  ช่องผลตรวจในชีตเก็บ "คำ" ส่วน "ระดับ" คิดจากค่าที่กรอกไว้ในแถวนั้นตอนระบายสี
+ *  คำที่ลงช่องผลตรวจมีแค่สามคำ: ผ่าน · ไม่ผ่าน · ไม่ได้ตรวจ
+ *  ส่วน "ระดับ" ที่ใช้เลือกสีกับนับยอด มีห้าระดับ คิดจากค่าที่กรอกไว้ในแถวนั้น
+ *    ok   = เขียว   — ไม่พบข้อบกพร่องเลย
+ *    done = น้ำเงิน — เคยเจอข้อบกพร่อง แต่รอบตามแก้จบแล้ว (อนุโลม/แก้ไขแล้ว)
+ *                     ช่องผลตรวจของแถวแบบนี้ลงว่า "ผ่าน" ส่วนเหตุผลอยู่ในช่องสถานะแก้ไข
+ *    warn = เหลือง — ไม่ผ่าน เสียเล็กน้อย แก้เฉพาะจุดได้   (ของเดิมเรียกว่า "เกือบผ่าน")
+ *    bad  = แดง    — ไม่ผ่าน เสียจริงจัง ต้องกลับไปแก้
+ *    skip = เทา    — เข้าห้องไม่ได้
  */
-const LEVELS = ['ok', 'warn', 'bad', 'skip'];
-const LEVEL_TEXT  = {ok:'ผ่าน', warn:'ไม่ผ่าน', bad:'ไม่ผ่าน', skip:'ไม่ได้ตรวจ'};
-const LEVEL_ICON  = {ok:'✅', warn:'⚠️', bad:'❌', skip:'⬜'};
+const LEVELS = ['ok', 'done', 'warn', 'bad', 'skip'];
+const LEVEL_TEXT  = {ok:'ผ่าน', done:'ผ่าน', warn:'ไม่ผ่าน', bad:'ไม่ผ่าน', skip:'ไม่ได้ตรวจ'};
+const LEVEL_ICON  = {ok:'✅', done:'☑️', warn:'⚠️', bad:'❌', skip:'⬜'};
 const LEVEL_COLOR = {
   ok:   {bg:'#E2F0E9', fg:'#1B7A4B'},
+  done: {bg:'#DDEAF3', fg:'#2A6484'},
   warn: {bg:'#F7EEDC', fg:'#8A5D14'},
   bad:  {bg:'#F7E2DF', fg:'#B23C31'},
   skip: {bg:'#E7ECEB', fg:'#6B7877'}
@@ -73,16 +94,20 @@ const TOPICS = {
     name: 'ม่าน', en: 'Curtain', icon: '🪟',
     sheet: 'Curtain & Sheer', was: ['บันทึกม่าน'],
     grade: 'ผลตรวจ',
+    /* แบรนด์เหลือ Smart curtain อย่างเดียวทั้งตึกแล้ว หน้าเว็บเลยไม่ให้เลือก เติมให้เอง
+       ค่า Dooya ของห้องที่เคยบันทึกไว้ยังอยู่ในชีตเหมือนเดิม ไม่ถูกแตะและไม่ตัดเกรด */
     auto: ['Room type', 'แบรนด์'],
     cols: ['Room type', 'แบรนด์',
            'ปิดม่านโปร่ง', 'ปิดม่านทึบ', 'เปิดม่านโปร่ง', 'เปิดม่านทึบ',
            'สวิตช์ม่านโปร่ง', 'สวิตช์ม่านทึบ', 'มือดึงม่านโปร่ง', 'มือดึงม่านทึบ',
            'เสียงม่านโปร่ง', 'เสียงม่านทึบ', 'เดินลื่นทั้งระบบ',
-           ACCESS, 'ผลตรวจ'],
+           FIX, ACCESS, 'ผลตรวจ'],
     choices: {
-      'แบรนด์':          ['Dooya', 'Smart curtain'],
-      'ปิดม่านโปร่ง':    ['ปิดสุด', 'ปิดเหลือระยะนิดหน่อย', 'ปิดไม่ได้ เหลือครึ่งทาง'],
-      'ปิดม่านทึบ':      ['ปิดสุด', 'ปิดเหลือระยะนิดหน่อย', 'ปิดไม่ได้ เหลือครึ่งทาง'],
+      'แบรนด์':          ['Smart curtain', 'Dooya'],
+      /* เกณฑ์ปิดม่าน: ปิดแล้วเหลือระยะนิดหน่อยยังถือว่าปิดสุด (ผ่าน)
+         ไม่ผ่านคือปิดแล้วสองบานยังห่างกันเกิน 10 ซม. — เหลือสองตัวเลือก */
+      'ปิดม่านโปร่ง':    ['ปิดสุด', 'ปิดเหลือระยะห่างกันมากกว่า 10cm'],
+      'ปิดม่านทึบ':      ['ปิดสุด', 'ปิดเหลือระยะห่างกันมากกว่า 10cm'],
       'เปิดม่านโปร่ง':   ['เปิดสุด', 'เปิดไม่สุด'],
       'เปิดม่านทึบ':     ['เปิดสุด', 'เปิดไม่สุด'],
       'สวิตช์ม่านโปร่ง': ['ปกติ', 'กดแล้วไม่ทำงาน'],
@@ -93,7 +118,9 @@ const TOPICS = {
       'เสียงม่านทึบ':    ['ปกติ', 'ดัง'],
       'เดินลื่นทั้งระบบ': ['ลื่น ไม่สะดุด', 'สะดุด/ฝืด']
     },
-    warn: ['ปิดเหลือระยะนิดหน่อย', 'ดัง']
+    /* แบรนด์เป็นข้อมูลของห้อง ไม่ใช่ข้อบกพร่อง — ทั้งสองค่าถือว่าปกติ ไม่ต้องระบายสี */
+    good: { 'แบรนด์': ['Smart curtain', 'Dooya'] },
+    warn: ['ดัง']
   },
 
   silicone: {
@@ -102,7 +129,7 @@ const TOPICS = {
     grade: 'เกรด',
     auto: [],
     cols: ['ขอบเขตงาน', 'สีที่ใช้', 'ระยะขอบ', 'ตัดขอบ', 'ฟองอากาศ',
-           'กินผนัง', 'สภาพผนัง', ACCESS, 'เกรด'],
+           'กินผนัง', 'สภาพผนัง', FIX, ACCESS, 'เกรด'],
     choices: {
       'ขอบเขตงาน': ['ยิงครบทุกด้าน', 'ยิงขอบบนแค่ขอบบน (01&12)',
                     'ยิงด้านข้างมาด้วย', 'ยิงไม่ครบสามด้าน', 'ยังไม่ได้ยิง'],
@@ -129,7 +156,7 @@ const TOPICS = {
     auto: [],
     cols: ['เวลาน้ำร้อน (วินาที)', 'อุณหภูมิน้ำที่วัดได้ (°C)',
            'อุณหภูมิที่ตั้งแอร์ (°C)', 'เวลาแอร์เย็น (นาที)', 'อุณหภูมิห้องที่วัดได้ (°C)',
-           ACCESS, 'ผลตรวจ'],
+           FIX, ACCESS, 'ผลตรวจ'],
     /* คอลัมน์เวลา/อุณหภูมิเป็นตัวเลข ไม่มีดรอปดาวน์ — เกณฑ์ตัดเกรดอยู่ที่หน้าเว็บ */
     choices: {},
     num: {
@@ -145,7 +172,8 @@ const TOPICS = {
     sheet: 'Door', was: ['บันทึกแสงรอบประตู'],
     grade: 'ผลตรวจ',
     auto: ['บานประตู'],
-    cols: ['บานประตู', 'แสงเล็ดลอด', 'จุดที่มีแสง', 'จำนวนจุดที่มีแสง', ACCESS, 'ผลตรวจ'],
+    cols: ['บานประตู', 'แสงเล็ดลอด', 'จุดที่มีแสง', 'จำนวนจุดที่มีแสง',
+           FIX, ACCESS, 'ผลตรวจ'],
     choices: {
       'บานประตู':   ['มือจับซ้าย', 'มือจับขวา'],
       'แสงเล็ดลอด': ['ไม่มีแสงเล็ดลอด', 'มีแสงเล็ดลอด']
@@ -165,7 +193,7 @@ const TOPICS = {
     skip: ['01', '12'],
     cols: ['บัวซ้าย', 'บัวกลาง', 'บัวขวา',
            'ช่องรูซ้าย', 'ช่องรูกลาง', 'ช่องรูขวา',
-           ACCESS, 'ผลตรวจ'],
+           FIX, ACCESS, 'ผลตรวจ'],
     choices: {
       'บัวซ้าย':    ['ติดเรียบร้อย', 'ขอบบัวไม่สุดขาไม้', 'ไม่ได้ติดบัว'],
       'บัวกลาง':   ['ติดเรียบร้อย', 'ขอบบัวไม่สุดขาไม้', 'ไม่ได้ติดบัว'],
@@ -187,7 +215,7 @@ const TOPICS = {
     /* คอลัมน์ที่หน้าเว็บรวมค่าให้เอง ไม่ใช่ตัวเลือกให้กด */
     auto: ['แบบ shadow gap'],
     cols: ['กระเบื้อง shadow gap', 'สี shadow gap', 'แบบ shadow gap',
-           'สีหลืบ exhaust air', ACCESS, 'ผลตรวจ'],
+           'สีหลืบ exhaust air', FIX, ACCESS, 'ผลตรวจ'],
     /* เกณฑ์รับงาน — ตัวแรกของแต่ละแถวคือค่าที่ผ่าน ที่เหลือเป็นข้อบกพร่อง
        ผ่าน = ปูกระเบื้องสุดขอบร่อง · ในร่อง shadow gap ไม่ทาสี
               · หลืบ exhaust air ทาสีจบในหลืบ ไม่ทาลงมาบนกระเบื้องผนัง */
@@ -207,7 +235,11 @@ const RENAMED = {
   'PASS':            'ผ่าน',
   'DEFECT':          'ไม่ผ่าน',
   /* เลิกใช้คำว่า "เกือบผ่าน" แล้ว — รวมเป็น "ไม่ผ่าน" แยกหนักเบาด้วยสีแทน */
-  'เกือบผ่าน':        'ไม่ผ่าน'
+  'เกือบผ่าน':        'ไม่ผ่าน',
+  /* ม่าน: เกณฑ์ใหม่ถือว่าปิดแล้วเหลือระยะนิดหน่อยคือปิดสุด (ผ่าน)
+     ไม่ผ่านคือปิดแล้วห่างกันเกิน 10 ซม. — แถวเก่าแปลงตามนี้แล้วสั่ง "ตัดเกรดใหม่" ต่อได้เลย */
+  'ปิดเหลือระยะนิดหน่อย':   'ปิดสุด',
+  'ปิดไม่ได้ เหลือครึ่งทาง': 'ปิดเหลือระยะห่างกันมากกว่า 10cm'
 };
 
 /* ==================== แจ้งเตือนเข้า LINE ====================
@@ -695,6 +727,7 @@ function entryLines_(s) {
       }).map(function (c) { return c + ': ' + rec[c]; });
   if (bad.length) bad.forEach(function (line) { lines.push('   • ' + line); });
   else lines.push('   ปกติทุกหัวข้อ');
+  if (rec[FIX]) lines.push('   รอบตามแก้: ' + rec[FIX]);
   if (rec['หมายเหตุ']) lines.push('   หมายเหตุ: ' + rec['หมายเหตุ']);
   return lines;
 }
@@ -767,6 +800,7 @@ const LOOK = {
   bad:  { bg: '#F7E2DF', fg: '#B23C31' },
   warn: { bg: '#FBEBD2', fg: '#8A5D14' },
   grid: '#D6DDE6',
+  done: { bg: '#DDEAF3', fg: '#2A6484' },
   width: { 'วันที่ตรวจ': 96, 'ชั้น': 52, 'ห้อง': 62, 'หมายเหตุ': 230,
            'ผู้ตรวจ': 92, 'บันทึกเมื่อ': 128,
            'กระเบื้อง shadow gap': 156, 'สี shadow gap': 108,
@@ -883,6 +917,7 @@ function styleRules_(t, sh, head, rows) {
     const all = {};
     Object.keys(t.choices || {}).forEach(function (c) { all[c] = t.choices[c]; });
     all[ACCESS] = ACCESS_CHOICES;
+    all[FIX] = FIX_CHOICES;
     all[t.grade] = GRADES;
     Object.keys(all).forEach(function (c) {
       const col = head.indexOf(c) + 1;
@@ -917,6 +952,11 @@ function styleRules_(t, sh, head, rows) {
     ACCESS_CHOICES.slice(1).forEach(function (v) {
       const col = head.indexOf(ACCESS) + 1;
       if (col > 0) add(col, v, LOOK.warn);
+    });
+    /* ช่องรอบตามแก้ — รอแก้ไขเป็นเหลือง (ยังค้าง) ส่วนอนุโลม/แก้ไขแล้วเป็นน้ำเงิน (ปิดจบ) */
+    FIX_CHOICES.forEach(function (v) {
+      const col = head.indexOf(FIX) + 1;
+      if (col > 0) add(col, v, fixClosed_(v) ? LOOK.done : LOOK.warn);
     });
     /* ช่องผลตรวจ — "ผ่าน" กับ "ไม่ได้ตรวจ" ระบายด้วยกฎตามคำได้เลย
        ส่วน "ไม่ผ่าน" มีสองสีแต่คำเดียวกัน กฎตามคำจึงแยกไม่ออก ต้องระบายเอง
@@ -1026,29 +1066,31 @@ function levelOfRow_(t, row) {
   if (!acc) return '';                                  /* แถวเก่าก่อนมีคอลัมน์นี้ ไม่แตะ */
   if (acc !== ACCESS_CHOICES[0]) return 'skip';
   const warns = warnValues_(t);
-  let warn = false;
+  let warn = false, bad = false;
   for (let i = 0; i < t.cols.length; i++) {
     const c = t.cols[i];
-    if (c === t.grade || c === ACCESS || t.auto.indexOf(c) !== -1) continue;
+    if (c === t.grade || c === ACCESS || c === FIX || t.auto.indexOf(c) !== -1) continue;
     const v = String(row[c] || '').trim();
     if (!v || v === '-') continue;                      /* ช่องที่หมวดนี้ไม่ตรวจในห้องนั้น */
     if (t.num && t.num[c]) {
       const n = Number(v), spec = t.num[c];
       if (isNaN(n)) continue;
       if (spec.ok !== undefined) {
-        if (n > spec.warn) return 'bad';
-        if (n > spec.ok) warn = true;
+        if (n > spec.warn) bad = true;
+        else if (n > spec.ok) warn = true;
       } else {
-        if (n < spec.warnMin || n > spec.warnMax) return 'bad';
-        if (n < spec.min || n > spec.max) warn = true;
+        if (n < spec.warnMin || n > spec.warnMax) bad = true;
+        else if (n < spec.min || n > spec.max) warn = true;
       }
       continue;
     }
     if (isGood_(t, c, v)) continue;
     if (warns.indexOf(v) !== -1) warn = true;
-    else return 'bad';
+    else bad = true;
   }
-  return warn ? 'warn' : 'ok';
+  /* เจอข้อบกพร่องแล้วรอบตามแก้จบไปแล้ว (อนุโลม/แก้ไขแล้ว) = ปิดจบ ไม่นับเป็นห้องที่ต้องแก้ */
+  if ((bad || warn) && fixClosed_(row[FIX])) return 'done';
+  return bad ? 'bad' : warn ? 'warn' : 'ok';
 }
 
 /** คำที่ควรอยู่ในช่องผลตรวจของแถวนี้ — ว่าง = ยังบอกไม่ได้ ให้ปล่อยคำเดิมไว้ */
@@ -1063,10 +1105,13 @@ function gradeOfRow_(t, row) {
 function levelOf_(t, row) {
   const g = String(row[t.grade] || '').trim();
   if (!g) return '';
-  if (g === LEVEL_TEXT.ok)   return 'ok';
   if (g === LEVEL_TEXT.skip) return 'skip';
-  if (g === OLD_WARN)        return 'warn';       /* แถวเก่าที่ยังไม่ได้แปลงคำ */
-  if (g !== LEVEL_TEXT.bad)  return '';
+  /* ช่องสถานะแก้ไขมาก่อนคำในช่องผลตรวจ — กดอนุโลมในชีตเองแล้วห้องนั้นปิดจบทันที
+     ไม่ต้องรอให้ใครกดบันทึกจากหน้าเว็บใหม่ */
+  if (fixClosed_(row[FIX])) return 'done';
+  if (g === LEVEL_TEXT.ok)  return 'ok';
+  if (g === OLD_WARN)       return 'warn';       /* แถวเก่าที่ยังไม่ได้แปลงคำ */
+  if (g !== LEVEL_TEXT.bad) return '';
   return levelOfRow_(t, row) === 'warn' ? 'warn' : 'bad';
 }
 
@@ -1204,7 +1249,7 @@ function whyOf_(t, row) {
   const out = [];
   if (row[ACCESS] && row[ACCESS] !== ACCESS_CHOICES[0]) return row[ACCESS];
   t.cols.forEach(function (c) {
-    if (c === t.grade || c === ACCESS || t.auto.indexOf(c) !== -1) return;
+    if (c === t.grade || c === ACCESS || c === FIX || t.auto.indexOf(c) !== -1) return;
     const v = String(row[c] || '').trim();
     if (!v || v === '-') return;
     if (t.num && t.num[c]) { if (numBad_(t.num[c], Number(v))) out.push(c + ': ' + v); return; }
@@ -1221,6 +1266,9 @@ function skipOf_(t)     { return t.skip || []; }
 function perFloorOf_(t) { return ROOMS_PER_FLOOR - skipOf_(t).length; }
 function totalOf_(t)    { return (FLOOR_TO - FLOOR_FROM + 1) * perFloorOf_(t); }
 
+/* จำนวนคอลัมน์ของแท็บสรุป — ทุกแถวถูกเติมให้ยาวเท่านี้เสมอก่อนเขียนลงชีต */
+const SUM_COLS = 10;
+
 /** สร้าง/อัปเดตแท็บสรุปรวม — เรียกจากเมนู และเรียกเองทุกครั้งที่บันทึก */
 function buildSummary_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1232,43 +1280,47 @@ function buildSummary_() {
   ids.forEach(function (id) { latest[id] = latestByRoom_(id); });
 
   const rows = [];
+  const blank = function () { const a = []; while (a.length < SUM_COLS) a.push(''); return a; };
+  const line1 = function (text) { const a = blank(); a[0] = text; return a; };
+  const pad   = function (a) { while (a.length < SUM_COLS) a.push(''); return a; };
+
   const now = Utilities.formatDate(new Date(), TZ, 'dd/MM/yyyy HH:mm');
-  rows.push(['📋 สรุปการตรวจห้อง', '', '', '', '', '', '', '', '']);
-  rows.push(['อัปเดตล่าสุด ' + now + ' · ทั้งหมด ' + TOTAL_ROOMS + ' ห้อง (ชั้น ' +
-             FLOOR_FROM + '–' + FLOOR_TO + ' ชั้นละ ' + ROOMS_PER_FLOOR + ' ห้อง)',
-             '', '', '', '', '', '', '', '']);
-  rows.push(['', '', '', '', '', '', '', '', '']);
+  rows.push(line1('📋 สรุปการตรวจห้อง'));
+  rows.push(line1('อัปเดตล่าสุด ' + now + ' · ทั้งหมด ' + TOTAL_ROOMS + ' ห้อง (ชั้น ' +
+             FLOOR_FROM + '–' + FLOOR_TO + ' ชั้นละ ' + ROOMS_PER_FLOOR + ' ห้อง)'));
+  rows.push(blank());
 
   /* ---- ภาพรวมรายหมวด ---- */
   /* สองคอลัมน์กลางเป็น "ไม่ผ่าน" ทั้งคู่ ต่างกันที่สี — ใส่วงเล็บกำกับไว้ที่หัวตาราง
-     เพราะหัวตารางเป็นพื้นเขียวเหมือนกันหมด ระบายสีแยกไม่ได้ */
+     เพราะหัวตารางเป็นพื้นเขียวเหมือนกันหมด ระบายสีแยกไม่ได้
+     "ปิดจบ" คือห้องที่เคยไม่ผ่าน แล้วรอบตามแก้จบแล้ว (อนุโลม/แก้ไขแล้ว) */
   const headA = ['หมวด', 'ตรวจแล้ว', 'เหลือ', 'ความคืบหน้า',
-                 'ผ่าน', 'ไม่ผ่าน (เหลือง)', 'ไม่ผ่าน (แดง)', 'ไม่ได้ตรวจ', 'ต้องกลับไปแก้'];
+                 'ผ่าน', 'ปิดจบ (อนุโลม/แก้ไขแล้ว)', 'ไม่ผ่าน (เหลือง)', 'ไม่ผ่าน (แดง)',
+                 'ไม่ได้ตรวจ', 'ยังรอแก้ไข'];
   rows.push(headA);
   const bandA = rows.length;                       /* แถวหัวของบล็อกแรก */
-  const totals = { done: 0, fix: 0, want: 0 };
+  const totals = { rec: 0, fix: 0, want: 0, closed: 0 };
   ids.forEach(function (id) {
     const t = TOPICS[id], m = latest[id], rooms = Object.keys(m);
     const want = totalOf_(t);
     const c = {}; LEVELS.forEach(function (lv) { c[lv] = 0; });
     rooms.forEach(function (rn) { const lv = levelOf_(t, m[rn]); if (c[lv] !== undefined) c[lv]++; });
     const fix = c.bad + c.warn;
-    totals.done += rooms.length; totals.fix += fix; totals.want += want;
+    totals.rec += rooms.length; totals.fix += fix;
+    totals.want += want; totals.closed += c.done;
     rows.push([t.icon + ' ' + t.name, rooms.length, want - rooms.length,
                rooms.length / want,
-               c.ok, c.warn, c.bad, c.skip, fix]);
+               c.ok, c.done, c.warn, c.bad, c.skip, fix]);
   });
-  rows.push(['รวมทุกหมวด', totals.done, totals.want - totals.done,
-             totals.done / totals.want, '', '', '', '', totals.fix]);
+  rows.push(['รวมทุกหมวด', totals.rec, totals.want - totals.rec,
+             totals.rec / totals.want, '', totals.closed, '', '', '', totals.fix]);
   const endA = rows.length;
 
   /* ---- ความคืบหน้ารายชั้น ---- */
-  rows.push(['', '', '', '', '', '', '', '', '']);
-  rows.push(['ความคืบหน้ารายชั้น (ตรวจแล้ว / ที่ต้องตรวจในชั้นนั้น)',
-             '', '', '', '', '', '', '', '']);
+  rows.push(blank());
+  rows.push(line1('ความคืบหน้ารายชั้น (ตรวจแล้ว / ที่ต้องตรวจในชั้นนั้น)'));
   const headB = ['ชั้น'].concat(ids.map(function (id) { return TOPICS[id].icon + ' ' + TOPICS[id].name; }));
-  while (headB.length < 9) headB.push('');
-  rows.push(headB);
+  rows.push(pad(headB));
   const bandB = rows.length;
   for (let f = FLOOR_FROM; f <= FLOOR_TO; f++) {
     const line = ['ชั้น ' + f];
@@ -1277,84 +1329,102 @@ function buildSummary_() {
       for (let i = 1; i <= ROOMS_PER_FLOOR; i++) if (latest[id][String(f * 100 + i)]) n++;
       line.push(n + '/' + perFloorOf_(TOPICS[id]));
     });
-    while (line.length < 9) line.push('');
-    rows.push(line);
+    rows.push(pad(line));
   }
   const endB = rows.length;
 
-  /* ---- ห้องที่ต้องกลับไปแก้ ---- */
-  rows.push(['', '', '', '', '', '', '', '', '']);
-  rows.push(['ห้องที่ต้องกลับไปแก้', '', '', '', '', '', '', '', '']);
-  rows.push(['ห้อง', 'ชั้น', 'หมวด', 'ผล', 'รายละเอียด', 'วันที่ตรวจ', 'ผู้ตรวจ', '', '']);
-  const bandC = rows.length;
-
-  const fixes = [];
-  ids.forEach(function (id) {
-    const t = TOPICS[id], m = latest[id];
-    Object.keys(m).forEach(function (rn) {
-      const lv = levelOf_(t, m[rn]);
-      if (lv !== 'bad' && lv !== 'warn') return;
-      fixes.push({ lv: lv,
-        row: [rn, m[rn]['ชั้น'], t.icon + ' ' + t.name, LEVEL_TEXT[lv], whyOf_(t, m[rn]),
-              fmtDate_(m[rn]['วันที่ตรวจ']), m[rn]['ผู้ตรวจ'] || '', '', ''] });
-    });
-  });
-  fixes.sort(function (a, b) {
+  /* ---- ห้องที่ยังรอแก้ไข กับ ห้องที่ปิดจบไปแล้ว ----
+     แยกกันคนละบล็อก บล็อกแรกคือรายชื่อที่ต้องเดินไปตามจริง ๆ
+     บล็อกหลังเก็บไว้ให้ตามย้อนได้ว่าห้องไหนอนุโลม ห้องไหนแก้แล้ว เดิมเสียตรงไหน */
+  const byRoom = function (a, b) {
     return String(a.row[0]).localeCompare(String(b.row[0]), 'th', { numeric: true });
-  });
+  };
+  const pick = function (want) {
+    const out = [];
+    ids.forEach(function (id) {
+      const t = TOPICS[id], m = latest[id];
+      Object.keys(m).forEach(function (rn) {
+        const lv = levelOf_(t, m[rn]);
+        if (want.indexOf(lv) === -1) return;
+        const state = lv === 'done' ? String(m[rn][FIX] || '').trim() : LEVEL_TEXT[lv];
+        out.push({ lv: lv,
+          row: pad([rn, m[rn]['ชั้น'], t.icon + ' ' + t.name, state, whyOf_(t, m[rn]),
+                    fmtDate_(m[rn]['วันที่ตรวจ']), m[rn]['ผู้ตรวจ'] || '']) });
+      });
+    });
+    return out.sort(byRoom);
+  };
+
+  rows.push(blank());
+  rows.push(line1('ห้องที่ยังรอแก้ไข'));
+  rows.push(pad(['ห้อง', 'ชั้น', 'หมวด', 'ผล', 'รายละเอียด', 'วันที่ตรวจ', 'ผู้ตรวจ']));
+  const bandC = rows.length;
+  const fixes = pick(['bad', 'warn']);
   if (fixes.length) fixes.forEach(function (f) { rows.push(f.row); });
-  else rows.push(['— ยังไม่มีห้องที่ต้องแก้ —', '', '', '', '', '', '', '', '']);
+  else rows.push(line1('— ยังไม่มีห้องที่รอแก้ไข —'));
   const endC = rows.length;
+
+  rows.push(blank());
+  rows.push(line1('ปิดจบแล้ว — อนุโลม / แก้ไขแล้ว'));
+  rows.push(pad(['ห้อง', 'ชั้น', 'หมวด', 'สถานะ', 'เดิมไม่ผ่านตรงไหน', 'วันที่ตรวจ', 'ผู้ตรวจ']));
+  const bandD = rows.length;
+  const closed = pick(['done']);
+  if (closed.length) closed.forEach(function (f) { rows.push(f.row); });
+  else rows.push(line1('— ยังไม่มีห้องที่ปิดจบด้วยการอนุโลมหรือแก้ไขแล้ว —'));
+  const endD = rows.length;
 
   /* ---- เขียนลงชีต ---- */
   if (sh.getMaxRows() < rows.length + 20) {
     sh.insertRowsAfter(sh.getMaxRows(), rows.length + 20 - sh.getMaxRows());
   }
+  if (sh.getMaxColumns() < SUM_COLS) {
+    sh.insertColumnsAfter(sh.getMaxColumns(), SUM_COLS - sh.getMaxColumns());
+  }
   sh.clear();
   sh.clearConditionalFormatRules();
   sh.getBandings().forEach(function (b) { b.remove(); });
-  sh.getRange(1, 1, rows.length, 9).setValues(rows);
+  sh.getRange(1, 1, rows.length, SUM_COLS).setValues(rows);
 
   /* ---- แต่งหน้า ---- */
   sh.setFrozenRows(3);
   sh.getRange('A1').setFontSize(15).setFontWeight('bold').setFontColor(LOOK.headBg);
   sh.getRange('A2').setFontSize(10).setFontColor('#6B7A8D');
-  [bandA, bandB, bandC].forEach(function (r) {
-    sh.getRange(r, 1, 1, 9).setBackground(LOOK.headBg).setFontColor(LOOK.headFg)
+  [bandA, bandB, bandC, bandD].forEach(function (r) {
+    sh.getRange(r, 1, 1, SUM_COLS).setBackground(LOOK.headBg).setFontColor(LOOK.headFg)
       .setFontWeight('bold').setFontSize(10).setHorizontalAlignment('center')
       .setVerticalAlignment('middle').setWrap(true);   /* หัวยาวอย่าง "ไม่ผ่าน (เหลือง)" จะได้ไม่ล้น */
   });
-  [bandB - 1, bandC - 1].forEach(function (r) {
-    sh.getRange(r, 1, 1, 9).setFontWeight('bold').setFontSize(11).setFontColor(LOOK.headBg);
+  [bandB - 1, bandC - 1, bandD - 1].forEach(function (r) {
+    sh.getRange(r, 1, 1, SUM_COLS).setFontWeight('bold').setFontSize(11).setFontColor(LOOK.headBg);
   });
   sh.setColumnWidth(1, 190);
-  for (let c = 2; c <= 9; c++) sh.setColumnWidth(c, c === 5 ? 300 : 108);
+  /* คอลัมน์ 5 เป็นช่องรายละเอียดของสองบล็อกล่าง เลยต้องกว้างกว่าเพื่อน */
+  for (let c = 2; c <= SUM_COLS; c++) sh.setColumnWidth(c, c === 5 ? 300 : 108);
 
-  sh.getRange(bandA + 1, 2, ids.length + 1, 8).setHorizontalAlignment('center');
+  sh.getRange(bandA + 1, 2, ids.length + 1, SUM_COLS - 1).setHorizontalAlignment('center');
   sh.getRange(bandA + 1, 4, ids.length + 1, 1).setNumberFormat('0.0%');
-  sh.getRange(endA, 1, 1, 9).setFontWeight('bold').setBackground('#EFF3F7');
-  sh.getRange(bandB + 1, 2, endB - bandB, 8).setHorizontalAlignment('center');
-  sh.getRange(bandC + 1, 1, endC - bandC, 4).setHorizontalAlignment('center');
-  sh.getRange(bandC + 1, 5, endC - bandC, 1).setHorizontalAlignment('left');
+  sh.getRange(endA, 1, 1, SUM_COLS).setFontWeight('bold').setBackground('#EFF3F7');
+  sh.getRange(bandB + 1, 2, endB - bandB, SUM_COLS - 1).setHorizontalAlignment('center');
+  [[bandC, endC], [bandD, endD]].forEach(function (b) {
+    sh.getRange(b[0] + 1, 1, b[1] - b[0], 4).setHorizontalAlignment('center');
+    sh.getRange(b[0] + 1, 5, b[1] - b[0], 1).setHorizontalAlignment('left');
+  });
 
-  [[bandA, endA], [bandB, endB], [bandC, endC]].forEach(function (b) {
-    sh.getRange(b[0], 1, b[1] - b[0] + 1, 9)
+  [[bandA, endA], [bandB, endB], [bandC, endC], [bandD, endD]].forEach(function (b) {
+    sh.getRange(b[0], 1, b[1] - b[0] + 1, SUM_COLS)
       .setBorder(true, true, true, true, true, true, LOOK.grid, SpreadsheetApp.BorderStyle.SOLID);
   });
 
-  /* สีของช่องผลตรวจ — ช่องนับจำนวนสองช่องกลางระบายตามระดับของคอลัมน์นั้นไปเลย */
+  /* สีของช่องนับจำนวน — ระบายตามระดับของคอลัมน์นั้นไปเลย (คอลัมน์ 5–9 = ok done warn bad skip) */
   const rules = [];
   if (ids.length) {
-    ['warn', 'bad'].forEach(function (lv, i) {
-      sh.getRange(bandA + 1, 6 + i, ids.length, 1)
+    ['ok', 'done', 'warn', 'bad', 'skip'].forEach(function (lv, i) {
+      sh.getRange(bandA + 1, 5 + i, ids.length, 1)
         .setBackground(LEVEL_COLOR[lv].bg).setFontColor(LEVEL_COLOR[lv].fg);
     });
-    sh.getRange(bandA + 1, 5, ids.length, 1)
-      .setBackground(LEVEL_COLOR.ok.bg).setFontColor(LEVEL_COLOR.ok.fg);
-    sh.getRange(bandA + 1, 8, ids.length, 1)
-      .setBackground(LEVEL_COLOR.skip.bg).setFontColor(LEVEL_COLOR.skip.fg);
   }
-  /* คอลัมน์ "ผล" ของรายการห้องที่ต้องแก้ — คำเดียวกันสองสี ระบายทีละแถวเอง */
+  /* ช่อง "ผล" ของรายการห้องที่รอแก้ไข — คำเดียวกันสองสี ระบายทีละแถวเอง
+     ส่วนบล็อกปิดจบใช้สีเดียวกันหมด ระบายรวดเดียวได้ */
   if (fixes.length) {
     const bg = fixes.map(function (f) { return [LEVEL_COLOR[f.lv].bg]; });
     const fg = fixes.map(function (f) { return [LEVEL_COLOR[f.lv].fg]; });
@@ -1362,9 +1432,13 @@ function buildSummary_() {
     cell.setBackgrounds(bg);
     cell.setFontColors(fg);
   }
+  if (closed.length) {
+    sh.getRange(bandD + 1, 4, closed.length, 1)
+      .setBackground(LEVEL_COLOR.done.bg).setFontColor(LEVEL_COLOR.done.fg);
+  }
   rules.push(SpreadsheetApp.newConditionalFormatRule()
     .whenNumberGreaterThan(0).setBackground(LOOK.bad.bg).setFontColor(LOOK.bad.fg)
-    .setRanges([sh.getRange(bandA + 1, 9, ids.length, 1)]).build());
+    .setRanges([sh.getRange(bandA + 1, SUM_COLS, ids.length, 1)]).build());
   sh.setConditionalFormatRules(rules);
 
   return sh;
@@ -1399,9 +1473,9 @@ function dailySummary() {
 
     msg.push('');
     msg.push(t.icon + ' ' + t.name + ' — บันทึก ' + rows.length + ' รายการ');
-    msg.push('   ✅ ' + cnt.ok + ' · ⚠️ ' + cnt.warn +
+    msg.push('   ✅ ' + cnt.ok + ' · ☑️ ' + cnt.done + ' · ⚠️ ' + cnt.warn +
              ' · ❌ ' + cnt.bad + ' · ⬜ ' + cnt.skip);
-    if (failed.length) msg.push('   ห้องที่ต้องแก้: ' + failed.join(', '));
+    if (failed.length) msg.push('   ห้องที่รอแก้ไข: ' + failed.join(', '));
   });
 
   if (!total) return;   // วันนี้ไม่มีบันทึก ไม่ต้องส่ง
