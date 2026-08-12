@@ -916,8 +916,10 @@ const topicsOf  = room => TOPICS.filter(t=> topicOn(t, room));
 const roomsOfTopic = t => ALL_ROOMS.filter(r=> topicOn(t, r));
 const totalOf   = t => roomsOfTopic(t).length;
 
-/* ---------- ประตู: ช่องรอบบานกับการแปลงเป็นข้อความ ---------- */
-const DOOR_BOX = {w:210, h:320, m:8, t:24, gap:2};
+/* ---------- ประตู: ช่องรอบบานกับการแปลงเป็นข้อความ ----------
+   t = ความหนาของแถบช่องรอบบาน ผอมลงครึ่งหนึ่งจากของเดิม (24 → 12)
+   ช่องจะได้ดูเป็นร่องรอบวงกบจริง ๆ ไม่บวมกินพื้นที่บานประตู */
+const DOOR_BOX = {w:210, h:320, m:8, t:12, gap:2};
 function doorCells(){
   const B = DOOR_BOX, c = [];
   const iw = B.w - 2*B.m - 2*B.t, ih = B.h - 2*B.m - 2*B.t;
