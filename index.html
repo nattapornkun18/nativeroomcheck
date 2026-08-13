@@ -19,6 +19,8 @@
     --warn:#B26A0A; --warn-soft:#FBEBD2;
     --bad:#B62D22; --bad-soft:#FADEDB;
     --skip:#6B7A8D; --skip-soft:#E4E9EF;
+    /* เส้นแบ่งบาง ๆ ระหว่างหัวข้อในการ์ด — อ่อนกว่า --line ที่ใช้กับขอบการ์ด */
+    --hair:#EDF1F5;
     --r:10px;
     --sans:"IBM Plex Sans Thai","Noto Sans Thai",Tahoma,system-ui,sans-serif;
     --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
@@ -91,6 +93,22 @@
   .cap{padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
     color:var(--mute);background:#F4F7FA;border-bottom:1px solid var(--line);display:flex;gap:8px}
   .cap .r{margin-left:auto;font-family:var(--mono);letter-spacing:0;text-transform:none}
+
+  /* ---------- หัวการ์ดของฟอร์มตรวจ ----------
+     หมวดหนึ่งมีหลายการ์ด การ์ดหนึ่งมีหลายหัวข้อ — หัวการ์ดเลยต้องเด่นพอให้กวาดตาเจอ
+     ว่าตอนนี้อ่านอยู่ตรงไหน แยกคำอังกฤษเป็นบรรทัดจิ๋วข้างบน ชื่อไทยตัวโตสีเข้มข้างล่าง
+     ขีดทองซ้ายมือเป็นตัวปักหมุดเหมือนแถบหัวจอ · เลขมุมขวาบอกว่ากรอกไปกี่หัวข้อแล้ว */
+  .cap.sec{display:block;position:relative;padding:11px 56px 10px 15px;
+    background:#F4F7FA;border-bottom:1px solid var(--line)}
+  .cap.sec::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;
+    background:var(--brass);border-radius:0 2px 2px 0}
+  .cap.sec .en{display:block;font-size:9.5px;font-weight:700;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--mute);line-height:1.3}
+  .cap.sec .th{display:block;font-size:14px;font-weight:700;letter-spacing:0;
+    text-transform:none;color:var(--ink);line-height:1.35}
+  .cap.sec .r{position:absolute;right:13px;top:50%;transform:translateY(-50%);margin:0;
+    font-size:11px;color:var(--mute)}
+  .cap.sec .r.full{color:var(--ok)}
   .pad{padding:10px 12px 12px}
   .steprow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .steprow .lbl{font-size:12px;color:var(--mute)}
@@ -160,8 +178,8 @@
     background:var(--brass);box-shadow:0 0 0 3px var(--brass-soft)}
 
   /* ---------- ฟอร์ม ---------- */
-  .fld{padding:10px 12px 12px;border-bottom:1px solid #EDF1F5}
-  .fld:last-child{border-bottom:0}
+  .fld{padding:11px 13px 13px;border-bottom:1px solid var(--hair)}
+  .fld:last-child,.row2:last-child{border-bottom:0}
   .fld .lab{font-size:13px;font-weight:600;margin-bottom:7px}
   .fld .lab span{color:var(--mute);font-weight:400;font-size:12px;margin-left:5px}
   .opts{display:flex;flex-wrap:wrap;gap:6px}
@@ -174,22 +192,33 @@
   .opt[aria-pressed="true"][data-k="plain"]{background:var(--ink);border-color:var(--ink)}
   .hint{font-size:11.5px;color:var(--mute);margin-top:7px}
   /* คู่ "โปร่ง / ทึบ" ที่ตอบเหมือนกัน วางเคียงกันสองคอลัมน์ แทนที่จะซ้อนกันลงมา
-     ตัดความสูงของหมวดม่านลงเกือบครึ่ง · จอแคบมากค่อยกลับไปเรียงลงมาทีละข้อ */
-  .fld.half{display:inline-block;width:50%;vertical-align:top;box-sizing:border-box;padding:10px 9px 12px}
-  .fld.half + .fld.half{border-left:1px solid #EDF1F5}
+     ตัดความสูงของหมวดม่านลงเกือบครึ่ง · จอแคบมากค่อยกลับไปเรียงลงมาทีละข้อ
+
+     ห่อคู่ไว้ใน .row2 แทนการปล่อยให้ inline-block ไหลเอง — สองช่องในแถวเลยสูงเท่ากัน
+     เส้นแบ่งล่างของทั้งแถวจึงเป็นเส้นเดียวยาวตรง ไม่ใช่ขีดสั้นสองขีดคนละระดับ
+     (ก่อนหน้านี้ช่องซ้ายกับขวาสูงไม่เท่ากัน เส้นเลยเหลื่อมกันจนดูไม่จบ) */
+  .row2{display:flex;align-items:stretch;border-bottom:1px solid var(--hair)}
+  .row2 > .fld{flex:1 1 0;min-width:0;border-bottom:0;display:flex;flex-direction:column}
+  .row2 > .fld + .fld{border-left:1px solid var(--hair)}
+  .fld.half{padding:11px 10px 13px}
   /* ปุ่มในช่องครึ่งต้องอยู่แถวเดียวกัน ไม่งั้นซ้อนกันลงมาแล้วไม่ได้ลดความสูงเลย */
   .fld.half .opts{gap:4px}
   .fld.half .opt{flex:1 1 calc(50% - 2px);min-width:0;font-size:11px;padding:5px 3px;line-height:1.2}
-  .fld.half .lab{font-size:12.5px;margin-bottom:6px}
+  /* ชื่อหัวข้อสองบรรทัดเสมอ ปุ่มของช่องซ้ายกับขวาเลยเริ่มที่ระดับเดียวกัน
+     ต่อให้ชื่อข้างหนึ่งยาวอีกข้างสั้น */
+  .fld.half .lab{font-size:12.5px;margin-bottom:6px;min-height:2.9em}
   .fld.half .lab span{display:none}     /* คำอังกฤษกำกับตัดออก ช่องแคบแล้ว */
+  /* ปุ่มเกณฑ์ถูกดันลงไปชิดก้นช่องเสมอ แถวหนึ่งจึงมีปุ่มเกณฑ์เรียงระดับเดียวกัน */
+  .row2 > .fld .hintbox{margin-top:auto;padding-top:7px}
   @media (max-width:340px){
-    .fld.half{display:block;width:100%}
-    .fld.half + .fld.half{border-left:0}
+    .row2{display:block}
+    .row2 > .fld + .fld{border-left:0;border-top:1px solid var(--hair)}
+    .fld.half .lab{min-height:0}
   }
   /* คำอธิบายเกณฑ์ยาว ๆ พับเก็บไว้ กดดูเมื่ออยากดู ไม่กินที่ตอนเดินตรวจ */
   .hintbox{margin-top:7px}
   .hintbox summary{display:inline-block;font-size:11px;color:var(--mute);cursor:pointer;
-    list-style:none;padding:2px 9px;border:1px solid var(--line);border-radius:999px}
+    list-style:none;padding:2px 9px;border:1px solid var(--hair);border-radius:999px}
   .hintbox summary::-webkit-details-marker{display:none}
   .hintbox[open] summary{margin-bottom:2px}
 
@@ -671,6 +700,13 @@ const CLOSE_OPTS = [{v:"ปิดสุด"},{v:CLOSE_GAP,bad:1}];
    เกินครึ่งนิ้วแต่ไม่ถึง 1 นิ้ว = แสงลอดเฉพาะจุด ปรับตะขอทีละตัวก็จบ ทีมโรงแรมทำเองได้ (เหลือง)
    1 นิ้วขึ้นไป = ความยาวผ้าผิด ต้องรื้อแก้ ทีมช่างม่านมาทำ (แดง) */
 const HEM_OK = "ครึ่งนิ้ว", HEM_MID = "เกินครึ่งนิ้ว ไม่ถึง 1 นิ้ว", HEM_BAD = "1 นิ้วขึ้นไป";
+/* ---- งานติดตั้งยังไม่เสร็จ ก็ยังไม่มีอะไรให้ตรวจในการ์ดที่ 3 ----
+   ตรงนี้แยกออกมาเป็นคำถามข้อแรกของการ์ด กดว่ายังไม่เสร็จแล้วหัวข้อที่เหลือหุบไป
+   ผู้ตรวจจะได้กดบันทึกสองการ์ดแรกไปก่อน ไม่ต้องรอให้ช่างมาติดตั้งครบทั้งห้อง
+   ค่าที่กรอกไว้ก่อนหน้าไม่หาย กลับมากดว่าติดตั้งแล้วก็โผล่มาเหมือนเดิม
+   ห้องนี้ยังไม่ผ่านอยู่ดี — ขึ้นเป็นงานทีมช่างม่านจนกว่าจะติดตั้งเสร็จแล้วมาตรวจซ้ำ */
+const CUR_INSTALL = "สถานะติดตั้งม่าน";
+const INSTALL_YES = "ติดตั้งครบแล้ว", INSTALL_NO = "ยังติดตั้งไม่เสร็จ";
 
 const SG_TILE_OPTS  = [{v:"กระเบื้องสุดขอบ"},{v:"กระเบื้องไม่สุดขอบ",bad:1}];
 const SG_PAINT_OPTS = [{v:"ไม่ทาสี"},{v:"ทาสีน้ำตาล",bad:1},{v:"ทาสีขาว",bad:1}];
@@ -917,23 +953,39 @@ const TOPICS = [
     /* ---- การ์ดที่ 3: งานติดตั้งตามสเปก + ความเรียบร้อยของผืนม่าน ----
        ตัวเลือกแรกของทุกข้อคือค่าที่รับงานได้
        ห้อง 06/07 มีสองราง แต่หัวข้อพวกนี้ตอบครั้งเดียวต่อห้อง
-       เจอเสียรางไหนก็ถือว่าห้องนี้ไม่ผ่าน */
-    {cap:"Install & Finish · งานติดตั้งและความเรียบร้อย", fields:[
+       เจอเสียรางไหนก็ถือว่าห้องนี้ไม่ผ่าน
+
+       ข้อแรกเป็นสวิตช์ของทั้งการ์ด — ห้องที่ช่างยังติดตั้งไม่เสร็จ กดข้อนี้ข้อเดียว
+       หัวข้อที่เหลือหุบไป แล้วกดบันทึกสองการ์ดแรกไปก่อนได้เลย */
+    {cap:"Install & Finish · งานติดตั้งและความเรียบร้อย",
+     fields:[
+      {col:CUR_INSTALL, label:"ผ้าม่านห้องนี้ติดตั้งเสร็จแล้วหรือยัง", en:"installed",
+       optional:true,
+       opts:[{v:INSTALL_YES},{v:INSTALL_NO,bad:1}],
+       hint:"กด "+INSTALL_NO+" เมื่อช่างยังมาไม่ครบ — หัวข้อที่เหลือในการ์ดนี้จะหุบไป "+
+            "กดบันทึกส่วนที่ตรวจได้แล้วไปก่อนได้เลย ไม่ต้องรอตรวจครบทั้งหมด · "+
+            "ห้องนี้จะขึ้นว่าไม่ผ่าน เป็นงานทีมช่างม่าน จนกว่าจะติดตั้งเสร็จแล้วกลับมาตรวจซ้ำ · "+
+            "ห้องที่ติดตั้งครบอยู่แล้วไม่ต้องกดข้อนี้ก็ได้ กรอกหัวข้อข้างล่างต่อได้เลย"},
       {col:"ตีนตุ๊กแกม่านทึบ", label:"ติดตีนตุ๊กแกยึดม่านกับผนังแล้วหรือยัง", en:"velcro", half:1,
+       showIf: v => v[CUR_INSTALL] !== INSTALL_NO,
        opts:[{v:"ติดแล้ว"},{v:"ยังไม่ติด",bad:1}],
        hint:"สเปกคือต้องติดทุกห้อง — ตีนตุ๊กแกเป็นตัวปิดแสงที่ริมผ้าชนผนัง"},
       {col:"ตะขอม่านทึบ", label:"ตะขอม่านที่ใช้", en:"hook", half:1,
+       showIf: v => v[CUR_INSTALL] !== INSTALL_NO,
        opts:[{v:"ตะขอตะปู"},{v:"ตะขอธรรมดา",bad:1}],
        hint:"สเปกคือตะขอตะปู"},
       {col:"หัวสไลด์ม่านทึบ", label:"สีหัวสไลด์ม่าน", en:"slider", half:1,
+       showIf: v => v[CUR_INSTALL] !== INSTALL_NO,
        opts:[{v:"สีขาว"},{v:"สีเงิน",bad:1}],
        hint:"สเปกคือสีขาว"},
       {col:"ลอนม่านทึบ", label:"ลอนม่าน", en:"pleat", half:1,
+       showIf: v => v[CUR_INSTALL] !== INSTALL_NO,
        opts:[{v:"ลอนสวยปกติ"},{v:"ลอนสวยแต่ยับ",warn:1},{v:"ไม่เป็นลอนหรือลอนไม่เท่ากัน",bad:1}],
        hint:"ยับรีดหรือแขวนทิ้งไว้ก็หาย เลยเป็นเหลือง · ลอนไม่เท่ากันต้องรื้อจับลอนใหม่ "+
             "เป็นงานทีมช่างม่าน"},
       /* ชายม่าน — จุดเดียวในหมวดนี้ที่ค่าที่กรอกเป็นตัวตัดสินว่าทีมไหนมาแก้ */
       {col:"ชายม่านทึบถึงพื้น", label:"ชายม่านห่างจากพื้นเท่าไหร่", en:"hem",
+       showIf: v => v[CUR_INSTALL] !== INSTALL_NO,
        opts:[{v:HEM_OK},{v:HEM_MID,warn:1},{v:HEM_BAD,bad:1}],
        hint:"สเปกคือ"+HEM_OK+" · "+HEM_MID+" = แสงลอดเฉพาะจุด ทีมโรงแรมปรับตะขอเองได้ · "+
             HEM_BAD+" = ความยาวผ้าผิด ต้องให้ทีมช่างม่านมาแก้"}
@@ -1116,6 +1168,16 @@ const scoreOf  = t => fieldsOf(t).filter(f=>!f.access);
 const optsOf   = (f,r) => val(f.opts, r);
 const goodOf   = (f,r) => optsOf(f,r)[0].v;
 const hasValue = v => v !== undefined && v !== null && String(v).trim() !== "";
+/* หัวการ์ดของฟอร์ม — cap เขียนเป็น "English · ภาษาไทย" อยู่แล้ว
+   ผ่าตัดตรงคั่นออกเป็นสองบรรทัด อังกฤษตัวจิ๋วข้างบน ไทยตัวโตข้างล่าง
+   หัวข้อภาษาไทยจึงเด่นพอให้กวาดตาหาเจอตอนการ์ดเรียงกันยาว ๆ */
+function capHtml(cap, right){
+  const i = cap.indexOf(" · ");
+  const en = i < 0 ? "" : cap.slice(0, i);
+  const th = i < 0 ? cap : cap.slice(i + 3);
+  return '<div class="cap sec">'+(en ? '<span class="en">'+en+'</span>' : '')+
+    '<span class="th">'+th+'</span>'+(right || '')+'</div>';
+}
 /* หัวข้อที่ต้องโชว์จริงตอนนี้ — บางหัวข้อโผล่เมื่อตอบข้อก่อนหน้าแบบหนึ่งเท่านั้น
    หรือโผล่เฉพาะบางห้อง (เช่น บัวใต้ซิงค์ ห้อง 02/11 ไม่มีบัว มีแต่ช่องรู) */
 const shown = (f, vals, room) => !f.showIf || f.showIf(vals, room);
@@ -2099,7 +2161,8 @@ function renderRoom(){
   $("formBox").innerHTML = t.sections.map(sec=>{
     const isAccess = sec.fields.length===1 && sec.fields[0].access;
     if(off && !isAccess) return "";
-    const body = sec.fields.filter(f=> shown(f, d.vals, room)).map(f=>{
+    const list = sec.fields.filter(f=> shown(f, d.vals, room));
+    const fldHtml = (f, half)=>{
       const cur = d.vals[f.col] || "";
       const head = '<div class="lab">'+val(f.label, room)+
         (f.en ? ' <span>'+f.en+'</span>' : '')+(f.optional ? ' <span>(ไม่บังคับ)</span>' : '')+'</div>';
@@ -2149,21 +2212,38 @@ function renderRoom(){
       }
       const hint = val(f.hint, room);
       /* เกณฑ์พับเก็บไว้หลังปุ่มเล็ก ๆ — ยังอ่านได้ครบ แต่ไม่ดันฟอร์มให้ยาว */
-      return '<div class="fld'+(f.half ? ' half' : '')+'">'+head+body+
+      return '<div class="fld'+(half ? ' half' : '')+'">'+head+body+
         (hint ? '<details class="hintbox"><summary>ⓘ เกณฑ์</summary>'+
                 '<div class="hint">'+hint+'</div></details>' : '')+'</div>';
-    }).join("");
+    };
+    /* คู่ที่ตั้ง half ไว้และอยู่ติดกันจริง ๆ เท่านั้นที่จับคู่เป็นแถวสองช่อง
+       ตัวที่เหลือเดี่ยว (เพราะคู่ของมันถูก showIf ซ่อนไป) ก็กางเต็มบรรทัดไปเลย
+       จะได้ไม่มีช่องว่างครึ่งบรรทัดค้างอยู่ */
+    let body = "";
+    for(let i = 0; i < list.length; i++){
+      if(list[i].half && list[i+1] && list[i+1].half){
+        body += '<div class="row2">'+fldHtml(list[i],1)+fldHtml(list[i+1],1)+'</div>';
+        i++;
+      } else body += fldHtml(list[i]);
+    }
     const art = sec.art ? sec.art(room, d.vals) : "";
     /* ทุกหัวข้อในบล็อกถูกซ่อน — บอกเหตุผลไว้ ไม่งั้นดูเหมือนฟอร์มหาย */
     if(!body){
       const skip = sec.skip ? sec.skip(d.vals, room) : "";
-      return skip ? '<div class="card"><div class="cap">'+sec.cap+'</div>'+
+      return skip ? '<div class="card">'+capHtml(sec.cap)+
         '<div class="fld"><div class="hint">'+skip+'</div></div></div>' : "";
     }
-    return '<div class="card"><div class="cap">'+sec.cap+'</div>'+
+    /* เลขมุมขวาของหัวการ์ด — กรอกไปกี่หัวข้อจากที่ต้องกรอกในการ์ดนี้
+       การ์ดไหนครบแล้วเลขเปลี่ยนเป็นสีเขียว กวาดตาลงมาก็รู้ว่าเหลือการ์ดไหน */
+    const need = list.filter(f=> !f.access && !f.optional);
+    const got  = need.filter(f=> hasValue(d.vals[f.col])).length;
+    const cnt  = need.length > 1
+      ? '<span class="r'+(got === need.length ? ' full' : '')+'">'+got+'/'+need.length+'</span>'
+      : '';
+    return '<div class="card">'+capHtml(sec.cap, cnt)+
       (art ? '<div class="art">'+art+'</div>' : '')+body+'</div>';
   }).join("") +
-  '<div class="card"><div class="cap">Note · หมายเหตุ</div><div class="fld">'+
+  '<div class="card">'+capHtml("Note · หมายเหตุ")+'<div class="fld">'+
   '<textarea id="fNote" placeholder="เช่น สวิตช์ม่านทึบกดแล้วไม่ทำงาน / ตัดขอบสวยแต่สีผิดสเปก"></textarea></div></div>';
 
   $("fNote").value = d.note;
