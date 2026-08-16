@@ -89,7 +89,7 @@
 
   /* ---------- ชั้น + กริดห้อง ---------- */
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-    margin-bottom:12px;overflow:hidden}
+    margin-bottom:9px;overflow:hidden}
   .cap{padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
     color:var(--mute);background:#F4F7FA;border-bottom:1px solid var(--line);display:flex;gap:8px}
   .cap .r{margin-left:auto;font-family:var(--mono);letter-spacing:0;text-transform:none}
@@ -98,14 +98,14 @@
      หมวดหนึ่งมีหลายการ์ด การ์ดหนึ่งมีหลายหัวข้อ — หัวการ์ดเลยต้องเด่นพอให้กวาดตาเจอ
      ว่าตอนนี้อ่านอยู่ตรงไหน แยกคำอังกฤษเป็นบรรทัดจิ๋วข้างบน ชื่อไทยตัวโตสีเข้มข้างล่าง
      ขีดทองซ้ายมือเป็นตัวปักหมุดเหมือนแถบหัวจอ · เลขมุมขวาบอกว่ากรอกไปกี่หัวข้อแล้ว */
-  .cap.sec{display:block;position:relative;padding:11px 56px 10px 15px;
+  .cap.sec{display:block;position:relative;padding:8px 52px 8px 13px;
     background:#F4F7FA;border-bottom:1px solid var(--line)}
-  .cap.sec::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;
+  .cap.sec::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;
     background:var(--brass);border-radius:0 2px 2px 0}
   .cap.sec .en{display:block;font-size:9.5px;font-weight:700;letter-spacing:.14em;
-    text-transform:uppercase;color:var(--mute);line-height:1.3}
-  .cap.sec .th{display:block;font-size:14px;font-weight:700;letter-spacing:0;
-    text-transform:none;color:var(--ink);line-height:1.35}
+    text-transform:uppercase;color:var(--mute);line-height:1.2}
+  .cap.sec .th{display:block;font-size:13.5px;font-weight:700;letter-spacing:0;
+    text-transform:none;color:var(--ink);line-height:1.28}
   .cap.sec .r{position:absolute;right:13px;top:50%;transform:translateY(-50%);margin:0;
     font-size:11px;color:var(--mute)}
   .cap.sec .r.full{color:var(--ok)}
@@ -178,19 +178,19 @@
     background:var(--brass);box-shadow:0 0 0 3px var(--brass-soft)}
 
   /* ---------- ฟอร์ม ---------- */
-  .fld{padding:11px 13px 13px;border-bottom:1px solid var(--hair)}
+  .fld{padding:8px 12px 10px;border-bottom:1px solid var(--hair)}
   .fld:last-child,.row2:last-child{border-bottom:0}
-  .fld .lab{font-size:13px;font-weight:600;margin-bottom:7px}
+  .fld .lab{font-size:13px;font-weight:600;margin-bottom:5px}
   .fld .lab span{color:var(--mute);font-weight:400;font-size:12px;margin-left:5px}
-  .opts{display:flex;flex-wrap:wrap;gap:6px}
-  .opt{flex:1 1 28%;min-width:92px;min-height:46px;padding:6px 5px;border:1px solid var(--line);
+  .opts{display:flex;flex-wrap:wrap;gap:5px}
+  .opt{flex:1 1 28%;min-width:92px;min-height:44px;padding:5px 5px;border:1px solid var(--line);
     background:var(--card);border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink-2);line-height:1.25}
   .opt[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
   .opt[aria-pressed="true"][data-k="warn"]{background:var(--warn);border-color:var(--warn)}
   .opt[aria-pressed="true"][data-k="bad"]{background:var(--bad);border-color:var(--bad)}
   .opt[aria-pressed="true"][data-k="done"]{background:var(--done);border-color:var(--done)}
   .opt[aria-pressed="true"][data-k="plain"]{background:var(--ink);border-color:var(--ink)}
-  .hint{font-size:11.5px;color:var(--mute);margin-top:7px}
+  .hint{font-size:11.5px;color:var(--mute);margin-top:5px}
   /* คู่ "โปร่ง / ทึบ" ที่ตอบเหมือนกัน วางเคียงกันสองคอลัมน์ แทนที่จะซ้อนกันลงมา
      ตัดความสูงของหมวดม่านลงเกือบครึ่ง · จอแคบมากค่อยกลับไปเรียงลงมาทีละข้อ
 
@@ -200,34 +200,42 @@
   .row2{display:flex;align-items:stretch;border-bottom:1px solid var(--hair)}
   .row2 > .fld{flex:1 1 0;min-width:0;border-bottom:0;display:flex;flex-direction:column}
   .row2 > .fld + .fld{border-left:1px solid var(--hair)}
-  .fld.half{padding:11px 10px 13px}
+  .fld.half{padding:8px 9px 10px}
   /* ปุ่มในช่องครึ่งต้องอยู่แถวเดียวกัน ไม่งั้นซ้อนกันลงมาแล้วไม่ได้ลดความสูงเลย */
   .fld.half .opts{gap:4px}
   .fld.half .opt{flex:1 1 calc(50% - 2px);min-width:0;font-size:11px;padding:5px 3px;line-height:1.2}
   /* ชื่อหัวข้อสองบรรทัดเสมอ ปุ่มของช่องซ้ายกับขวาเลยเริ่มที่ระดับเดียวกัน
      ต่อให้ชื่อข้างหนึ่งยาวอีกข้างสั้น */
-  .fld.half .lab{font-size:12.5px;margin-bottom:6px;min-height:2.9em}
+  .fld.half .lab{font-size:12.5px;margin-bottom:5px;min-height:2.9em}
   .fld.half .lab span{display:none}     /* คำอังกฤษกำกับตัดออก ช่องแคบแล้ว */
   /* ปุ่มเกณฑ์ถูกดันลงไปชิดก้นช่องเสมอ แถวหนึ่งจึงมีปุ่มเกณฑ์เรียงระดับเดียวกัน */
-  .row2 > .fld .hintbox{margin-top:auto;padding-top:7px}
+  .row2 > .fld .hintbox{margin-top:auto;padding-top:5px}
   @media (max-width:340px){
     .row2{display:block}
     .row2 > .fld + .fld{border-left:0;border-top:1px solid var(--hair)}
     .fld.half .lab{min-height:0}
   }
   /* คำอธิบายเกณฑ์ยาว ๆ พับเก็บไว้ กดดูเมื่ออยากดู ไม่กินที่ตอนเดินตรวจ */
-  .hintbox{margin-top:7px}
+  .hintbox{margin-top:5px}
+  /* ช่องเต็มบรรทัด: ปุ่มเกณฑ์ลอยไปมุมขวาบน แถวเดียวกับชื่อหัวข้อ
+     ปิดอยู่จึงไม่กินความสูงเลยสักพิกเซล กดเปิดแล้วคำอธิบายค่อยกางเต็มบรรทัดข้างล่าง
+     (ช่องครึ่งบรรทัดใน .row2 ยังวางปุ่มไว้ก้นช่องเหมือนเดิม สองช่องจะได้สูงเท่ากัน) */
+  .fld:not(.half){position:relative}
+  .fld:not(.half) > .lab{padding-right:64px}
+  .fld:not(.half) > .hintbox{margin-top:0}
+  .fld:not(.half) > .hintbox > summary{position:absolute;top:7px;right:11px}
+  .fld:not(.half) > .hintbox[open] > .hint{margin-top:7px}
   .hintbox summary{display:inline-block;font-size:11px;color:var(--mute);cursor:pointer;
-    list-style:none;padding:2px 9px;border:1px solid var(--hair);border-radius:999px}
+    list-style:none;padding:1px 8px;border:1px solid var(--hair);border-radius:999px}
   .hintbox summary::-webkit-details-marker{display:none}
   .hintbox[open] summary{margin-bottom:2px}
 
   /* ---------- ช่องตัวเลข ---------- */
   .numrow{display:flex;align-items:center;gap:6px}
-  .numbtn{width:44px;height:46px;border:1px solid var(--line);background:var(--card);border-radius:8px;
+  .numbtn{width:44px;height:44px;border:1px solid var(--line);background:var(--card);border-radius:8px;
     font-family:var(--mono);font-size:20px;color:var(--ink);flex:none}
   .numbtn:active{background:var(--paper)}
-  .numin{flex:1;min-width:0;height:46px;border:1px solid var(--line);border-radius:8px;text-align:center;
+  .numin{flex:1;min-width:0;height:44px;border:1px solid var(--line);border-radius:8px;text-align:center;
     font-family:var(--mono);font-size:19px;font-weight:700;color:var(--ink);background:#fff;
     -moz-appearance:textfield}
   .numin::-webkit-outer-spin-button,.numin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -271,7 +279,7 @@
   .curtain .cbendlab{font-size:7px;font-weight:700;fill:var(--brass);pointer-events:none}
 
   /* ---------- ผังบัวใต้ซิงค์ ---------- */
-  .art{padding:10px 12px 0;background:#F7F9FC;border-bottom:1px solid #EDF1F5}
+  .art{padding:7px 10px 0;background:#F7F9FC;border-bottom:1px solid #EDF1F5}
   .sink{width:100%;max-width:320px;display:block;margin:0 auto}
   .sink .post{fill:#9A7B4F}                       /* ขาไม้ */
   .sink .m{fill:none;stroke-width:7;stroke-linecap:butt}   /* คิ้วบัว */
@@ -286,21 +294,21 @@
   .sink .lb{font-size:12px;fill:var(--mute)}
   .sink .lb.sm{font-size:10.5px;fill:#9AA7B6}
   .artleg{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;
-    font-size:11px;color:var(--mute);padding:7px 0 9px}
+    font-size:11px;color:var(--mute);padding:5px 0 7px}
   .artleg span{display:flex;align-items:center;gap:4px}
   .artleg b{width:14px;height:4px;border-radius:2px;display:block}
   .artleg b.dot{width:9px;height:9px;border-radius:50%}
 
   /* ---------- รายการจุดที่ไม่ผ่าน ในการ์ดรอบตามแก้ ---------- */
-  .fixlist{padding:9px 12px;font-size:12.5px;color:var(--ink-2)}
+  .fixlist{padding:8px 11px;font-size:12.5px;color:var(--ink-2)}
   .fixlist .h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-    color:var(--mute);margin-bottom:6px}
+    color:var(--mute);margin-bottom:5px}
   .fixlist .it{display:flex;gap:7px;align-items:flex-start;margin-top:3px;line-height:1.4}
   .fixlist .it b{width:7px;height:7px;border-radius:50%;flex:none;margin-top:5px}
   .fixlist .it[data-k="bad"] b{background:var(--bad)}
   .fixlist .it[data-k="warn"] b{background:var(--warn)}
   /* หมวดม่านแยกจุดที่ไม่ผ่านเป็นสองกอง ตามทีมที่ต้องมาแก้ */
-  .fixlist .tgrp{margin-top:9px;padding-left:9px;border-left:2px solid var(--line)}
+  .fixlist .tgrp{margin-top:7px;padding-left:9px;border-left:2px solid var(--line)}
   .fixlist .tgrp .th{font-size:12px;font-weight:700;color:var(--ink)}
   /* ---------- งานค้างแยกตามทีม (หน้าสรุป) ---------- */
   /* ชื่อทีม — ห้ามใช้ชื่อคลาส .who ซ้ำกับกล่องชื่อผู้ตรวจ ตัวนั้นโดนซ่อนตอนโหมดดูอย่างเดียว */
@@ -1120,6 +1128,15 @@ const TOPICS = [
 },
 {
   id:"bathgap", name:"หลืบห้องน้ำ", en:"Bathroom shadow gap", icon:"🚿", grade:"ผลตรวจ",
+  /* รอบตามแก้ของหมวดนี้แยกเป็นสองส่วน — ร่องหลืบกับหลืบพัดลมเป็นคนละงานคนละช่าง
+     อนุโลมส่วนหนึ่งไปก่อนแล้วอีกส่วนยังค้างได้ ห้องนี้จะปิดจบก็ต่อเมื่อทุกส่วนที่เสียปิดครบ
+     ช่องรวม "สถานะแก้ไข" ยังลงชีตเหมือนเดิม เติมให้เองจากสองช่องนี้ รายงานเก่าจึงไม่ต้องแก้ */
+  fixParts:[
+    {col:"สถานะแก้ไข ร่องหลืบ", name:"ร่องหลืบขอบผนัง", icon:"🧱",
+     cols:["กระเบื้อง shadow gap", "สี shadow gap"]},
+    {col:"สถานะแก้ไข หลืบพัดลม", name:"หลืบพัดลมดูดอากาศ", icon:"🌀",
+     cols:["สีหลืบ exhaust air"]}
+  ],
   /* สองช่องแรกรวมกันเป็นแบบเดียว เก็บลงชีตอีกคอลัมน์ไว้นับว่าแบบไหนเจอกี่ห้อง */
   derive: d => ({ "แบบ shadow gap":
     (d.vals["กระเบื้อง shadow gap"] && d.vals["สี shadow gap"])
@@ -1141,6 +1158,12 @@ const TOPICS = [
 }
 ];
 
+/* ช่องหมายเหตุ ต่อท้ายอยู่ในการ์ดเดียวกับการเข้าห้อง */
+const NOTE_FLD = '<div class="fld"><div class="lab">หมายเหตุ <span>note</span>'+
+  ' <span>(ไม่บังคับ)</span></div>'+
+  '<textarea id="fNote" placeholder="เช่น สวิตช์ม่านทึบกดแล้วไม่ทำงาน / ตัดขอบสวยแต่สีผิดสเปก">'+
+  '</textarea></div>';
+
 /* หัวข้อ "การเข้าห้อง" มีเหมือนกันทุกหมวด — ต่อท้ายให้อัตโนมัติ */
 const ACCESS_FIELD = {col:ACCESS, label:"เข้าตรวจได้หรือไม่", access:true,
   hint:"ถ้าเข้าไม่ได้ ระบบจะบันทึกเป็น “ไม่ได้ตรวจ” และข้ามการตัดเกรด",
@@ -1153,6 +1176,12 @@ const fixFieldOf = t => ({col:FIX, label:"ตกลงยังไงกับ�
   showIf:(vals, room)=> defectsOf(t, room, vals).length > 0,
   hint:"ไม่เลือก = รอแก้ไข · อนุโลม กับ แก้ไขแล้ว ทำให้ห้องนี้ปิดจบ "+
        "แต่ยังเก็บไว้ในชีตว่าเดิมเสียตรงไหน"});
+/* หัวข้อรอบตามแก้รายส่วน — หมวดที่ตั้ง fixParts ไว้ใช้ช่องพวกนี้แทนช่องรวมช่องเดียว
+   โผล่เฉพาะส่วนที่มีจุดไม่ผ่านจริง ส่วนที่ยังดีอยู่ก็ไม่ต้องมีปุ่มมาเกะกะ */
+const fixPartFieldOf = (t, p) => ({col:p.col, label:p.icon+" "+p.name,
+  en:"follow-up", plain:true, optional:true, opts:FIX_OPTS,
+  showIf:(vals, room)=> partsOf(t, room, vals)[p.col].length > 0,
+  hint:"ไม่เลือก = รอแก้ไข · ห้องนี้จะปิดจบก็ต่อเมื่อทุกส่วนที่ไม่ผ่านปิดครบ"});
 /* หัวข้อ "ทีมนี้แก้แล้วยัง" — เฉพาะหมวดม่านที่มีสองทีมเข้ามาทำคนละเรื่อง
    โผล่เฉพาะทีมที่มีงานค้างจริงในห้องนี้ ทีมที่ไม่มีงานก็ไม่ต้องมีปุ่มให้กด
    ไม่ตัดเกรด (plain) — เป็นการติดตามงาน ส่วนผลตรวจของห้องยังตัดที่ FIX เหมือนหมวดอื่น */
@@ -1165,8 +1194,11 @@ const teamFieldOf = (t, team) => {
 };
 TOPICS.forEach(t=> t.sections = t.sections.concat([
   {cap:"Follow-up · รอบตามแก้", art:(r,v)=> fixArt(t, r, v),
-   fields:(t.id === "curtain" ? TEAMS.map(x=> teamFieldOf(t, x)) : []).concat([fixFieldOf(t)])},
-  {cap:"Access · การเข้าห้อง", fields:[ACCESS_FIELD]}
+   fields:(t.id === "curtain" ? TEAMS.map(x=> teamFieldOf(t, x)) : [])
+     .concat(t.fixParts ? t.fixParts.map(p=> fixPartFieldOf(t, p)) : [fixFieldOf(t)])},
+  /* หมายเหตุเกาะอยู่ในการ์ดเดียวกับการเข้าห้อง — สองเรื่องนี้เป็นท้ายฟอร์มทั้งคู่
+     รวมเป็นการ์ดเดียวแล้วฟอร์มสั้นลงอีกหนึ่งหัวการ์ด ไม่ต้องเลื่อนเพิ่ม */
+  {cap:"Access & note · เข้าห้อง และหมายเหตุ", fields:[ACCESS_FIELD], foot:NOTE_FLD}
 ]));
 const TOPIC = {}; TOPICS.forEach(t=> TOPIC[t.id] = t);
 
@@ -1495,20 +1527,58 @@ function defectsOf(t, room, vals){
     })
     .filter(s=> s && s.k !== "good");
 }
+/** จุดที่ไม่ผ่าน แยกเป็นกองตามส่วนที่ตั้งไว้ใน fixParts — หมวดที่ไม่ได้แยกคืนกองว่าง */
+function partsOf(t, room, vals){
+  const g = {};
+  (t.fixParts || []).forEach(p=> g[p.col] = []);
+  if(!t.fixParts) return g;
+  defectsOf(t, room, vals).forEach(s=>{
+    const p = t.fixParts.filter(x=> x.cols.indexOf(s.col) !== -1)[0];
+    if(p) g[p.col].push(s);
+  });
+  return g;
+}
+/** สถานะรอบตามแก้ของส่วนนั้น — แถวที่บันทึกไว้ก่อนแยกส่วนยังไม่มีช่องนี้
+ *  ให้ตกไปอ่านช่องรวมแทน ห้องที่เคยกดอนุโลมไว้จึงยังเป็นอนุโลมเหมือนเดิม */
+const partFixOf = (p, vals) => fixOf(vals[p.col]) || fixOf(vals[FIX]);
+/** รอบตามแก้ของทั้งห้อง — หมวดที่แยกส่วนจะปิดจบก็ต่อเมื่อทุกส่วนที่เสียปิดครบ
+ *  ส่วนไหนยังไม่ได้กด ถือว่ารอแก้ไข · ปิดคนละวิธีกันถือเป็นแก้ไขแล้ว */
+function roomFixOf(t, room, vals){
+  if(!t.fixParts) return fixOf(vals[FIX]);
+  const g = partsOf(t, room, vals);
+  const live = t.fixParts.filter(p=> g[p.col].length);
+  if(!live.length) return fixOf(vals[FIX]);
+  const st = live.map(p=> partFixOf(p, vals));
+  if(!st.every(fixClosed)) return FIX_WAIT;
+  return st.every(v=> v === FIX_WAIVE) ? FIX_WAIVE : FIX_DONE;
+}
+
 /** รายการจุดที่ไม่ผ่าน วางไว้หัวการ์ดรอบตามแก้ จะได้ตัดสินใจโดยไม่ต้องเลื่อนขึ้นไปดู
  *  หมวดม่านแยกเป็นสองกองตามทีมที่ต้องมาแก้ จะได้เห็นทันทีว่าต้องตามใคร */
 function fixArt(t, room, vals){
   const ds = defectsOf(t, room, vals);
   if(!ds.length) return "";
   const item = s => '<div class="it" data-k="'+s.k+'"><b></b><span>'+(s.text||"")+'</span></div>';
-  if(t.id !== "curtain")
-    return '<div class="fixlist"><div class="h">รอบนี้ไม่ผ่าน '+ds.length+' จุด</div>'+
-      ds.map(item).join("")+'</div>';
-  const g = teamsOf(t, room, vals);
-  return '<div class="fixlist"><div class="h">รอบนี้ไม่ผ่าน '+ds.length+' จุด — แยกตามทีมที่ต้องมาแก้</div>'+
-    TEAMS.filter(x=> g[x].length).map(x=>
-      '<div class="tgrp"><div class="th">'+TEAM_INFO[x].icon+' '+x+' · '+g[x].length+' จุด</div>'+
-      g[x].map(item).join("")+'</div>').join("")+'</div>';
+  const box = (head, inner) =>
+    '<div class="fixlist"><div class="h">'+head+'</div>'+inner+'</div>';
+  /* หมวดม่านแยกกองตามทีมที่ต้องมาแก้ · หมวดที่ตั้ง fixParts แยกกองตามส่วน
+     ที่เหลือไม่มีกอง ไล่เป็นรายการเดียว */
+  const grp = (title, list) =>
+    '<div class="tgrp"><div class="th">'+title+' · '+list.length+' จุด</div>'+
+    list.map(item).join("")+'</div>';
+  if(t.id === "curtain"){
+    const g = teamsOf(t, room, vals);
+    return box('รอบนี้ไม่ผ่าน '+ds.length+' จุด — แยกตามทีมที่ต้องมาแก้',
+      TEAMS.filter(x=> g[x].length)
+        .map(x=> grp(TEAM_INFO[x].icon+' '+x, g[x])).join(""));
+  }
+  if(t.fixParts){
+    const g = partsOf(t, room, vals);
+    return box('รอบนี้ไม่ผ่าน '+ds.length+' จุด — แยกตามส่วนที่ต้องตามแก้',
+      t.fixParts.filter(p=> g[p.col].length)
+        .map(p=> grp(p.icon+' '+p.name, g[p.col])).join(""));
+  }
+  return box('รอบนี้ไม่ผ่าน '+ds.length+' จุด', ds.map(item).join(""));
 }
 /** สถานะรอบตามแก้ที่ใช้ได้จริง — ค่าอื่นที่หลงมาจากชีตถือว่ายังไม่ได้เลือก */
 const fixOf = v => FIX_OPTS.some(o=> o.v === String(v||"").trim()) ? String(v).trim() : "";
@@ -1786,6 +1856,12 @@ function fromRow(t, row, room){
   if(t.id === "curtain" && !d.vals[LEAK_COL] && unalias(row[CUR_INSTALL]) === INSTALL_NO)
     d.vals[LEAK_COL] = NO_CURTAIN;
 
+  /* แถวที่บันทึกไว้ก่อนแยกรอบตามแก้เป็นรายส่วน มีแต่ช่องรวม — เติมลงช่องของแต่ละส่วนให้
+     ห้องที่เคยกดอนุโลม/แก้ไขแล้วไว้ เปิดขึ้นมาจึงยังเห็นสถานะเดิมครบทุกส่วน */
+  (t.fixParts || []).forEach(p=>{
+    if(!d.vals[p.col] && fixOf(row[FIX])) d.vals[p.col] = fixOf(row[FIX]);
+  });
+
   /* แถวเก่าที่ยังไม่มีคอลัมน์ "การเข้าห้อง" — เดาจากเกรดกับหมายเหตุให้ */
   if(!d.vals[ACCESS]){
     if(row[t.grade] !== "ไม่ได้ตรวจ") d.vals[ACCESS] = "เข้าตรวจได้";
@@ -1819,7 +1895,7 @@ function judge(t, room, d){
   /* มีจุดที่ไม่ผ่าน — รอบตามแก้เป็นตัวชี้ขาดว่าห้องนี้ยังค้างอยู่ หรือปิดจบไปแล้ว */
   if(bads.length || warns.length){
     const all = bads.concat(warns);
-    const fx  = fixOf(d.vals[FIX]);
+    const fx  = roomFixOf(t, room, d.vals);
     if(fixClosed(fx)) return {grade:GRADE_TEXT.done, lv:"done", fix:fx,
       why:(fx === FIX_WAIVE ? "ผู้ตรวจอนุโลมให้ผ่าน" : "ช่างแก้แล้ว ตรวจซ้ำเรียบร้อย")+
           " — เดิมไม่ผ่าน "+all.length+" จุด: "+all.join(" · "),
@@ -2269,10 +2345,8 @@ function renderRoom(){
       ? '<span class="r'+(got === need.length ? ' full' : '')+'">'+got+'/'+need.length+'</span>'
       : '';
     return '<div class="card">'+capHtml(sec.cap, cnt)+
-      (art ? '<div class="art">'+art+'</div>' : '')+body+'</div>';
-  }).join("") +
-  '<div class="card">'+capHtml("Note · หมายเหตุ")+'<div class="fld">'+
-  '<textarea id="fNote" placeholder="เช่น สวิตช์ม่านทึบกดแล้วไม่ทำงาน / ตัดขอบสวยแต่สีผิดสเปก"></textarea></div></div>';
+      (art ? '<div class="art">'+art+'</div>' : '')+body+(sec.foot || "")+'</div>';
+  }).join("");
 
   $("fNote").value = d.note;
   $("fNote").oninput = e=>{ d.note = e.target.value; refreshSave(); };
@@ -2397,6 +2471,13 @@ $("btnSave").onclick = async ()=>{
     if(t.derive && !off) Object.assign(values, t.derive(d));
     /* มีจุดไม่ผ่านแต่ยังไม่ได้แตะช่องรอบตามแก้ = ลงชีตว่ารอแก้ไข จะได้ไม่มีช่องว่างให้เดา */
     if(v.fix) values[FIX] = v.fix;
+    /* ส่วนไหนมีจุดไม่ผ่านแต่ยังไม่ได้กด ก็ลงว่ารอแก้ไขของส่วนนั้น ไม่ปล่อยช่องว่าง */
+    if(t.fixParts && !off){
+      const g = partsOf(t, S.room, d.vals);
+      t.fixParts.forEach(p=>{
+        if(g[p.col].length && !fixOf(values[p.col])) values[p.col] = FIX_WAIT;
+      });
+    }
     /* ทีมไหนมีงานค้างแต่ยังไม่ได้กดสถานะ ก็ลงว่ายังรอทีมนั้นเหมือนกัน */
     if(t.id === "curtain" && !off) TEAMS.forEach(x=>{
       const I = TEAM_INFO[x];
