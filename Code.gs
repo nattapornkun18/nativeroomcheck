@@ -58,14 +58,6 @@ function fixClosed_(v) {
    ผลตรวจของห้องยังตัดที่ช่อง "สถานะแก้ไข" เหมือนหมวดอื่น                          */
 const TEAM_HOTEL_COL = 'งานทีมโรงแรม', TEAM_CURTAIN_COL = 'งานทีมช่างม่าน';
 
-/* ---- หมวดหลืบห้องน้ำแยกรอบตามแก้เป็นสองส่วน ร่องหลืบกับหลืบพัดลมเป็นคนละงาน ----
-   หน้าเว็บให้กดทีละส่วน แล้วเติมช่องรวม "สถานะแก้ไข" ให้เองจากสองช่องนี้
-     ทุกส่วนที่เสียปิดครบ → ช่องรวมเป็นอนุโลม/แก้ไขแล้ว ห้องนั้นปิดจบ
-     ยังเหลือส่วนที่ค้าง    → ช่องรวมเป็นรอแก้ไข ห้องนั้นยังไม่ผ่าน
-   ผลตรวจของห้องยังตัดที่ช่องรวมเหมือนทุกหมวด สองช่องนี้ไว้ดูว่าค้างอยู่ส่วนไหน
-   (แก้สองช่องนี้ในชีตเองช่องรวมจะไม่ตามให้ ต้องแก้ช่องรวมด้วย เหมือนช่องของทีมม่าน) */
-const BATH_FIX_GAP = 'สถานะแก้ไข ร่องหลืบ', BATH_FIX_EX = 'สถานะแก้ไข หลืบพัดลม';
-
 /* จำนวนห้องทั้งหมด ใช้คิด % ในหน้าสรุป — ต้องตรงกับที่ตั้งไว้ใน index.html */
 const FLOOR_FROM = 3, FLOOR_TO = 20, ROOMS_PER_FLOOR = 12;
 /** แท็บสรุป — ชื่อแท็บทั้งชีตใช้อังกฤษให้อ่านง่ายเวลาสลับแท็บ
@@ -278,18 +270,16 @@ const TOPICS = {
     grade: 'ผลตรวจ',
     /* คอลัมน์ที่หน้าเว็บรวมค่าให้เอง ไม่ใช่ตัวเลือกให้กด */
     auto: ['แบบ shadow gap'],
+    /* ตอนนี้ตรวจเฉพาะร่อง shadow gap — ช่องหลืบพัดลมดูดอากาศยกออกไปก่อน ยังไม่ได้เข้าเช็ค
+       คอลัมน์ 'สีหลืบ exhaust air' ที่เคยเก็บไว้ยังอยู่ในชีตครบ ไม่ถูกลบ แค่ไม่ถามและไม่ตัดเกรด
+       จะกลับมาตรวจเมื่อไหร่ ใส่ชื่อคอลัมน์คืนใน cols กับ choices ให้ตรงกับ index.html ก็พอ */
     cols: ['กระเบื้อง shadow gap', 'สี shadow gap', 'แบบ shadow gap',
-           'สีหลืบ exhaust air',
-           BATH_FIX_GAP, BATH_FIX_EX, FIX, ACCESS, 'ผลตรวจ'],
-    /* ช่องรอบตามแก้รายส่วน — ได้ดรอปดาวน์กับสีเหมือนช่องรวม */
-    fixCols: [BATH_FIX_GAP, BATH_FIX_EX],
+           FIX, ACCESS, 'ผลตรวจ'],
     /* เกณฑ์รับงาน — ตัวแรกของแต่ละแถวคือค่าที่ผ่าน ที่เหลือเป็นข้อบกพร่อง
-       ผ่าน = ปูกระเบื้องสุดขอบร่อง · ในร่อง shadow gap ไม่ทาสี
-              · หลืบ exhaust air ทาสีจบในหลืบ ไม่ทาลงมาบนกระเบื้องผนัง */
+       ผ่าน = ปูกระเบื้องสุดขอบร่อง · ในร่อง shadow gap ไม่ทาสี */
     choices: {
       'กระเบื้อง shadow gap': ['กระเบื้องสุดขอบ', 'กระเบื้องไม่สุดขอบ'],
-      'สี shadow gap':        ['ไม่ทาสี', 'ทาสีน้ำตาล', 'ทาสีขาว'],
-      'สีหลืบ exhaust air':   ['ทาสีไม่ลงมาผนัง', 'ทาสีลงมาผนัง']
+      'สี shadow gap':        ['ไม่ทาสี', 'ทาสีน้ำตาล', 'ทาสีขาว']
     }
   }
 
@@ -583,7 +573,9 @@ function doPost(e) {
       const room = String(en.room || '').trim();
       if (!room) throw new Error('ไม่ได้ระบุเลขห้อง');
 
-      const prev = findLatest_(sh, head, room);
+      /* ห้องละแถวเดียวตลอด — เจอแถวเดิมของห้องนี้ก็วางทับ ไม่ต่อแถวใหม่ */
+      const rowAt = findRowIndex_(sh, head, room);
+      const prev  = rowAt ? readRow_(sh, head, rowAt) : null;
       const rec = {};
       head.forEach(function (h) { rec[h] = ''; });
 
@@ -596,7 +588,7 @@ function doPost(e) {
       rec['ผู้ตรวจ']    = String(body.inspector || '');
       rec['บันทึกเมื่อ'] = stamp;
 
-      const rowIndex = appendRow_(sh, head, rec, body.date);
+      const rowIndex = saveRow_(t, sh, head, rec, body.date, rowAt);
       rec['วันที่ตรวจ'] = cellText_(sh.getRange(rowIndex, head.indexOf('วันที่ตรวจ') + 1).getValue(),
                                    'วันที่ตรวจ');
       /* "ไม่ผ่าน" สองระดับใช้คำเดียวกัน สีจึงต้องระบายเอง หลังก๊อปรูปแบบแถวต้นแบบมาแล้ว */
@@ -656,13 +648,23 @@ function dateValue_(s) {
   return new Date(Utilities.formatDate(now, TZ, 'yyyy/MM/dd') + ' 12:00:00');
 }
 
-function appendRow_(sh, head, rec, dateStr) {
-  const row = head.map(function (h) { return rec[h] === undefined ? '' : rec[h]; });
+/** เขียนผลตรวจของห้องนี้ลงชีต — หนึ่งห้องมีแถวเดียวตลอด
+ *  rowAt > 0 = เคยบันทึกไว้แล้ว วางทับแถวเดิม · rowAt = 0 = ห้องใหม่ ต่อท้ายให้
+ *  คอลัมน์ที่หมวดนี้ไม่ได้เป็นเจ้าของ (ของเก่าที่เลิกถามไปแล้ว หรือที่ใครเพิ่มเองในชีต)
+ *  วางทับแล้วต้องไม่หาย จึงคงค่าเดิมในแถวนั้นไว้ ไม่เขียนช่องว่างทับ */
+function saveRow_(t, sh, head, rec, dateStr, rowAt) {
+  const own = headOfTopic_(t);
+  const old = rowAt ? sh.getRange(rowAt, 1, 1, head.length).getValues()[0] : null;
+  const row = head.map(function (h, i) {
+    if (own.indexOf(h) === -1) return old ? old[i] : '';
+    return rec[h] === undefined ? '' : rec[h];
+  });
   const iDate = head.indexOf('วันที่ตรวจ');
   if (iDate !== -1) row[iDate] = dateValue_(dateStr);
 
-  sh.appendRow(row);
-  const r = sh.getLastRow();
+  let r = rowAt;
+  if (r) sh.getRange(r, 1, 1, head.length).setValues([row]);
+  else { sh.appendRow(row); r = sh.getLastRow(); }
   styleRow_(sh, head, r);
   if (iDate !== -1) sh.getRange(r, iDate + 1).setNumberFormat('dd/MM/yyyy');
   return r;
@@ -677,21 +679,28 @@ function styleRow_(sh, head, row) {
     .copyTo(sh.getRange(row, 1, 1, head.length), { formatOnly: true });
 }
 
-/* หาบันทึกล่าสุดของห้องนี้ ไล่จากแถวท้ายขึ้นมา — ไม่เจอคืน null */
-function findLatest_(sh, head, room) {
+/* เลขแถวของห้องนี้ในชีต ไล่จากแถวท้ายขึ้นมา — ไม่เจอคืน 0
+   ห้องละแถวเดียวอยู่แล้ว แต่ยังไล่จากท้ายไว้ เผื่อชีตเก่าที่ยังมีแถวซ้ำค้างอยู่
+   (ยุบให้เหลือแถวเดียวได้ที่เมนู "ยุบแถวซ้ำ ให้เหลือห้องละแถว") */
+function findRowIndex_(sh, head, room) {
   const last = sh.getLastRow();
-  if (last < 2) return null;
+  const iRoom = head.indexOf('ห้อง');
+  if (last < 2 || iRoom < 0) return 0;
 
   const key = String(room).trim();
-  const iRoom = head.indexOf('ห้อง');
-  const values = sh.getRange(2, 1, last - 1, head.length).getValues();
-  for (let i = values.length - 1; i >= 0; i--) {
-    if (String(values[i][iRoom]).trim() !== key) continue;
-    const o = {};
-    head.forEach(function (h, j) { o[h] = cellText_(values[i][j], h); });
-    return o;
+  const col = sh.getRange(2, iRoom + 1, last - 1, 1).getValues();
+  for (let i = col.length - 1; i >= 0; i--) {
+    if (String(col[i][0]).trim() === key) return i + 2;
   }
-  return null;
+  return 0;
+}
+
+/* อ่านแถวหนึ่งออกมาเป็น { ชื่อคอลัมน์: ค่า } */
+function readRow_(sh, head, rowAt) {
+  const v = sh.getRange(rowAt, 1, 1, head.length).getValues()[0];
+  const o = {};
+  head.forEach(function (h, j) { o[h] = cellText_(v[j], h); });
+  return o;
 }
 
 /* ช่องไหนเปลี่ยนไปบ้างระหว่างบันทึกเก่ากับใหม่
@@ -852,6 +861,7 @@ function onOpen() {
     .addItem('แปลงคำเก่าให้ตรงกับหน้าเว็บ', 'migrateLabels')
     .addItem('แปลงวันที่เป็นแบบไทย วัน/เดือน/ปี', 'migrateDates')
     .addItem('จัดรูปแบบทุกแถวให้เหมือนกัน', 'restyleAll')
+    .addItem('ยุบแถวซ้ำ ให้เหลือห้องละแถว', 'dedupeRooms')
     .addSeparator()
     .addItem('ทดสอบส่งแจ้งเตือน LINE', 'testLine')
     .addItem('ตรวจสภาพการแจ้งเตือน LINE', 'checkLine')
@@ -877,8 +887,7 @@ const LOOK = {
   width: { 'วันที่ตรวจ': 96, 'ชั้น': 52, 'ห้อง': 62, 'หมายเหตุ': 230,
            'ผู้ตรวจ': 92, 'บันทึกเมื่อ': 128,
            'กระเบื้อง shadow gap': 156, 'สี shadow gap': 108,
-           'แบบ shadow gap': 232, 'สีหลืบ exhaust air': 152,
-           'สถานะแก้ไข ร่องหลืบ': 148, 'สถานะแก้ไข หลืบพัดลม': 158 },
+           'แบบ shadow gap': 232, 'สีหลืบ exhaust air': 152 },
   center: ['ชั้น', 'ห้อง', 'จำนวนจุดที่มีแสง', 'เวลาน้ำร้อน (วินาที)', 'เวลาแอร์เย็น (นาที)',
            'อุณหภูมิน้ำที่วัดได้ (°C)', 'อุณหภูมิที่ตั้งแอร์ (°C)', 'อุณหภูมิห้องที่วัดได้ (°C)']
 };
@@ -991,7 +1000,7 @@ function styleRules_(t, sh, head, rows) {
     const all = {};
     Object.keys(t.choices || {}).forEach(function (c) { all[c] = t.choices[c]; });
     all[ACCESS] = ACCESS_CHOICES;
-    [FIX].concat(t.fixCols || []).forEach(function (c) { all[c] = FIX_CHOICES; });
+    all[FIX] = FIX_CHOICES;
     all[t.grade] = GRADES;
     Object.keys(all).forEach(function (c) {
       const col = head.indexOf(c) + 1;
@@ -1027,14 +1036,10 @@ function styleRules_(t, sh, head, rows) {
       const col = head.indexOf(ACCESS) + 1;
       if (col > 0) add(col, v, LOOK.warn);
     });
-    /* ช่องรอบตามแก้ — รอแก้ไขเป็นเหลือง (ยังค้าง) ส่วนอนุโลม/แก้ไขแล้วเป็นน้ำเงิน (ปิดจบ)
-       หมวดที่แยกรอบตามแก้เป็นรายส่วน ช่องของแต่ละส่วนใช้สีชุดเดียวกัน */
-    [FIX].concat(t.fixCols || []).forEach(function (c) {
-      const col = head.indexOf(c) + 1;
-      if (col < 1) return;
-      FIX_CHOICES.forEach(function (v) {
-        add(col, v, fixClosed_(v) ? LOOK.done : LOOK.warn);
-      });
+    /* ช่องรอบตามแก้ — รอแก้ไขเป็นเหลือง (ยังค้าง) ส่วนอนุโลม/แก้ไขแล้วเป็นน้ำเงิน (ปิดจบ) */
+    FIX_CHOICES.forEach(function (v) {
+      const col = head.indexOf(FIX) + 1;
+      if (col > 0) add(col, v, fixClosed_(v) ? LOOK.done : LOOK.warn);
     });
     /* ช่องผลตรวจ — "ผ่าน" กับ "ไม่ได้ตรวจ" ระบายด้วยกฎตามคำได้เลย
        ส่วน "ไม่ผ่าน" มีสองสีแต่คำเดียวกัน กฎตามคำจึงแยกไม่ออก ต้องระบายเอง
@@ -1288,6 +1293,52 @@ function migrateDates() {
     return hit;
   }).reduce(function (a, b) { return a + b; }, 0);
   SpreadsheetApp.getActive().toast('แปลงวันที่แล้ว ' + n + ' ช่อง', 'เช็คห้อง', 5);
+}
+
+/** เมนู: ยุบแถวซ้ำให้เหลือห้องละแถว — ใช้เก็บกวาดชีตที่บันทึกไว้ตอนยังต่อแถวใหม่ทุกครั้ง
+ *  เก็บแถวล่างสุดของห้องนั้นไว้ (บันทึกล่าสุด) แถวก่อนหน้าลบทิ้ง
+ *  บอกก่อนว่าจะลบกี่แถว แล้วค่อยยืนยัน — ลบแล้วเอาคืนไม่ได้ */
+function dedupeRooms() {
+  const ui = SpreadsheetApp.getUi();
+  const plan = eachTopic_(function (t, sh, head) {
+    const last = sh.getLastRow();
+    const iRoom = head.indexOf('ห้อง');
+    if (last < 3 || iRoom < 0) return { t: t, sh: sh, drop: [] };
+
+    const col = sh.getRange(2, iRoom + 1, last - 1, 1).getValues();
+    const keep = {};                       /* ห้อง → เลขแถวล่างสุดที่เจอ */
+    col.forEach(function (r, i) {
+      const room = String(r[0]).trim();
+      if (room) keep[room] = i + 2;
+    });
+    const drop = [];
+    col.forEach(function (r, i) {
+      const room = String(r[0]).trim();
+      if (room && keep[room] !== i + 2) drop.push(i + 2);
+    });
+    return { t: t, sh: sh, drop: drop };
+  });
+
+  const total = plan.reduce(function (a, p) { return a + p.drop.length; }, 0);
+  if (!total) { ui.alert('ทุกหมวดเหลือห้องละแถวอยู่แล้ว ไม่มีแถวซ้ำให้ยุบ'); return; }
+
+  const detail = plan.filter(function (p) { return p.drop.length; }).map(function (p) {
+    return '• ' + p.t.icon + ' ' + p.t.name + ' — ' + p.drop.length + ' แถว';
+  });
+  const yes = ui.alert('ยุบแถวซ้ำ ให้เหลือห้องละแถว',
+    'จะลบแถวเก่าทิ้ง ' + total + ' แถว\n\n' + detail.join('\n') +
+    '\n\nเก็บแถวล่างสุดของแต่ละห้องไว้ (บันทึกล่าสุด) ลบแล้วเอาคืนไม่ได้',
+    ui.ButtonSet.YES_NO);
+  if (yes !== ui.Button.YES) return;
+
+  plan.forEach(function (p) {
+    /* ลบจากแถวล่างขึ้นบน เลขแถวที่เหลือจะได้ไม่เลื่อนตาม */
+    p.drop.slice().sort(function (a, b) { return b - a; }).forEach(function (r) {
+      p.sh.deleteRow(r);
+    });
+  });
+  buildSummary_();
+  ui.alert('ยุบแถวซ้ำแล้ว ' + total + ' แถว — ตอนนี้ทุกหมวดเหลือห้องละแถว');
 }
 
 /* จัดรูปแบบทุกแถวให้เหมือนแถวข้อมูลแรก — ใช้เก็บกวาดแถวที่บันทึกไปก่อนหน้านี้ */
