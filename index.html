@@ -421,6 +421,12 @@
     font-size:13px;font-weight:600;color:var(--ink)}
   .mbtns button.solid{background:var(--ink);color:#fff}
   .mnote{margin-top:12px;font-size:11.5px;color:var(--mute);font-family:var(--mono);word-break:break-all}
+  .qbox{margin-top:14px;border:1px solid var(--bad);border-radius:9px;overflow:hidden}
+  .qbox h4{margin:0;padding:9px 11px;font-size:12px;background:var(--bad-soft);color:var(--bad)}
+  .qbox ol{margin:0;padding:8px 11px 8px 28px;font-size:12px;line-height:1.6;color:var(--ink)}
+  .qbox .qwhy{padding:0 11px 10px;font-size:11.5px;color:var(--mute);line-height:1.5}
+  .qbox .qbtn{width:100%;border:0;border-top:1px solid var(--line);background:var(--card);
+    padding:11px;font-size:12.5px;font-weight:600;color:var(--bad)}
 
   .lock{position:fixed;inset:0;z-index:80;background:var(--ink);color:#fff;display:flex;
     align-items:center;justify-content:center;padding:20px}
@@ -452,6 +458,14 @@
   body.ro{padding-bottom:24px}
   .robar{background:var(--ink-2);color:#CFD7E0;font-size:11.5px;font-weight:600;
     padding:6px 14px;letter-spacing:.02em}
+
+  /* ส่งขึ้นชีตไม่ได้ — เหตุผลจริงต้องอยู่บนจอ ไม่ใช่ใน tooltip ที่จอสัมผัสไม่มีทางเห็น */
+  .errbar{background:#3A201C;color:#F2C0BB;font-size:11.5px;padding:8px 12px;
+    display:flex;align-items:center;gap:8px}
+  .errbar .m{flex:1;line-height:1.45}
+  .errbar .m b{display:block;font-size:12px;color:#FFD9D4}
+  .errbar button{flex:none;background:#E4695E;border:0;color:#fff;font-size:11px;font-weight:700;
+    padding:7px 11px;border-radius:7px}
   button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -468,6 +482,11 @@
     </div>
 
     <div class="robar hide" id="roBar">👁 โหมดดูอย่างเดียว — ดูผลตรวจได้ แต่แก้ไขหรือบันทึกไม่ได้</div>
+
+    <div class="errbar hide" id="syncBar">
+      <span class="m" id="syncBarTxt"></span>
+      <button id="syncRetry">ลองส่งใหม่</button>
+    </div>
 
     <div class="tabbar hide" id="tabbar">
       <button data-t="rooms" aria-selected="true">เลือกห้อง</button>
@@ -657,6 +676,7 @@
       <button id="cfgOff">ยกเลิกการเชื่อมต่อ</button>
       <button id="cfgClose">ปิด</button>
     </div>
+    <div class="qbox hide" id="cfgQueue"></div>
     <div class="mnote" id="cfgNote"></div>
   </div>
 </div>
@@ -680,7 +700,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxDnumIqna4nrsfmvAVpT1U
 /* เลขเวอร์ชันของไฟล์นี้ — โชว์มุมล่างขวาหน้าแรกกับในกล่องตั้งค่า
    เปิดเว็บแล้วรู้ทันทีว่าเครื่องนี้ใช้ไฟล์รอบไหนอยู่ ไม่ต้องเดาว่า deploy ขึ้นหรือยัง
    แก้ index.html ทีไร เลื่อนเลขนี้ด้วยทุกครั้ง (วันที่ที่แก้ · a, b, c ถ้าแก้หลายรอบในวันเดียว) */
-const APP_VERSION = "2026-08-17";
+const APP_VERSION = "2026-08-18";
 
 const API_TOKEN = "";              /* ต้องตรงกับ TOKEN ใน Code.gs — เว้นว่าง = ไม่ล็อก */
 const PIN_LEN   = 3;               /* ความยาวรหัส ให้ตรงกับ TOKEN ใน Code.gs */
@@ -1655,7 +1675,7 @@ const S = {
   remember:{}         /* col → ค่าที่ใช้ล่าสุด (เช่น แบรนด์) */
 };
 let cfg = {url:API_URL, token:API_TOKEN};
-let outbox = [], syncState = "off", syncMsg = "";
+let outbox = [], syncState = "off", syncMsg = "", errMsg = "";
 let unlocked = false, pinBuf = "", flushing = false, pulling = false, pollTimer = null;
 let failStreak = 0, retryTimer = null;
 
@@ -1680,6 +1700,10 @@ function loadCfg(){
 const saveCfg = ()=> LS.set(K_CFG, JSON.stringify(cfg));
 const saveOutbox = ()=> LS.set(K_OUT, JSON.stringify(outbox));
 
+/* ข้อความผิดพลาดมาจากฝั่งเซิร์ฟเวอร์ อาจมีอักขระ HTML ปนมาได้ — กันไว้ก่อนวางลงหน้า */
+const esc = s => String(s==null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
 function setSync(state, msg){
   syncState = state; syncMsg = msg||"";
   const chip = $("syncChip");
@@ -1690,6 +1714,19 @@ function setSync(state, msg){
     : state==="err"  ? (outbox.length ? "ค้าง "+outbox.length : "ต่อไม่ติด")
     : "ชีตซิงก์แล้ว";
   chip.title = msg || "แตะเพื่อตั้งค่าการเชื่อมต่อ";
+
+  /* ค้างเพราะอะไรต้องอ่านได้ทันทีโดยไม่ต้องเปิดกล่องตั้งค่า
+     เก็บข้อความไว้แม้ตอนสลับเป็น "กำลังซิงก์" จะได้ไม่กะพริบหายตอนวนลองใหม่ */
+  if(state === "err" && syncMsg) errMsg = syncMsg;
+  if(state === "ok" || state === "off") errMsg = "";
+  const bad = outbox.length > 0 && state !== "ok" && state !== "off";
+  $("syncBar").classList.toggle("hide", !bad || VIEW_ONLY);
+  if(bad) $("syncBarTxt").innerHTML =
+    "<b>ยังส่งขึ้นชีตไม่ได้ "+outbox.length+" ครั้ง — เก็บไว้ในเครื่องนี้ก่อน</b>"+
+    esc(errMsg ? "สาเหตุ: "+errMsg : "กำลังลองส่งใหม่…");
+
+  if(!$("cfgModal").classList.contains("hide")) renderQueue();
+
   if(state === "ok" || state === "off") clearRetry();
 }
 
@@ -1828,6 +1865,7 @@ document.addEventListener("visibilitychange", ()=>{
   if(syncState === "err") clearRetry();                   /* กลับมาดูแอป = เริ่มนับถอยจังหวะใหม่ */
   if(S.view !== "room" || syncState === "err") pull();
 });
+$("syncRetry").onclick = ()=>{ clearRetry(); outbox.length ? flush() : pull(true); };
 window.addEventListener("online",  ()=>{ clearRetry(); outbox.length ? flush() : pull(true); });
 window.addEventListener("offline", ()=> setSync("err","ออฟไลน์ — ข้อมูลถูกเก็บไว้ในเครื่องก่อน"));
 
@@ -2717,11 +2755,40 @@ function renderLog(){
    ตั้งค่าการเชื่อมต่อ
    ===================================================================== */
 const modal = $("cfgModal");
+/* หนึ่งบรรทัดต่อหนึ่งครั้งที่กดบันทึกแล้วยังส่งไม่ขึ้น — บอกให้ได้ว่าเป็นห้องไหนหมวดอะไร
+   จะได้เปิดชีตไปเทียบเองได้ว่าตกไปแล้วหรือยัง ก่อนตัดสินใจทิ้งคิว */
+function queueLine(j){
+  const rooms = [];
+  (j.entries||[]).forEach(e=>{ if(rooms.indexOf(e.room) === -1) rooms.push(e.room); });
+  const names = (j.entries||[]).map(e=> (TOPIC[e.topic] || {}).name || e.topic);
+  return "ห้อง "+rooms.join(", ")+" · "+names.join(" + ")+
+         (j.date ? " · "+thDate(j.date) : "")+(j.inspector ? " · "+j.inspector : "");
+}
+function renderQueue(){
+  const box = $("cfgQueue");
+  box.classList.toggle("hide", !outbox.length);
+  if(!outbox.length) return;
+  box.innerHTML = "<h4>ยังส่งขึ้นชีตไม่ได้ "+outbox.length+" ครั้ง</h4>"+
+    "<ol>"+outbox.map(j=> "<li>"+esc(queueLine(j))+"</li>").join("")+"</ol>"+
+    '<div class="qwhy">'+(errMsg ? "สาเหตุล่าสุด: "+esc(errMsg)
+      : "กำลังลองส่งใหม่ให้เอง ตราบใดที่ยังเปิดหน้านี้ค้างไว้")+"</div>"+
+    '<button class="qbtn" id="cfgDrop">ทิ้งคิวที่ค้าง (ต้องกรอกใหม่เอง)</button>';
+  $("cfgDrop").onclick = ()=>{
+    if(!confirm("ทิ้ง "+outbox.length+" ครั้งที่ค้างอยู่?\n\n"+
+       outbox.map(queueLine).join("\n")+
+       "\n\nเปิดชีตเช็คก่อนว่าตกไปแล้วหรือยัง ถ้ายังไม่ตก ต้องกลับมากรอกใหม่เองทั้งหมด")) return;
+    outbox = []; saveOutbox(); errMsg = "";
+    setSync(cfg.url ? "busy" : "off"); renderQueue();
+    toast("ล้างคิวแล้ว");
+    if(cfg.url) pull(true);
+  };
+}
 function openCfg(){
   $("cfgUrl").value = cfg.url||"";
   $("cfgToken").value = cfg.token||"";
   $("cfgNote").textContent = "เวอร์ชันหน้าเว็บ: "+APP_VERSION +
     (syncMsg ? " · สถานะล่าสุด: "+syncMsg : (cfg.url ? " · เชื่อมอยู่กับ web app นี้" : ""));
+  renderQueue();
   modal.classList.remove("hide");
 }
 const closeCfg = ()=> modal.classList.add("hide");
@@ -2751,7 +2818,11 @@ $("cfgTest").onclick = async ()=>{
   }finally{ cfg = keep; }
 };
 $("cfgOff").onclick = ()=>{
-  cfg = {url:"", token:""}; saveCfg(); outbox = []; saveOutbox();
+  /* ตัดการเชื่อมต่อทั้งที่ยังมีของค้าง = ของหายถาวร ต้องถามก่อน ไม่ใช่ล้างเงียบ ๆ */
+  if(outbox.length && !confirm("ยังมี "+outbox.length+" ครั้งที่ส่งขึ้นชีตไม่สำเร็จ\n\n"+
+     outbox.map(queueLine).join("\n")+
+     "\n\nยกเลิกการเชื่อมต่อแล้วของพวกนี้จะหายไปเลย ยืนยันไหม")) return;
+  cfg = {url:"", token:""}; saveCfg(); outbox = []; saveOutbox(); errMsg = "";
   if(pollTimer) clearInterval(pollTimer);
   setSync("off"); closeCfg(); toast("ยกเลิกการเชื่อมต่อแล้ว");
 };
