@@ -674,15 +674,32 @@ function saveRow_(t, sh, head, rec, dateStr, rowAt) {
   const iDate = head.indexOf('วันที่ตรวจ');
   if (iDate !== -1) row[iDate] = dateValue_(dateStr);
 
-  let r = rowAt;
-  if (r) sh.getRange(r, 1, 1, head.length).setValues([row]);
-  else { sh.appendRow(row); r = sh.getLastRow(); }
+  const r = rowAt || sh.getLastRow() + 1;
+  writeRow_(sh.getRange(r, 1, 1, head.length), row);
   styleRow_(sh, head, r);
   if (iDate !== -1) sh.getRange(r, iDate + 1).setNumberFormat('dd/MM/yyyy');
   return r;
 }
 
-/* appendRow ใส่ให้แค่ข้อมูล ไม่ได้ก๊อปตัวหนา จัดกึ่งกลาง เส้นขอบ พื้นหลัง มาด้วย
+/** เขียนหนึ่งแถว โดยไม่ยอมให้ดรอปดาวน์ในชีตบล็อกได้
+ *  ชีตที่ตั้งค่าไว้ตั้งแต่ตอนตัวเลือกยังใช้คำเก่า จะมีกฎแบบ "ปฏิเสธค่านอกลิสต์" ค้างอยู่
+ *  พอหน้าเว็บส่งคำใหม่มาทับแถวเดิม setValues จะโยน Exception ทิ้ง แล้วของค้างอยู่ในเครื่อง
+ *  ส่งเท่าไหร่ก็ไม่ขึ้น — เจอแบบนั้นให้ปลดกฎของแถวนั้น เขียนให้ผ่าน
+ *  แล้วใส่กฎกลับไปแบบเตือนอย่างเดียว ชีตจะค่อย ๆ หายเข้มไปเองทีละแถวที่แตะ */
+function writeRow_(range, row) {
+  try {
+    range.setValues([row]);
+  } catch (err) {
+    const rules = range.getDataValidations();
+    range.clearDataValidations();
+    range.setValues([row]);
+    range.setDataValidations([rules[0].map(function (v) {
+      return v ? v.copy().setAllowInvalid(true).build() : null;
+    })]);
+  }
+}
+
+/* เขียนค่าลงแถวใหม่ได้แค่ข้อมูล ไม่ได้ตัวหนา จัดกึ่งกลาง เส้นขอบ พื้นหลัง มาด้วย
    แถวใหม่เลยหน้าตาไม่เหมือนแถวเก่า — ยืมรูปแบบจากแถวข้อมูลแรกมาใส่ให้
    (สีของช่องที่เป็นข้อบกพร่องมาจาก conditional format ไม่ได้ก๊อปมา จึงไม่เพี้ยนตามค่าแถวต้นแบบ) */
 function styleRow_(sh, head, row) {
@@ -1011,17 +1028,25 @@ function styleRules_(t, sh, head, rows) {
   {
     /* ---- ดรอปดาวน์ ---- */
     const all = {};
-    Object.keys(t.choices || {}).forEach(function (c) { all[c] = t.choices[c]; });
+    /* '-' = หัวข้อนั้นไม่เกี่ยวกับห้องนี้ตามแบบ หน้าเว็บลงค่านี้เองอยู่แล้ว
+       ต้องอยู่ในลิสต์ด้วย ไม่งั้นดรอปดาวน์จะตีว่าเป็นค่าผิดทั้งที่เป็นค่าปกติ */
+    Object.keys(t.choices || {}).forEach(function (c) {
+      all[c] = t.choices[c].concat(['-']);
+    });
     all[ACCESS] = ACCESS_CHOICES;
     [FIX].concat(t.fixCols || []).forEach(function (c) { all[c] = FIX_CHOICES; });
     all[t.grade] = GRADES;
     Object.keys(all).forEach(function (c) {
       const col = head.indexOf(c) + 1;
       if (col < 1) return;
+      /* ห้ามตั้งเป็น "ปฏิเสธค่านอกลิสต์" เด็ดขาด — ดรอปดาวน์ที่เข้มเกินไปจะเด้ง
+         Exception ใส่ตอนสคริปต์เขียนทับแถวเดิม แล้วหน้าเว็บส่งอะไรขึ้นมาไม่ได้เลย
+         (ชีตที่ตั้งค่าไว้ตั้งแต่ตอนตัวเลือกยังใช้คำเก่า จะบล็อกคำใหม่ทั้งหมด)
+         เตือนอย่างเดียวพอ พิมพ์มือผิดยังเห็นมุมแดง แต่ของจากหน้าเว็บลงได้เสมอ */
       const rule = SpreadsheetApp.newDataValidation()
         .requireValueInList(all[c], true)
-        .setAllowInvalid(false)
-        .setHelpText('เลือกจากรายการเท่านั้น เพื่อให้ตรงกับหน้าเว็บ')
+        .setAllowInvalid(true)
+        .setHelpText('เลือกจากรายการจะตรงกับหน้าเว็บที่สุด — พิมพ์เองได้แต่จะขึ้นมุมแดงเตือน')
         .build();
       sh.getRange(2, col, rows, 1).setDataValidation(rule);
     });
