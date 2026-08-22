@@ -9,18 +9,20 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#141C28; --ink-2:#26313F; --mute:#6B7A8D;
-    --paper:#E9EDF2; --card:#FFFFFF; --line:#D6DDE6;
-    --brass:#B8862B; --brass-soft:#F3E7CC;
+    --ink:#001717; --ink-2:#0B2A2A; --mute:#6E7C77;
+    --paper:#FDF5E4; --card:#FFFFFF; --line:#E4D9C2;
+    /* สีแบรนด์ส้ม — brass ใช้กับตัวหนังสือ/เส้นบนพื้นสว่าง (เข้มพอให้อ่านออก)
+       ส่วน brass-hi เป็นส้มสดของจริง ใช้บนพื้นเข้มหรือเป็นแถบสีล้วน */
+    --brass:#C2571C; --brass-hi:#FF914D; --brass-soft:#FFE6D2;
     --ok:#1B7A4C; --ok-soft:#DCF0E5;
     /* ปิดจบ = เคยไม่ผ่าน แต่รอบตามแก้จบแล้ว (อนุโลม หรือ แก้ไขแล้ว)
        ใช้สีน้ำเงินเขียว จะได้ไม่ปนกับเขียวของห้องที่ทำถูกมาตั้งแต่แรก */
     --done:#2A6484; --done-soft:#DDEAF3;
-    --warn:#B26A0A; --warn-soft:#FBEBD2;
+    --warn:#A0730A; --warn-soft:#FAEBD0;
     --bad:#B62D22; --bad-soft:#FADEDB;
-    --skip:#6B7A8D; --skip-soft:#E4E9EF;
+    --skip:#6E7C77; --skip-soft:#E9E2D4;
     /* เส้นแบ่งบาง ๆ ระหว่างหัวข้อในการ์ด — อ่อนกว่า --line ที่ใช้กับขอบการ์ด */
-    --hair:#EDF1F5;
+    --hair:#F1E9D8;
     --r:10px;
     --sans:"IBM Plex Sans Thai","Noto Sans Thai",Tahoma,system-ui,sans-serif;
     --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
@@ -35,23 +37,23 @@
   /* ---------- top bar ---------- */
   .head{position:sticky;top:0;z-index:30}
   .topbar{background:var(--ink);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:9px}
-  .topbar .tick{width:3px;height:24px;background:var(--brass);border-radius:2px;flex:none}
+  .topbar .tick{width:3px;height:24px;background:var(--brass-hi);border-radius:2px;flex:none}
   .topbar h1{font-size:14px;font-weight:600;letter-spacing:.02em;margin:0;flex:1;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .topbar h1 small{display:block;font-size:11px;font-weight:400;color:#8894A5;letter-spacing:0}
-  .back{background:none;border:0;color:#9AA7B6;font-size:22px;line-height:1;padding:0 4px 3px 0;flex:none}
+  .topbar h1 small{display:block;font-size:11px;font-weight:400;color:#7E938E;letter-spacing:0}
+  .back{background:none;border:0;color:#8FA3A0;font-size:22px;line-height:1;padding:0 4px 3px 0;flex:none}
   .sync{display:flex;align-items:center;gap:5px;flex:none;background:var(--ink-2);border:0;
-    border-radius:20px;padding:5px 10px;color:#9AA7B6;font-size:11px;font-weight:600}
-  .sync i{width:7px;height:7px;border-radius:50%;background:#7B8899;flex:none;display:block}
+    border-radius:20px;padding:5px 10px;color:#8FA3A0;font-size:11px;font-weight:600}
+  .sync i{width:7px;height:7px;border-radius:50%;background:#6E8582;flex:none;display:block}
   .sync.ok{color:#CFE9DA} .sync.ok i{background:#3FBF7F}
-  .sync.busy{color:#F0DFBC} .sync.busy i{background:var(--brass);animation:blink 1s infinite}
+  .sync.busy{color:#FFD9BC} .sync.busy i{background:var(--brass-hi);animation:blink 1s infinite}
   .sync.err{color:#F2C0BB} .sync.err i{background:#E4695E}
   @keyframes blink{50%{opacity:.2}}
 
   .tabbar{display:flex;background:var(--ink-2)}
-  .tabbar button{flex:1;background:none;border:0;color:#9AA7B6;font-size:13px;font-weight:600;
+  .tabbar button{flex:1;background:none;border:0;color:#8FA3A0;font-size:13px;font-weight:600;
     padding:11px 0;border-bottom:2px solid transparent}
-  .tabbar button[aria-selected="true"]{color:#fff;border-bottom-color:var(--brass)}
+  .tabbar button[aria-selected="true"]{color:#fff;border-bottom-color:var(--brass-hi)}
 
   .pane{padding:12px}
 
@@ -75,7 +77,7 @@
   .tcard{display:flex;flex-direction:column;gap:5px;width:100%;text-align:left;background:var(--card);
     border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);
     padding:10px 11px;color:var(--ink)}
-  .tcard:active{background:#F7F9FC}
+  .tcard:active{background:#FBF5EA}
   .tcard .hd{display:flex;align-items:center;gap:7px;min-width:0}
   .tcard .ico{font-size:20px;line-height:1;flex:none}
   .tcard .b{flex:1;min-width:0;display:block}
@@ -88,7 +90,7 @@
   .tcard .bar{margin-top:1px}
   .allbtn{width:100%;margin-top:6px;padding:13px;border-radius:var(--r);border:1.5px solid var(--ink);
     background:var(--card);color:var(--ink);font-size:14px;font-weight:700}
-  .allbtn:active{background:#F2F5F9}
+  .allbtn:active{background:#F8F0DF}
   .bar{display:flex;height:5px;margin-top:7px;border-radius:3px;overflow:hidden;background:var(--paper)}
   .bar i{display:block}
 
@@ -96,7 +98,7 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
     margin-bottom:9px;overflow:hidden}
   .cap{padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--mute);background:#F4F7FA;border-bottom:1px solid var(--line);display:flex;gap:8px}
+    color:var(--mute);background:#F9F1DF;border-bottom:1px solid var(--line);display:flex;gap:8px}
   .cap .r{margin-left:auto;font-family:var(--mono);letter-spacing:0;text-transform:none}
 
   /* ---------- หัวการ์ดของฟอร์มตรวจ ----------
@@ -104,7 +106,7 @@
      ว่าตอนนี้อ่านอยู่ตรงไหน แยกคำอังกฤษเป็นบรรทัดจิ๋วข้างบน ชื่อไทยตัวโตสีเข้มข้างล่าง
      ขีดทองซ้ายมือเป็นตัวปักหมุดเหมือนแถบหัวจอ · เลขมุมขวาบอกว่ากรอกไปกี่หัวข้อแล้ว */
   .cap.sec{display:block;position:relative;padding:8px 52px 8px 13px;
-    background:#F4F7FA;border-bottom:1px solid var(--line)}
+    background:#F9F1DF;border-bottom:1px solid var(--line)}
   .cap.sec::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;
     background:var(--brass);border-radius:0 2px 2px 0}
   .cap.sec .en{display:block;font-size:9.5px;font-weight:700;letter-spacing:.14em;
@@ -115,7 +117,7 @@
     font-size:11px;color:var(--mute)}
   .cap.sec .r.full{color:var(--ok)}
   /* เลขเวอร์ชันมุมล่างขวาหน้าแรก — จาง ๆ ไม่แย่งสายตา แต่กวาดตาหาเจอตอนอยากเช็ก */
-  .ver{text-align:right;font-size:11px;color:#9AA7B6;padding:10px 2px 4px;
+  .ver{text-align:right;font-size:11px;color:#A79A82;padding:10px 2px 4px;
     font-family:var(--mono);letter-spacing:.02em}
   .ver b{color:var(--mute);font-weight:600}
   .pad{padding:10px 12px 12px}
@@ -124,7 +126,7 @@
   .stepper{display:flex;align-items:center;gap:2px;background:var(--paper);border-radius:8px;padding:2px}
   .stepper button{width:36px;height:32px;border:0;background:none;font-size:19px;color:var(--ink);
     font-family:var(--mono);border-radius:6px}
-  .stepper button:active{background:#DCE3EB}
+  .stepper button:active{background:#E7DCC5}
   .stepper .val{font-family:var(--mono);font-weight:700;font-size:16px;width:34px;text-align:center}
   .floorjump{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
   .floorjump button{font-family:var(--mono);font-size:11.5px;font-weight:600;padding:5px 8px;
@@ -152,8 +154,8 @@
   .rbtn[data-lv="warn"]{background:var(--warn)}
   .rbtn[data-lv="bad"]{background:var(--bad)}
   .rbtn[data-lv="skip"]{background:var(--skip)}
-  .rbtn.off{background:#F1F4F8;color:#AEB8C4;border-style:dashed}
-  .rbtn.off .ty{color:#B6BFCA}
+  .rbtn.off{background:#F4ECDC;color:#B4A78F;border-style:dashed}
+  .rbtn.off .ty{color:#BCAF97}
   @media(max-width:360px){
     .grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
     .rbtn .ty{font-size:9px}
@@ -169,13 +171,13 @@
      จุดสี = ตรวจหมวดนั้นแล้ว (สีบอกผล) · จุดเทาจาง = ยังไม่ได้ตรวจหมวดนั้น
      นับจุดเทาก็รู้ทันทีว่าห้องนี้ค้างกี่หมวด ไม่ต้องกดเข้าไปดู */
   .rbtn .dots{display:flex;gap:3px;justify-content:center;margin-top:4px}
-  .rbtn .dots i{width:6px;height:6px;border-radius:50%;display:block;background:#C9D3DE}
+  .rbtn .dots i{width:6px;height:6px;border-radius:50%;display:block;background:#D5C8B0}
   .rall[data-st="full"]{background:var(--ok-soft);border-color:#B9DEC9}
   .rall[data-st="full"] .lab{color:var(--ok)}
   .rall[data-st="fix"]{background:var(--bad-soft);border-color:#EFC0BB}
   .rall[data-st="fix"] .lab{color:var(--bad)}
-  .rall[data-st="part"] .lab{color:var(--warn)}
-  .rall[data-st="none"] .lab{color:#A9B3C0}
+  .rall[data-st="part"] .lab{color:var(--brass)}
+  .rall[data-st="none"] .lab{color:#A99C86}
 
   /* ---------- แถบเลือกหมวดบนหน้าเลือกห้อง ----------
      เลื่อนแนวนอนได้ กดสลับหมวดได้เลยโดยไม่ต้องย้อนกลับไปหน้าแรก
@@ -186,10 +188,10 @@
   .tpick button em{font-style:normal;font-family:var(--mono);font-size:11px;font-weight:700;
     color:var(--mute);background:var(--paper);border-radius:10px;padding:1px 6px}
   .tpick button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .tpick button[aria-pressed="true"] em{background:var(--ink-2);color:#E7EDF4}
+  .tpick button[aria-pressed="true"] em{background:var(--ink-2);color:#E9E3D6}
 
   /* ---------- สรุปชั้นที่กำลังดู ---------- */
-  .fsum{margin-top:10px;padding:9px 11px;background:#F4F7FA;border:1px solid var(--hair);border-radius:8px}
+  .fsum{margin-top:10px;padding:9px 11px;background:#F9F1DF;border:1px solid var(--hair);border-radius:8px}
   .fsum .hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
   .fsum .k{font-size:13px;font-weight:700}
   .fsum .v{font-size:11.5px;color:var(--mute);margin-left:auto;font-family:var(--mono)}
@@ -289,11 +291,11 @@
 
   /* ---------- ผังประตู ---------- */
   .doorbox{display:flex;gap:14px;align-items:flex-start}
-  .door{width:196px;flex:none;background:#F4F7FA;border-radius:6px;touch-action:manipulation}
+  .door{width:196px;flex:none;background:#F9F1DF;border-radius:6px;touch-action:manipulation}
   .door .dleaf{fill:#E7DCC6;stroke:#CBB893;stroke-width:1}
   .door .dhandle{fill:#8A6A3B}
-  .door .dcell{fill:#fff;stroke:#9AA7B6;stroke-width:1;cursor:pointer}
-  .door .dcell[data-on="1"]{fill:#F3D46B;stroke:#B26A0A;stroke-width:1.5}
+  .door .dcell{fill:#fff;stroke:#A99C86;stroke-width:1;cursor:pointer}
+  .door .dcell[data-on="1"]{fill:#F3D46B;stroke:#A0730A;stroke-width:1.5}
   .doorside{flex:1;min-width:0}
   .dnote{font-size:11.5px;color:var(--mute);margin-bottom:7px}
   .dlist{display:flex;flex-wrap:wrap;gap:4px}
@@ -307,37 +309,37 @@
   /* ---------- ผังม่าน — ห้อง 06/07 มีสองรางเลยวางซ้อนกันเป็นแถว ---------- */
   .curbox{display:flex;flex-direction:column;gap:10px}
   .crlab{font-size:11.5px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
-  .curtain{width:100%;display:block;background:#F4F7FA;border:1px solid var(--line);
+  .curtain{width:100%;display:block;background:#F9F1DF;border:1px solid var(--line);
     border-radius:6px;touch-action:manipulation}
-  .curtain .cbody{fill:#3E4A57}
-  .curtain .cfold{fill:none;stroke:#5A6775;stroke-width:1.1}
+  .curtain .cbody{fill:#12312F}
+  .curtain .cfold{fill:none;stroke:#2C4B48;stroke-width:1.1}
   .curtain .crail{fill:#8A6A3B}
   /* รอยต่อกลางหน้าตาเหมือนช่องอื่นทุกประการ — บอกตำแหน่งด้วยเส้นประกับป้ายบนผ้าแทน */
-  .curtain .ccell{fill:#fff;stroke:#9AA7B6;stroke-width:.8;cursor:pointer}
-  .curtain .ccell[data-on="1"]{fill:#F3D46B;stroke:#B26A0A;stroke-width:1.5}
-  .curtain .carw{fill:none;stroke:#C8D2DD;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-  .curtain .clab{font-size:7px;font-weight:700;fill:#B9C4CF;pointer-events:none}
+  .curtain .ccell{fill:#fff;stroke:#A99C86;stroke-width:.8;cursor:pointer}
+  .curtain .ccell[data-on="1"]{fill:#F3D46B;stroke:#A0730A;stroke-width:1.5}
+  .curtain .carw{fill:none;stroke:#D3C6AD;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .curtain .clab{font-size:7px;font-weight:700;fill:#C4B69B;pointer-events:none}
   /* มุมเข้าโค้ง — สัญลักษณ์ ไม่ใช่ช่อง ผ้าวิ่งต่อเนื่องผ่านมุม ไม่มีรอยต่อตรงนั้น */
   .curtain .cbendline{fill:none;stroke:var(--brass);stroke-width:1.3;stroke-dasharray:5 4}
-  .curtain .cbendbg{fill:#3E4A57}
+  .curtain .cbendbg{fill:#12312F}
   .curtain .cbend{fill:none;stroke:var(--brass);stroke-width:2;stroke-linecap:round}
   .curtain .cbendlab{font-size:7px;font-weight:700;fill:var(--brass);pointer-events:none}
 
   /* ---------- ผังบัวใต้ซิงค์ ---------- */
-  .art{padding:7px 10px 0;background:#F7F9FC;border-bottom:1px solid #EDF1F5}
+  .art{padding:7px 10px 0;background:#FBF5EA;border-bottom:1px solid #F1E9D8}
   .sink{width:100%;max-width:320px;display:block;margin:0 auto}
   .sink .post{fill:#9A7B4F}                       /* ขาไม้ */
   .sink .m{fill:none;stroke-width:7;stroke-linecap:butt}   /* คิ้วบัว */
-  .sink .m-idle{stroke:#E4EAF0}
+  .sink .m-idle{stroke:#E9E1D2}
   .sink .m-ok{stroke:var(--ok)}
   .sink .m-bad{stroke:var(--bad)}
-  .sink .m-none{stroke:#BFC9D5;stroke-width:3;stroke-dasharray:7 6}  /* ห้องที่ตามแบบไม่มีบัว */
+  .sink .m-none{stroke:#CABC9F;stroke-width:3;stroke-dasharray:7 6}  /* ห้องที่ตามแบบไม่มีบัว */
   .sink .m-off{stroke:var(--bad);stroke-width:3;stroke-dasharray:7 6} /* ควรมีบัวแต่ยังไม่ได้ติด */
   .sink .miss{stroke:var(--bad);stroke-width:2;stroke-dasharray:3 3;opacity:.75}
-  .sink .gap{fill:none;stroke:#D3DAE3;stroke-width:2;stroke-linecap:round}  /* แนวผนังชนพื้น */
+  .sink .gap{fill:none;stroke:#DDD1B9;stroke-width:2;stroke-linecap:round}  /* แนวผนังชนพื้น */
   .sink .gap-on{stroke:var(--warn);stroke-width:5}
   .sink .lb{font-size:12px;fill:var(--mute)}
-  .sink .lb.sm{font-size:10.5px;fill:#9AA7B6}
+  .sink .lb.sm{font-size:10.5px;fill:#A99C86}
   .artleg{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;
     font-size:11px;color:var(--mute);padding:5px 0 7px}
   .artleg span{display:flex;align-items:center;gap:4px}
@@ -386,7 +388,7 @@
   .verdict[data-lv="todo"] .v{color:var(--mute);font-size:15px}
   .save{border:0;border-radius:10px;padding:14px 18px;background:var(--ink);color:#fff;
     font-size:15px;font-weight:700;flex:none}
-  .save:disabled{background:#AAB4C0}
+  .save:disabled{background:#B5A990}
   .msg.ok{color:var(--ok)} .msg.err{color:var(--bad);font-weight:600}
 
   /* ---------- ตาราง / สรุป ---------- */
@@ -401,8 +403,8 @@
   .sc[data-lv="done"] .n{color:var(--done)}
   table{width:100%;border-collapse:collapse}
   th{text-align:left;font-size:10.5px;letter-spacing:.04em;color:var(--mute);font-weight:600;
-    padding:8px 10px;background:#F4F7FA;border-bottom:1px solid var(--line);white-space:nowrap}
-  td{padding:7px 10px;border-bottom:1px solid #EDF1F5;font-size:12.5px;vertical-align:middle}
+    padding:8px 10px;background:#F9F1DF;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:7px 10px;border-bottom:1px solid #F1E9D8;font-size:12.5px;vertical-align:middle}
   tr:last-child td{border-bottom:0}
   td.k{font-family:var(--mono);font-weight:700;width:52px}
   td.n{font-family:var(--mono);text-align:center;width:46px}
@@ -416,7 +418,7 @@
 
   /* ---------- แถบเลือกช่วงวันของตารางภาพรวม ---------- */
   .rng{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:9px 12px;
-    background:#F4F7FA;border-bottom:1px solid var(--line)}
+    background:#F9F1DF;border-bottom:1px solid var(--line)}
   .rng button{font-size:12px;font-weight:600;padding:6px 11px;border:1px solid var(--line);
     background:var(--card);border-radius:7px;color:var(--ink-2)}
   .rng button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -431,12 +433,12 @@
   .badge[data-lv="warn"]{background:var(--warn-soft);color:var(--warn)}
   .badge[data-lv="bad"]{background:var(--bad-soft);color:var(--bad)}
   .badge[data-lv="skip"]{background:var(--skip-soft);color:var(--skip)}
-  .badge[data-lv="todo"],.badge[data-lv="none"]{background:#F1F4F8;color:#A9B3C0}
-  tr.band td{font-weight:700;font-size:12px;background:#F4F7FA;color:var(--ink-2);letter-spacing:.04em}
+  .badge[data-lv="todo"],.badge[data-lv="none"]{background:#F4ECDC;color:#A99C86}
+  tr.band td{font-weight:700;font-size:12px;background:#F9F1DF;color:var(--ink-2);letter-spacing:.04em}
   tr.band span{float:right;font-family:var(--mono);font-weight:500;font-size:11px;color:var(--mute)}
   .scroll{overflow-x:auto}
   .scroll table{min-width:620px}
-  .na{color:#A9B3C0} .ok{color:var(--ok)} .no{color:var(--bad);font-weight:600}
+  .na{color:#A99C86} .ok{color:var(--ok)} .no{color:var(--bad);font-weight:600}
   .wn{color:var(--warn);font-weight:600} .dn{color:var(--done);font-weight:600}
   .empty{padding:24px 14px;text-align:center;color:var(--mute);font-size:12.5px}
   .hint{font-size:11.5px;color:var(--mute)}
@@ -474,16 +476,16 @@
   .lockbox{width:100%;max-width:300px;text-align:center}
   .lockbox .tick{width:36px;height:3px;background:var(--brass);border-radius:2px;margin:0 auto 16px}
   .lockttl{font-size:16px;font-weight:600;letter-spacing:.02em}
-  .locksub{font-size:12.5px;color:#9AA7B6;margin-top:5px;min-height:34px;line-height:1.4}
+  .locksub{font-size:12.5px;color:#8FA3A0;margin-top:5px;min-height:34px;line-height:1.4}
   .locksub.bad{color:#F2A29A}
   .dots{display:flex;gap:12px;justify-content:center;margin:14px 0 22px}
-  .dots i{width:13px;height:13px;border-radius:50%;border:1.5px solid #55626F;display:block}
+  .dots i{width:13px;height:13px;border-radius:50%;border:1.5px solid #2E4A48;display:block}
   .dots i.on{background:var(--brass);border-color:var(--brass)}
   .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-  .keys button{height:56px;border:1px solid #37424F;background:#1D2732;color:#fff;border-radius:12px;
+  .keys button{height:56px;border:1px solid #17403E;background:#0A2B2A;color:#fff;border-radius:12px;
     font-family:var(--mono);font-size:21px;font-weight:600}
-  .keys button:active{background:#2A3644}
-  .keys button.alt{font-size:15px;font-family:var(--sans);color:#9AA7B6;border-color:transparent;background:none}
+  .keys button:active{background:#113838}
+  .keys button.alt{font-size:15px;font-family:var(--sans);color:#8FA3A0;border-color:transparent;background:none}
   .shake{animation:shake .32s}
   @keyframes shake{25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
 
@@ -494,14 +496,14 @@
   body.ro .foot,body.ro .allok,body.ro .who,body.ro .ttab .dirty{display:none !important}
   body.ro .opt,body.ro .numbtn,body.ro .numin,body.ro .door,body.ro .curtain,body.ro .dclear,
   body.ro textarea,body.ro #syncChip{pointer-events:none}
-  body.ro textarea,body.ro .numin{background:#F4F7FA;color:var(--ink-2)}
+  body.ro textarea,body.ro .numin{background:#F9F1DF;color:var(--ink-2)}
   body.ro .opt[aria-pressed="false"]{opacity:.5}
   body.ro{padding-bottom:24px}
-  .robar{background:var(--ink-2);color:#CFD7E0;font-size:11.5px;font-weight:600;
+  .robar{background:var(--ink-2);color:#CBD8D5;font-size:11.5px;font-weight:600;
     padding:6px 14px;letter-spacing:.02em}
 
   /* ส่งขึ้นชีตไม่ได้ — เหตุผลจริงต้องอยู่บนจอ ไม่ใช่ใน tooltip ที่จอสัมผัสไม่มีทางเห็น */
-  .errbar{background:#3A201C;color:#F2C0BB;font-size:11.5px;padding:8px 12px;
+  .errbar{background:#3A1A12;color:#F2C0BB;font-size:11.5px;padding:8px 12px;
     display:flex;align-items:center;gap:8px}
   .errbar .m{flex:1;line-height:1.45}
   .errbar .m b{display:block;font-size:12px;color:#FFD9D4}
@@ -868,7 +870,7 @@ const ACCESS = "การเข้าห้อง";
 const LEVELS  = ["ok","done","warn","bad","skip"];
 const LV_TEXT = {ok:"ผ่าน", done:"ปิดจบ", warn:"ไม่ผ่าน", bad:"ไม่ผ่าน", skip:"ไม่ได้ตรวจ"};
 const GRADE_TEXT = {ok:"ผ่าน", done:"ผ่าน", warn:"ไม่ผ่าน", bad:"ไม่ผ่าน", skip:"ไม่ได้ตรวจ"};
-const GC      = {ok:"#1B7A4C", done:"#2A6484", warn:"#B26A0A", bad:"#B62D22", skip:"#6B7A8D"};
+const GC      = {ok:"#1B7A4C", done:"#2A6484", warn:"#A0730A", bad:"#B62D22", skip:"#6E7C77"};
 /* คำเก่าที่ยังค้างอยู่ในชีตก่อนรวมเหลือสองคำ — อ่านเจอเมื่อไหร่ถือเป็นเหลือง */
 const OLD_WARN = "เกือบผ่าน";
 
@@ -2139,7 +2141,7 @@ function floorStat(f, t){
 function fsumHtml(f, t){
   const s = floorStat(f, t);
   const seg = LEVELS.map(lv=> s.c[lv] ? '<i style="flex:'+s.c[lv]+';background:'+GC[lv]+'"></i>' : "").join("")
-    + (s.rec < s.total ? '<i style="flex:'+(s.total-s.rec)+';background:#DCE3EB"></i>' : "");
+    + (s.rec < s.total ? '<i style="flex:'+(s.total-s.rec)+';background:#E7DCC5"></i>' : "");
   const tags = t
     ? [["ok",s.c.ok,"ผ่าน"], ["done",s.c.done,"ปิดจบ"], ["warn",s.c.warn,"แก้เฉพาะจุด"],
        ["bad",s.c.bad,"ไม่ผ่าน"], ["skip",s.c.skip,"เข้าไม่ได้"], ["none",s.total-s.rec,"ยังไม่ตรวจ"]]
@@ -2148,7 +2150,7 @@ function fsumHtml(f, t){
   return '<div class="hd"><span class="k">ชั้น '+f+'</span>'+
     '<span class="v">'+(t ? "ตรวจแล้ว "+s.rec+"/"+s.total+" ห้อง"
                           : "ตรวจแล้ว "+s.rec+"/"+s.total+" ช่องหมวด")+'</span></div>'+
-    '<div class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</div>'+
+    '<div class="bar">'+(seg || '<i style="flex:1;background:#E7DCC5"></i>')+'</div>'+
     '<div class="tags">'+tags.filter(x=> x[1] > 0).map(x=>
       '<span class="badge" data-lv="'+x[0]+'">'+x[2]+' '+x[1]+'</span>').join("")+'</div>';
 }
@@ -2168,7 +2170,7 @@ function roomCellHtml(rn, t){
   }
   const st = roomStat(rn);
   const dots = st.lvs.map(x=>
-    '<i style="background:'+(x.lv ? GC[x.lv] : "#C9D3DE")+'"></i>').join("");
+    '<i style="background:'+(x.lv ? GC[x.lv] : "#D5C8B0")+'"></i>').join("");
   const lab = st.fix && st.todo ? "ค้าง "+st.todo+" · แก้ "+st.fix
             : st.fix               ? "ต้องแก้ "+st.fix
             : st.todo              ? "ค้าง "+st.todo+" หมวด"
@@ -2186,8 +2188,8 @@ function legendHtml(t){
   if(t) return it(GC.ok,"ผ่าน") + it(GC.done,"ปิดจบ · อนุโลม/แก้ไขแล้ว") +
     it(GC.warn,"ไม่ผ่าน · แก้เฉพาะจุด") + it(GC.bad,"ไม่ผ่าน · ต้องรื้อแก้") +
     it(GC.skip,"เข้าไม่ได้") + it("#fff","ยังไม่ตรวจ",1) +
-    (t.na ? it("#DCE3EB","ไม่มีหมวดนี้ตามแบบ") : "");
-  return it("#C9D3DE","จุดเทา = หมวดที่ยังไม่ได้ตรวจ") + it(GC.ok,"ผ่าน") +
+    (t.na ? it("#E7DCC5","ไม่มีหมวดนี้ตามแบบ") : "");
+  return it("#D5C8B0","จุดเทา = หมวดที่ยังไม่ได้ตรวจ") + it(GC.ok,"ผ่าน") +
     it(GC.done,"ปิดจบ") + it(GC.warn,"แก้เฉพาะจุด") + it(GC.bad,"ไม่ผ่าน") + it(GC.skip,"เข้าไม่ได้");
 }
 /** ห้องแรกที่ยังไม่ได้ตรวจ ไล่จากชั้นที่ดูอยู่วนไปจนครบทุกห้อง */
@@ -2291,7 +2293,7 @@ function renderHome(){
     const rooms = Object.keys(m);
     const c = count(t, rooms.map(r=> m[r]));
     const seg = LEVELS.map(lv=> c[lv] ? '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("")
-      || '<i style="flex:1;background:#E3E9E7"></i>';
+      || '<i style="flex:1;background:#E7DCC5"></i>';
     const fix = c.warn + c.bad;
     const tot = totalOf(t);
     return '<button class="tcard" data-t="'+t.id+'">'+
@@ -2391,7 +2393,7 @@ function renderAll(){
     const c = count(t, rooms.map(rn=> m[rn]));
     const seg = LEVELS.map(lv=> c[lv] ? '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("")
       + (rooms.length < tot
-         ? '<i style="flex:'+(tot-rooms.length)+';background:#DCE3EB"></i>' : "");
+         ? '<i style="flex:'+(tot-rooms.length)+';background:#E7DCC5"></i>' : "");
     return '<button class="tcard" data-t="'+t.id+'">'+
       '<span class="hd"><span class="ico">'+t.icon+'</span>'+
       '<span class="b"><span class="n">'+t.name+'</span>'+
@@ -2400,7 +2402,7 @@ function renderAll(){
       (c.bad  ? ' · ไม่ผ่าน '+c.bad : '')+
       (c.warn ? ' · แก้เฉพาะจุด '+c.warn : '')+
       (c.done ? ' · ปิดจบ '+c.done : '')+'</span>'+
-      '<span class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</span></button>';
+      '<span class="bar">'+(seg || '<i style="flex:1;background:#E7DCC5"></i>')+'</span></button>';
   }).join("");
   $("allTopics").querySelectorAll(".tcard").forEach(b=>
     b.onclick = ()=>{ S.topic = b.dataset.t; S.scope = "topic"; go("rooms"); });
@@ -2804,7 +2806,7 @@ function renderSum(){
     LV_TEXT[lv]+(SC_NOTE[lv] ? '<br>'+SC_NOTE[lv] : '')+'</div></div>').join("");
   $("sumBar").innerHTML = LEVELS.map(lv=> c[lv] ?
     '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("") ||
-    '<i style="flex:1;background:#E3E9E7"></i>';
+    '<i style="flex:1;background:#E7DCC5"></i>';
   const tot = totalOf(t);
   $("progressTxt").textContent = "ตรวจแล้ว "+rooms.length+" จาก "+tot+" ห้อง ("+
     (rooms.length/tot*100).toFixed(1)+"%) · เหลืออีก "+(tot-rooms.length)+" ห้อง"+
