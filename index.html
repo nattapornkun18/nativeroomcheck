@@ -70,17 +70,22 @@
   /* ---------- การ์ดหมวด ---------- */
   .sechead{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
     color:var(--mute);margin:16px 2px 8px}
-  .tcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);
-    border:1px solid var(--line);border-left:5px solid var(--brass);border-radius:var(--r);
-    padding:13px 14px;margin-bottom:8px;color:var(--ink)}
+  /* การ์ดหมวดเรียงแถวละสองใบ — หกหมวดจบใน 3 แถว ไม่ต้องเลื่อนยาว */
+  .tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .tcard{display:flex;flex-direction:column;gap:5px;width:100%;text-align:left;background:var(--card);
+    border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);
+    padding:10px 11px;color:var(--ink)}
   .tcard:active{background:#F7F9FC}
-  .tcard .ico{font-size:25px;line-height:1;flex:none}
+  .tcard .hd{display:flex;align-items:center;gap:7px;min-width:0}
+  .tcard .ico{font-size:20px;line-height:1;flex:none}
   .tcard .b{flex:1;min-width:0;display:block}
-  .tcard .n{font-size:15px;font-weight:600;display:block}
-  .tcard .n em{font-style:normal;font-size:11px;font-weight:600;letter-spacing:.08em;
-    text-transform:uppercase;color:var(--brass);margin-left:7px}
-  .tcard .s{font-size:12px;color:var(--mute);display:block}
-  .tcard .go{color:var(--mute);font-size:20px;flex:none}
+  .tcard .n{font-size:13.5px;font-weight:700;line-height:1.2;display:block;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tcard em{font-style:normal;font-size:9px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--brass);display:block;line-height:1.3;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tcard .s{font-size:11px;color:var(--mute);display:block;line-height:1.35}
+  .tcard .bar{margin-top:1px}
   .allbtn{width:100%;margin-top:6px;padding:13px;border-radius:var(--r);border:1.5px solid var(--ink);
     background:var(--card);color:var(--ink);font-size:14px;font-weight:700}
   .allbtn:active{background:#F2F5F9}
@@ -126,41 +131,34 @@
     border:1px solid var(--line);background:#fff;border-radius:6px;color:var(--ink-2)}
   .floorjump button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
-  .rbtn{position:relative;height:52px;border:1px solid var(--line);background:var(--card);
-    border-radius:8px;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink-2);padding:0;
-    display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .rbtn .no{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;color:inherit}
-  /* คำสถานะใต้เลขห้อง — ช่องที่ระบายสีแล้วใช้ตัวอักษรขาวจาง ๆ จะได้ไม่แย่งเลขห้อง */
-  .rbtn .lab{font-family:var(--sans);font-size:9.5px;font-weight:600;line-height:1.1;
-    margin-top:3px;color:var(--mute);white-space:nowrap}
-  @media(max-width:370px){
-    .rbtn .lab{font-size:8.5px}
-    .rbtn .dots i{width:5px;height:5px}
-  }
-  .rbtn[data-lv] .lab{color:rgba(255,255,255,.88)}
-  /* ห้องที่ตรวจแล้วระบายสีสถานะทึบทั้งช่อง — กวาดตาทีเดียวเห็นทั้งชั้นว่าเหลือห้องไหน */
+  /* ---------- กล่องห้อง ----------
+     เรียงไล่เลขห้องเป็นกล่อง ๆ ไม่ได้อิงตำแหน่งจริงในผังชั้นแล้ว
+     กล่องเดียวบอกครบ: เลขห้องเต็ม · ชนิดห้องตามแบบ · สถานะของห้องนั้น */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:7px;margin-top:10px}
+  .rbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;
+    padding:9px 6px 10px;color:var(--ink-2);text-align:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px}
+  .rbtn .no{font-family:var(--mono);font-size:17px;font-weight:700;line-height:1.1;color:inherit}
+  .rbtn .ty{font-size:9.5px;font-weight:600;line-height:1.25;color:var(--brass);
+    max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* คำสถานะบรรทัดล่าง — กล่องที่ระบายสีแล้วใช้ตัวอักษรขาวจาง ๆ จะได้ไม่แย่งเลขห้อง */
+  .rbtn .lab{font-family:var(--sans);font-size:10px;font-weight:700;line-height:1.2;
+    margin-top:2px;color:var(--mute);white-space:nowrap}
   .rbtn[data-lv]{color:#fff;border-color:transparent}
+  .rbtn[data-lv] .ty{color:rgba(255,255,255,.78)}
+  .rbtn[data-lv] .lab{color:rgba(255,255,255,.92)}
   .rbtn[data-lv="ok"]{background:var(--ok)}
   .rbtn[data-lv="done"]{background:var(--done)}
   .rbtn[data-lv="warn"]{background:var(--warn)}
   .rbtn[data-lv="bad"]{background:var(--bad)}
   .rbtn[data-lv="skip"]{background:var(--skip)}
-  .rbtn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
   .rbtn.off{background:#F1F4F8;color:#AEB8C4;border-style:dashed}
-
-  /* ---------- ผังชั้นแบบย่อ ----------
-     วางปุ่มห้องตามตำแหน่งจริงในแปลน ไม่ลงรายละเอียดห้อง เอาแค่แนวผนังกั้น
-     ช่องไฟระหว่างช่อง = แนวผนัง จึงไม่ต้องตีเส้นให้ซ้อนกันสองชั้น */
-  .plan{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:10px;
-    background:var(--line);border:3px solid #B9C4D0;border-radius:10px;padding:3px;overflow:hidden}
-  .plan .rbtn{height:54px;border:0;border-radius:0}
-  .plan .rbtn.off{background:#EAEFF4;box-shadow:inset 0 0 0 1px #D3DBE4}
-  /* แกนกลางอาคาร — ลิฟต์ บันไดหนีไฟ ห้องช่าง ไม่ใช่ห้องพัก กดไม่ได้ */
-  .plan .core{grid-column:2/4;grid-row:1/5;display:flex;align-items:center;justify-content:center;
-    text-align:center;font-size:10px;line-height:1.6;color:#8A97A6;background:#EDF1F5;
-    background-image:repeating-linear-gradient(45deg,transparent 0 5px,rgba(80,100,120,.06) 5px 10px)}
-  .plannote{font-size:11px;color:var(--mute);margin-top:8px;text-align:center}
+  .rbtn.off .ty{color:#B6BFCA}
+  @media(max-width:360px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+    .rbtn .ty{font-size:9px}
+    .rbtn .lab{font-size:9.5px}
+  }
   .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--mute);margin-top:10px}
   .legend span{display:flex;align-items:center;gap:4px}
   .legend b{width:7px;height:7px;border-radius:50%;display:block}
@@ -178,8 +176,6 @@
   .rall[data-st="fix"] .lab{color:var(--bad)}
   .rall[data-st="part"] .lab{color:var(--warn)}
   .rall[data-st="none"] .lab{color:#A9B3C0}
-  .grid .rall{height:66px}
-  .plan .rall{height:70px}
 
   /* ---------- แถบเลือกหมวดบนหน้าเลือกห้อง ----------
      เลื่อนแนวนอนได้ กดสลับหมวดได้เลยโดยไม่ต้องย้อนกลับไปหน้าแรก
@@ -560,7 +556,7 @@
     </div>
 
     <div class="sechead">หมวดที่ตรวจ</div>
-    <div id="topicCards"></div>
+    <div id="topicCards" class="tgrid"></div>
 
     <!-- เลือกห้องได้ตั้งแต่หน้าแรก — ไม่ต้องเลือกหมวดก่อนก็เข้าห้องได้เลย
          ในช่องห้องบอกไว้แต่แรกว่าห้องนั้นยังค้างกี่หมวด -->
@@ -578,7 +574,6 @@
         </div>
         <div class="fsum" id="hFloorSum"></div>
         <div class="grid" id="hRoomGrid"></div>
-        <div class="plannote hide" id="hPlanNote">วางตามผังชั้น · มองจากด้านบน หัวอาคารอยู่บน</div>
         <div class="legend" id="hLegend"></div>
         <div class="roomhint">จุดใต้เลขห้อง = หมวดตรวจของห้องนั้น เรียงตามลำดับหมวดข้างบน ·
           <b>แตะห้องเพื่อเข้าไปตรวจได้ทุกหมวดในห้องเดียว</b></div>
@@ -607,7 +602,7 @@
   <div class="pane hide" id="viewAll">
     <div class="score" id="allScore"></div>
     <div class="sechead">ความคืบหน้าแต่ละหมวด</div>
-    <div id="allTopics"></div>
+    <div id="allTopics" class="tgrid"></div>
     <div class="sechead">ห้องที่ยังรอแก้ไข <span id="allFixCount"></span></div>
     <div class="card"><table><tbody id="allFix"></tbody></table></div>
     <div class="sechead">ความคืบหน้ารายชั้น</div>
@@ -635,7 +630,6 @@
         </div>
         <div class="fsum" id="floorSum"></div>
         <div class="grid" id="roomGrid"></div>
-        <div class="plannote hide" id="planNote">วางตามผังชั้น · มองจากด้านบน หัวอาคารอยู่บน</div>
         <div class="legend" id="roomLegend"></div>
         <div class="roomhint" id="roomHint"></div>
       </div>
@@ -825,27 +819,6 @@ const EX_PAINT_OPTS = [{v:"ทาสีไม่ลงมาผนัง"},{v:"�
 const ROOM_TYPE = {1:"grand corner",2:"deluxe twin",3:"deluxe king",4:"deluxe king",
   5:"deluxe king",6:"grand deluxe",7:"grand deluxe",8:"deluxe king",9:"deluxe king",
   10:"deluxe king",11:"deluxe twin",12:"grand corner"};
-
-/* ---- ผังชั้น: ห้องไหนอยู่ตรงไหนในแปลน ----
-   [คอลัมน์, แถว] ในกริด 4 คอลัมน์ × 5 แถว นับจากมุมซ้ายบน
-   คอลัมน์ 2–3 แถว 1–4 คือแกนกลางอาคาร (ลิฟต์ บันไดหนีไฟ ห้องช่าง) ไม่มีห้องพัก
-
-        06 ┃         ┃ 07        ← หัวอาคาร ห้องมุมบน
-        05 ┃  ลิฟต์   ┃ 08
-        04 ┃  บันได   ┃ 09
-        03 ┃  ช่าง    ┃ 10
-        01 ┃ 02 ┃ 11 ┃ 12        ← ท้ายอาคาร ห้องมุมล่างคือ 01 กับ 12
-
-   ชั้นไหนวางไม่เหมือนกัน แก้ตารางนี้ที่เดียว
-   ถ้าห้องไหนไม่มีในตาราง หน้าเว็บจะถอยไปใช้ตารางเรียงธรรมดาให้เอง */
-const PLAN = {
-  6:[1,1],  7:[4,1],
-  5:[1,2],  8:[4,2],
-  4:[1,3],  9:[4,3],
-  3:[1,4], 10:[4,4],
-  1:[1,5],  2:[2,5], 11:[3,5], 12:[4,5]
-};
-const CORE_TEXT = "ลิฟต์ · บันไดหนีไฟ<br>ห้องช่าง";
 
 /* ---- ประตู: จำนวนช่องรอบบาน นับซ้าย→ขวา และ บน→ล่าง ---- */
 const DOOR = {top:4, bottom:5, left:8, right:8};
@@ -2179,22 +2152,19 @@ function fsumHtml(f, t){
     '<div class="tags">'+tags.filter(x=> x[1] > 0).map(x=>
       '<span class="badge" data-lv="'+x[0]+'">'+x[2]+' '+x[1]+'</span>').join("")+'</div>';
 }
-/** ปุ่มห้องหนึ่งช่อง — t = null คือโหมดรวมทุกหมวด (เลขห้อง + จุดหมวด + ค้างกี่หมวด) */
-function roomCellHtml(rn, t, usePlan){
-  const p  = PLAN[unitOf(rn)];
-  const at = usePlan ? ' style="grid-column:'+p[0]+';grid-row:'+p[1]+'"' : '';
-  const ty = ROOM_TYPE[unitOf(rn)] || "";
+/** กล่องห้องหนึ่งกล่อง — t = null คือโหมดรวมทุกหมวด (จุดหมวด + ค้างกี่หมวด) */
+function roomCellHtml(rn, t){
+  const ty  = ROOM_TYPE[unitOf(rn)] || "";
+  const top = '<div class="no">'+rn+'</div><div class="ty">'+ty+'</div>';
   if(t){
     if(!topicOn(t, rn))                       /* หมวดนี้ไม่ต้องตรวจห้องนี้ตามแบบ */
-      return '<button class="rbtn off" data-r="'+rn+'"'+at+' title="ห้อง '+rn+
-        ' · ไม่มีหมวดนี้ตามแบบ"><div class="no">'+rn.slice(-2)+
-        '</div><div class="lab">ไม่มี</div></button>';
+      return '<button class="rbtn off" data-r="'+rn+'" title="ห้อง '+rn+
+        ' · ไม่มีหมวดนี้ตามแบบ">'+top+'<div class="lab">ไม่มีหมวดนี้</div></button>';
     const r = (S.latest[t.id]||{})[rn], lv = levelOf(t, r);
-    return '<button class="rbtn" data-r="'+rn+'"'+at+(lv ? ' data-lv="'+lv+'"' : '')+
+    return '<button class="rbtn" data-r="'+rn+'"'+(lv ? ' data-lv="'+lv+'"' : '')+
       ' title="ห้อง '+rn+' · '+ty+
       (r ? " · "+gradeText(t, r)+" · "+showDate(r["วันที่ตรวจ"]) : " · ยังไม่ตรวจ")+'">'+
-      '<div class="no">'+rn.slice(-2)+'</div>'+
-      '<div class="lab">'+(lv ? LV_TEXT[lv] : "ยังไม่ตรวจ")+'</div></button>';
+      top+'<div class="lab">'+(lv ? LV_TEXT[lv] : "ยังไม่ตรวจ")+'</div></button>';
   }
   const st = roomStat(rn);
   const dots = st.lvs.map(x=>
@@ -2203,11 +2173,10 @@ function roomCellHtml(rn, t, usePlan){
             : st.fix               ? "ต้องแก้ "+st.fix
             : st.todo              ? "ค้าง "+st.todo+" หมวด"
             :                        "ครบทุกหมวด";
-  return '<button class="rbtn rall" data-r="'+rn+'" data-st="'+st.state+'"'+at+
+  return '<button class="rbtn rall" data-r="'+rn+'" data-st="'+st.state+'"'+
     ' title="ห้อง '+rn+' · '+ty+' · ตรวจแล้ว '+st.done+'/'+st.total+' หมวด'+
     (st.fix ? " · ต้องแก้ "+st.fix+" หมวด" : "")+'">'+
-    '<div class="no">'+rn.slice(-2)+'</div>'+
-    '<div class="dots">'+dots+'</div>'+
+    top+'<div class="dots">'+dots+'</div>'+
     '<div class="lab">'+lab+'</div></button>';
 }
 /** คำอธิบายสีใต้กริด — เปลี่ยนตามโหมดที่ดูอยู่ จะได้ไม่อ่านสีผิดความหมาย */
@@ -2241,15 +2210,8 @@ function renderFloorBlock(ids, t, onPick){
     b.onclick = ()=>{ S.floor = +b.dataset.f; render(); });
   if(ids.sum) $(ids.sum).innerHTML = fsumHtml(S.floor, t);
 
-  /* วางตามผังชั้นถ้ารู้ตำแหน่งครบทุกห้อง ไม่งั้นถอยไปใช้ตารางเรียงธรรมดา
-     ลำดับใน DOM ยังเป็น 01→12 เหมือนเดิม การกด Tab ไล่ห้องจึงยังเรียงตามเลขห้อง */
-  const usePlan = rooms.every(rn=> PLAN[unitOf(rn)]);
   const g = $(ids.grid);
-  g.className = usePlan ? "plan" : "grid";
-  $(ids.note).classList.toggle("hide", !usePlan);
-  const cells = rooms.map(rn=> roomCellHtml(rn, t, usePlan));
-  if(usePlan) cells.push('<div class="core">'+CORE_TEXT+'</div>');
-  g.innerHTML = cells.join("");
+  g.innerHTML = rooms.map(rn=> roomCellHtml(rn, t)).join("");
   g.querySelectorAll(".rbtn").forEach(b=> b.onclick = ()=> onPick(b.dataset.r));
   if(ids.legend) $(ids.legend).innerHTML = legendHtml(t);
 }
@@ -2331,12 +2293,12 @@ function renderHome(){
     const seg = LEVELS.map(lv=> c[lv] ? '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("")
       || '<i style="flex:1;background:#E3E9E7"></i>';
     const fix = c.warn + c.bad;
+    const tot = totalOf(t);
     return '<button class="tcard" data-t="'+t.id+'">'+
-      '<span class="ico">'+t.icon+'</span>'+
-      '<span class="b"><span class="n">'+t.name+'<em>'+t.en+'</em></span>'+
-      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+totalOf(t)+' ห้อง'+
-      (fix ? ' · ต้องแก้ '+fix+' ห้อง' : '')+'</span>'+
-      '<span class="bar">'+seg+'</span></span><span class="go">›</span></button>';
+      '<span class="hd"><span class="ico">'+t.icon+'</span>'+
+      '<span class="b"><span class="n">'+t.name+'</span><em>'+t.en+'</em></span></span>'+
+      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+tot+(fix ? ' · แก้ '+fix : '')+'</span>'+
+      '<span class="bar">'+seg+'</span></button>';
   }).join("");
   document.querySelectorAll("#topicCards .tcard").forEach(b=>
     b.onclick = ()=>{ S.topic = b.dataset.t; S.scope = "topic"; go("rooms"); });
@@ -2344,7 +2306,7 @@ function renderHome(){
   /* ---- เลือกห้องได้ตั้งแต่หน้าแรก ----
      ไม่ต้องเลือกหมวดก่อน กดห้องได้เลย ในช่องบอกไว้แต่แรกว่าห้องนั้นค้างกี่หมวด */
   renderFloorBlock({val:"hVal", jump:"hFloorJump", sum:"hFloorSum", grid:"hRoomGrid",
-                    note:"hPlanNote", legend:"hLegend"}, null,
+                    legend:"hLegend"}, null,
                    rn=>{ S.scope = "all"; S.tab = "rooms"; pickRoom(rn, null); });
 
   /* ---- ตารางภาพรวมตามช่วงวันที่เลือก ----
@@ -2430,15 +2392,15 @@ function renderAll(){
     const seg = LEVELS.map(lv=> c[lv] ? '<i style="flex:'+c[lv]+';background:'+GC[lv]+'"></i>' : "").join("")
       + (rooms.length < tot
          ? '<i style="flex:'+(tot-rooms.length)+';background:#DCE3EB"></i>' : "");
-    return '<button class="tcard" data-t="'+t.id+'"><span class="ico">'+t.icon+'</span>'+
-      '<span class="b"><span class="n">'+t.name+
-      '<em>'+Math.round(rooms.length/tot*100)+'%</em></span>'+
-      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+tot+' · เหลือ '+(tot-rooms.length)+
+    return '<button class="tcard" data-t="'+t.id+'">'+
+      '<span class="hd"><span class="ico">'+t.icon+'</span>'+
+      '<span class="b"><span class="n">'+t.name+'</span>'+
+      '<em>'+Math.round(rooms.length/tot*100)+'% · เหลือ '+(tot-rooms.length)+'</em></span></span>'+
+      '<span class="s">ตรวจแล้ว '+rooms.length+'/'+tot+
       (c.bad  ? ' · ไม่ผ่าน '+c.bad : '')+
-      (c.warn ? ' · ไม่ผ่าน (เหลือง) '+c.warn : '')+
+      (c.warn ? ' · แก้เฉพาะจุด '+c.warn : '')+
       (c.done ? ' · ปิดจบ '+c.done : '')+'</span>'+
-      '<span class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</span></span>'+
-      '<span class="go">›</span></button>';
+      '<span class="bar">'+(seg || '<i style="flex:1;background:#DCE3EB"></i>')+'</span></button>';
   }).join("");
   $("allTopics").querySelectorAll(".tcard").forEach(b=>
     b.onclick = ()=>{ S.topic = b.dataset.t; S.scope = "topic"; go("rooms"); });
@@ -2523,7 +2485,7 @@ function renderRooms(){
       '<b>แตะห้องแล้วเปิดหมวดแรกที่ยังค้างให้เลย</b>';
 
   renderFloorBlock({val:"fVal", jump:"floorJump", sum:"floorSum", grid:"roomGrid",
-                    note:"planNote", legend:"roomLegend"}, t, rn=> pickRoom(rn, t));
+                    legend:"roomLegend"}, t, rn=> pickRoom(rn, t));
 
   /* ทางลัดไปห้องถัดไปที่ยังไม่ได้ตรวจ — ไล่จากชั้นที่ดูอยู่ วนไปจนครบตึก */
   const nx = nextTodoRoom(t);
